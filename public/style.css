@@ -1,0 +1,374 @@
+/* ============================================================
+   1SHOT — Telegram Mini App (тёмная тема под игровую атмосферу)
+   ============================================================ */
+
+:root {
+  --bg: #0b0d12;
+  --bg-soft: #11141b;
+  --card: #171b24;
+  --card-hover: #1d2230;
+  --line: #232a3a;
+  --text: #e8ecf4;
+  --text-dim: #8b94a7;
+  --green: #2fd473;
+  --green-bg: rgba(47, 212, 115, 0.12);
+  --red: #ff5c6c;
+  --red-bg: rgba(255, 92, 108, 0.12);
+  --blue: #4d9fff;
+  --blue-bg: rgba(77, 159, 255, 0.14);
+  --gray: #6b7280;
+  --gray-bg: rgba(107, 114, 128, 0.14);
+  --radius: 14px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+body { padding-bottom: calc(24px + var(--safe-bottom)); }
+
+.hidden { display: none !important; }
+
+/* ------------------------------- Баннер ------------------------------- */
+
+.banner {
+  background: #3a2d12;
+  color: #ffd28a;
+  padding: 10px 16px;
+  font-size: 13.5px;
+}
+
+/* ------------------------------- Шапка ------------------------------- */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(180deg, var(--bg) 70%, rgba(11, 13, 18, 0.92));
+  backdrop-filter: blur(8px);
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.header__row { display: flex; align-items: center; justify-content: space-between; }
+
+.brand { display: flex; align-items: center; gap: 10px; }
+
+.brand__logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  color: #0b0d12;
+  background: linear-gradient(135deg, var(--green), #9ff3c4);
+}
+
+.brand__name { font-size: 18px; font-weight: 800; letter-spacing: 1px; }
+
+.brand__greeting { font-size: 12.5px; color: var(--text-dim); }
+
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+.icon-btn:active { transform: scale(0.92); }
+.icon-btn.spinning svg { animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.summary {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  flex-wrap: wrap;
+}
+.summary b { color: var(--text); font-weight: 700; }
+.summary .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+.dot--green { background: var(--green); }
+.dot--red { background: var(--red); }
+.dot--gray { background: var(--gray); }
+
+/* ------------------------------- Контент ------------------------------- */
+
+.main { padding: 14px 16px 0; }
+
+.section { margin-bottom: 22px; }
+
+.section__title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+/* --------------------------- Мои брони --------------------------- */
+
+.mylist { display: flex; flex-direction: column; gap: 10px; }
+
+.mylist__empty {
+  color: var(--text-dim);
+  font-size: 13.5px;
+  background: var(--bg-soft);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  text-align: center;
+}
+
+.mycard {
+  background: var(--blue-bg);
+  border: 1px solid rgba(77, 159, 255, 0.35);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mycard__info { flex: 1; min-width: 0; }
+.mycard__host { font-weight: 700; font-size: 15px; }
+.mycard__time { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
+
+.mycard__pin {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  color: var(--blue);
+  background: rgba(77, 159, 255, 0.1);
+  border: 1px solid rgba(77, 159, 255, 0.3);
+  border-radius: 10px;
+  padding: 6px 10px;
+}
+
+.btn-cancel {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--red);
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.btn-cancel:active { transform: scale(0.96); }
+
+/* --------------------------- Сетка компов --------------------------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.hostcard {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  min-height: 84px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.05s ease;
+  user-select: none;
+}
+.hostcard:active { transform: scale(0.98); }
+
+.hostcard__top { display: flex; align-items: center; gap: 8px; }
+
+.hostcard__dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+
+.hostcard__name {
+  font-weight: 700;
+  font-size: 14.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hostcard__meta { font-size: 11.5px; color: var(--text-dim); }
+
+.hostcard__status { font-size: 12.5px; font-weight: 600; }
+
+.hostcard--free      { background: var(--green-bg); border-color: rgba(47, 212, 115, 0.35); }
+.hostcard--free .hostcard__dot { background: var(--green); box-shadow: 0 0 8px rgba(47,212,115,0.7); }
+.hostcard--free .hostcard__status { color: var(--green); }
+
+.hostcard--busy      { background: var(--red-bg); border-color: rgba(255, 92, 108, 0.3); }
+.hostcard--busy .hostcard__dot { background: var(--red); }
+.hostcard--busy .hostcard__status { color: var(--red); }
+
+.hostcard--mine      { background: var(--blue-bg); border-color: rgba(77, 159, 255, 0.45); }
+.hostcard--mine .hostcard__dot { background: var(--blue); box-shadow: 0 0 8px rgba(77,159,255,0.7); }
+.hostcard--mine .hostcard__status { color: var(--blue); }
+
+.hostcard--offline,
+.hostcard--ooo       { background: var(--gray-bg); border-color: rgba(107, 114, 128, 0.3); cursor: default; }
+.hostcard--offline .hostcard__dot,
+.hostcard--ooo .hostcard__dot { background: var(--gray); }
+.hostcard--offline .hostcard__status,
+.hostcard--ooo .hostcard__status { color: var(--gray); }
+.hostcard--offline .hostcard__name,
+.hostcard--ooo .hostcard__name { color: var(--text-dim); }
+
+/* ------------------------------- Шторка ------------------------------- */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 40;
+  animation: fade 0.18s ease;
+}
+@keyframes fade { from { opacity: 0; } }
+
+.sheet {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 50;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+  padding: 10px 18px calc(20px + var(--safe-bottom));
+  transform: translateY(105%);
+  transition: transform 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.sheet.open { transform: translateY(0); }
+
+.sheet__handle {
+  width: 38px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  margin: 4px auto 14px;
+}
+
+.sheet__title { font-size: 18px; font-weight: 800; }
+
+.sheet__host {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+.sheet__host b { color: var(--text); }
+
+.sheet__label {
+  margin: 16px 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  font-weight: 700;
+}
+
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.chip {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.chip.active {
+  background: var(--green);
+  border-color: var(--green);
+  color: #08130c;
+}
+
+.sheet__ends { margin-top: 14px; font-size: 13.5px; color: var(--text-dim); }
+.sheet__ends b { color: var(--text); }
+
+.btn {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 15px;
+  font-size: 15.5px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-top: 16px;
+}
+.btn--primary { background: var(--green); color: #08130c; }
+.btn:disabled { opacity: 0.55; cursor: default; }
+.btn:not(:disabled):active { transform: scale(0.99); }
+
+.sheet__error {
+  margin-top: 12px;
+  background: var(--red-bg);
+  border: 1px solid rgba(255, 92, 108, 0.4);
+  color: #ffb3bc;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13.5px;
+}
+
+/* ------------------------------- Прочее ------------------------------- */
+
+.footer {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 12px;
+  padding: 8px 0 4px;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + var(--safe-bottom));
+  transform: translateX(-50%) translateY(20px);
+  z-index: 60;
+  background: #22293a;
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 11px 16px;
+  border-radius: 12px;
+  max-width: min(92vw, 420px);
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast--ok { border-color: rgba(47, 212, 115, 0.5); }
+.toast--err { border-color: rgba(255, 92, 108, 0.5); }
+
+.loading {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--text-dim);
+  padding: 40px 0;
+  font-size: 14px;
+}
