@@ -1,0 +1,29 @@
+# Пример конфигурации cloudflared для туннеля до Gizmo Server.
+#
+# 1) Заполните tunnel: <id вашего туннеля> (из cloudflared tunnel info)
+# 2) credentials-file: путь к .json-ключу туннеля
+# 3) hostname: домен, который вы привяжете к туннелю
+#    (cloudflared tunnel route dns <tunnel> gizmo.ВАШ-ДОМЕН.ТЛД)
+# 4) service: адрес Gizmo Web API ВНУТРИ сети клуба.
+#    - если веб-портал Gizmo на обычном HTTP-порту (80/8080):
+#        service: http://172.20.103.10:8080
+#    - если Gizmo отдаёт только HTTPS (443), как в этом случае
+#      (swagger по https://172.20.103.10/doc/index.html):
+#        service: https://172.20.103.10:443
+#        и добавьте originRequest.noTLSVerify: true
+#        (внутренний сертификат может быть self-signed)
+#
+# Запуск (Windows):  cloudflared.exe --config config.yaml run
+# Запуск (Linux):    cloudflared --config config.yaml run
+
+tunnel: 00000000-0000-0000-0000-000000000000
+credentials-file: C:\Users\club-admin\.cloudflared\1shot-gizmo.json
+
+ingress:
+  - hostname: gizmo.1shot-example.com
+    service: https://172.20.103.10:443
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 10s
+      noHappyEyeballs: true
+  - service: http_status:404

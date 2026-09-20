@@ -1,0 +1,16 @@
+# Конфигурация Supabase для проекта 1shot.
+# verify_jwt = false — аутентификацию делает не JWT Supabase,
+# а проверка Telegram initData (HMAC) внутри каждой функции.
+project_id = "1shot"
+
+[functions.hosts]
+verify_jwt = false
+
+[functions.reserve]
+verify_jwt = false
+
+[functions.my-reservations]
+verify_jwt = false
+
+[functions.cancel-reservation]
+verify_jwt = false
