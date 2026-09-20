@@ -1,12 +1,12 @@
 name: Deploy Mini App to GitHub Pages
 
-# Статика мини-аппа живёт в /public и деплоится на GitHub Pages
+# Статика мини-аппа живёт в /Mnogo Xyuni/public и деплоится на GitHub Pages
 # (Settings → Pages → Source: GitHub Actions).
 on:
   push:
     branches: [main]
     paths:
-      - "public/**"
+      - "Mnogo Xyuni/public/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -30,6 +30,6 @@ jobs:
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: public
+          path: "Mnogo Xyuni/public"
       - id: deployment
         uses: actions/deploy-pages@v4

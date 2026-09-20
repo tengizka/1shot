@@ -11,7 +11,7 @@ window.APP_CONFIG = {
   CLUB_NAME: "1SHOT",
 
   // Адрес клуба (под шапкой / в футере).
-  CLUB_ADDRESS: "Киберхаус / 1SHOT",
+  CLUB_ADDRESS: "улица Мира, 37",
 
   // Как часто опрашиваем статусы (мс). 10000 = раз в 10 секунд.
   POLL_INTERVAL_MS: 10000,

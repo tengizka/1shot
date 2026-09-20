@@ -525,7 +525,7 @@ window.addEventListener("focus", () => tick());
     renderAll();
     renderMy();
     $("greeting").textContent = "Твой следующий GG";
-    $("addr").textContent = "Киберхаус / 1SHOT";
+    $("addr").textContent = CFG.CLUB_ADDRESS || "улица Мира, 37";
     $("footer").textContent = "Выберите место · Оплата на кассе при посещении";
     return;
   }
