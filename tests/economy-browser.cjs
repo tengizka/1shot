@@ -23,11 +23,11 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   });
   await page.goto('https://club.test/');await page.waitForSelector('#splash',{state:'hidden'});await page.waitForSelector('.map-pc.free');
   await page.waitForTimeout(1000);calls.length=0;
-  await page.waitForTimeout(16000);assert.deepEqual(calls,['state'],'idle refresh must be one shared packet, not three calls');
+  await page.waitForTimeout(6000);assert.deepEqual(calls,['state'],'idle refresh must be one shared packet, not three calls');
   calls.length=0;
   await page.evaluate(()=>{testHidden=true;document.dispatchEvent(new Event('visibilitychange'))});
-  await page.waitForTimeout(16000);assert.deepEqual(calls,[],'hidden app must not poll');
+  await page.waitForTimeout(6000);assert.deepEqual(calls,[],'hidden app must not poll');
   await page.evaluate(()=>{testHidden=false;document.dispatchEvent(new Event('visibilitychange'))});await page.waitForTimeout(1000);assert.deepEqual(calls,['state'],'resume sends one fresh shared request');
-  assert.deepEqual(errors,[]);console.log('Economy browser: one packet/15s, shared hosts/account/bookings, no hidden polls, one resume request.');
+  assert.deepEqual(errors,[]);console.log('Economy browser: one packet/5s, shared hosts/account/bookings, no hidden polls, one resume request.');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});

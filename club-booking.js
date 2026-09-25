@@ -12,7 +12,7 @@ window.clubV2=false;
  const fmt=v=>new Date(v).toLocaleTimeString('ru-RU',{timeZone:'Europe/Moscow',hour:'2-digit',minute:'2-digit'});
  const date=()=>new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Moscow'});
  async function rawCall(action,data={}){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);try{return await apiFetch(`${SUPA}/club-bookings`,{method:'POST',signal:controller.signal,body:JSON.stringify({action,initData:tg?.initData||'',...data})})}finally{clearTimeout(timer)}}
- let bundlePromise=null,bundleCache=null,bundleTime=0,pollFailures=0,fastUntil=0;
+ let bundlePromise=null,bundleCache=null,bundleTime=0,pollFailures=0;
  window.getClubState=async()=>{
   if(bundlePromise)return bundlePromise;
   if(bundleCache&&Date.now()-bundleTime<1000)return bundleCache;
@@ -22,7 +22,7 @@ window.clubV2=false;
  async function call(action,data={}){
   if(window.pollBundleReady&&['list','account'].includes(action))return window.getClubState();
   const result=await rawCall(action,data);
-  if(!['capabilities','list','account'].includes(action)){bundleCache=null;fastUntil=Date.now()+30000;clearTimeout(pollTimer);if(!document.hidden)pollTimer=setTimeout(poll,5000);}
+  if(!['capabilities','list','account'].includes(action)){bundleCache=null;clearTimeout(pollTimer);if(!document.hidden)pollTimer=setTimeout(poll,5000);}
   return result;
  }
  function open(){window.hallMotion?.cancel();if(!sheet.open)sheet.showModal()}
@@ -166,10 +166,10 @@ window.clubV2=false;
   if(document.hidden){pollTimer=null;return;}
   polling=true;
   try{if(!window.clubV2&&Date.now()-capabilitiesAt>=60000)await init();await Promise.all([refresh(),refreshAccount(),profile?fetchHosts():Promise.resolve()])}finally{polling=false;}
-  const seconds=pollFailures?Math.min(60,20*2**pollFailures):Date.now()<fastUntil?5:15;
+  const seconds=pollFailures?Math.min(60,20*2**pollFailures):5;
   clearTimeout(pollTimer);if(!document.hidden)pollTimer=setTimeout(poll,seconds*1000);
  }
- init().then(()=>{if(!polling){clearTimeout(pollTimer);pollTimer=setTimeout(poll,15000)}});
+ init().then(()=>{if(!polling){clearTimeout(pollTimer);pollTimer=setTimeout(poll,5000)}});
  document.addEventListener('visibilitychange',()=>{clearTimeout(pollTimer);if(!document.hidden){bundleCache=null;poll()}});
  window.addEventListener('club:resume',()=>{bundleCache=null;poll()});
  // Expire cached availability locally, without another network request.

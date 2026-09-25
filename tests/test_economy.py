@@ -7,12 +7,12 @@ from desktop.polling import PollBudget
 class EconomyTests(unittest.TestCase):
  def test_idle_budget_and_bounded_fast_poll(self):
   now=[0];budget=PollBudget(lambda:now[0]);rows=[{'id':'1','status':'checkin_pending'}]
-  self.assertEqual(budget.interval(),10)
-  self.assertEqual(31*86400//budget.interval(),267840)
+  self.assertEqual(budget.interval(),5)
+  self.assertEqual(31*86400//budget.interval(),535680)
   self.assertEqual(budget.interval(rows),2)
-  now[0]=31;self.assertEqual(budget.interval(rows),10)
+  now[0]=31;self.assertEqual(budget.interval(rows),5)
   self.assertEqual([budget.interval(failed=True) for _ in range(5)],[20,40,60,60,60])
-  self.assertEqual(budget.interval(),10)
+  self.assertEqual(budget.interval(),5)
  def cloud(self):
   with patch.dict(os.environ,{'SUPABASE_URL':'https://example.test','AGENT_SECRET':'test-only'}):return Cloud()
  def test_idle_snapshot_is_one_request(self):

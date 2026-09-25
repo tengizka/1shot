@@ -12,4 +12,4 @@ class PollBudget:
         signature=tuple(sorted((str(b['id']),b['status']) for b in rows if b.get('status') in ('checkin_pending','cancel_requested','release_requested')))
         if signature!=self.signature:
             self.signature=signature;self.fast_until=self.clock()+30 if signature else 0
-        return 2 if signature and self.clock()<self.fast_until else 10
+        return 2 if signature and self.clock()<self.fast_until else 5
