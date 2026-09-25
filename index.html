@@ -1,20 +1,918 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#000004">
-  <title>1SHOT — Киберхаус</title>
-  <meta http-equiv="refresh" content="0; url=./Mnogo%20Xyuni/public/">
-  <style>
-    body { background: #000004; color: #f4f2ff; font-family: system-ui, sans-serif; padding: 32px; }
-    a { color: #b78bff; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0E0F13">
+<title>1SHOT</title>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+  --bg:          #0E0F13;
+  --bg-card:     #14151A;
+  --bg-input:    #1C1D23;
+  --border:      #23242B;
+  --accent:      #FF5A36;
+  --accent-dim:  rgba(255,90,54,.12);
+  --accent-mid:  rgba(255,90,54,.25);
+  --vip:         #C9A227;
+  --vip-dim:     rgba(201,162,39,.12);
+  --vip-mid:     rgba(201,162,39,.3);
+  --free:        #22C55E;
+  --free-dim:    rgba(34,197,94,.15);
+  --busy:        #EF4444;
+  --reserved:    #F59E0B;
+  --broken:      #2A2B30;
+  --t1:          #FFFFFF;
+  --t2:          #8A8B94;
+  --t3:          #3A3B44;
+  --safe-top:    env(safe-area-inset-top,  0px);
+  --safe-bot:    env(safe-area-inset-bottom, 0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;position:fixed;overscroll-behavior:none;background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif}
+.screen{position:fixed;inset:0;display:none;flex-direction:column;background:var(--bg)}
+.screen.active{display:flex}
+
+/* ── SPLASH ─────────────────────────────────── */
+#splash{justify-content:center;align-items:center;z-index:9999;animation:splashOut .5s ease 2.8s forwards}
+@keyframes splashOut{to{opacity:0;pointer-events:none}}
+.splash-logo{width:55%;max-width:240px;animation:logoIn 1.2s cubic-bezier(.22,1,.36,1) .3s both}
+@keyframes logoIn{from{opacity:0;transform:scale(.8) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.splash-tag{margin-top:24px;font-family:'Chakra Petch',sans-serif;font-size:11px;font-weight:600;letter-spacing:4px;color:var(--accent);text-transform:uppercase;opacity:0;animation:fadeUp .8s ease 1.4s forwards}
+.splash-made{position:absolute;bottom:calc(36px + var(--safe-bot));font-size:9px;letter-spacing:3px;color:var(--t3);text-transform:uppercase;font-family:'Chakra Petch',sans-serif;opacity:0;animation:fadeUp .8s ease 2s forwards}
+@keyframes fadeUp{to{opacity:1}}
+
+/* ── AUTH ────────────────────────────────────── */
+#auth{overflow-y:auto;padding:calc(56px + var(--safe-top)) 24px calc(40px + var(--safe-bot));animation:authIn .5s cubic-bezier(.22,1,.36,1) both}
+@keyframes authIn{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+.auth-logo{width:150px;display:block;margin:0 auto 44px}
+.auth-tabs{display:flex;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:4px;margin-bottom:28px}
+.auth-tab{flex:1;padding:11px;border:none;border-radius:7px;background:transparent;color:var(--t2);font-family:'Chakra Petch',sans-serif;font-size:13px;font-weight:600;letter-spacing:.5px;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.auth-tab.active{background:var(--accent);color:#fff}
+.auth-form{display:none}
+.auth-form.active{display:block}
+.field{margin-bottom:18px}
+.field label{display:block;font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--t2);text-transform:uppercase;margin-bottom:8px;font-family:'Chakra Petch',sans-serif}
+.field input{width:100%;padding:15px 16px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:10px;color:var(--t1);font-size:15px;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+.field input::placeholder{color:var(--t3)}
+.btn-main{width:100%;padding:16px;background:var(--accent);border:none;border-radius:10px;color:#fff;font-family:'Chakra Petch',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;margin-top:8px;transition:opacity .2s,transform .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-main:active{transform:scale(.97)}
+.btn-main:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.auth-err{margin-top:14px;padding:12px 14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:8px;color:#F87171;font-size:13px;display:none}
+.auth-err.show{display:block}
+.auth-hint{margin-top:20px;font-size:12px;color:var(--t3);text-align:center;line-height:1.6}
+
+/* ── APP ─────────────────────────────────────── */
+.app-header{display:flex;align-items:center;justify-content:space-between;padding:calc(14px + var(--safe-top)) 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.header-logo{width:88px}
+.balance-chip{display:flex;align-items:center;gap:6px;background:var(--accent-dim);border:1px solid var(--accent-mid);border-radius:20px;padding:8px 14px;font-family:'Chakra Petch',sans-serif;font-size:13px;font-weight:700;color:var(--accent)}
+
+/* Zone tabs */
+.zone-tabs-wrap{overflow-x:auto;border-bottom:1px solid var(--border);flex-shrink:0;scrollbar-width:none}
+.zone-tabs-wrap::-webkit-scrollbar{display:none}
+.zone-tabs{display:flex;gap:6px;padding:10px 16px;white-space:nowrap}
+.ztab{padding:7px 16px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--t2);font-family:'Chakra Petch',sans-serif;font-size:12px;font-weight:600;letter-spacing:.5px;cursor:pointer;transition:all .2s;text-transform:uppercase;white-space:nowrap}
+.ztab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.ztab.vip.active{background:var(--vip);border-color:var(--vip);color:#000}
+.ztab.ps5.active{background:#1a1a2e;border-color:#3d5af1;color:#7b9dff}
+
+/* Legend */
+.legend-bar{display:flex;gap:14px;padding:10px 16px;flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+.legend-bar::-webkit-scrollbar{display:none}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--t2);white-space:nowrap;font-family:'Chakra Petch',sans-serif;letter-spacing:.5px}
+.leg-dot{width:7px;height:7px;border-radius:50%}
+.leg-dot.free{background:var(--free);box-shadow:0 0 5px var(--free)}
+.leg-dot.busy{background:var(--busy)}
+.leg-dot.reserved{background:var(--reserved)}
+.leg-dot.broken{background:var(--t3)}
+
+/* Hall */
+.hall-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px}
+.zone-sec{display:none}
+.zone-sec.active{display:block}
+.zone-head{font-family:'Chakra Petch',sans-serif;font-size:10px;font-weight:600;letter-spacing:2px;color:var(--t3);text-transform:uppercase;margin:20px 0 10px}
+.zone-head:first-child{margin-top:0}
+.pc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:9px;margin-bottom:4px}
+
+/* PC Card */
+.pc{background:var(--bg-card);border:1.5px solid var(--border);border-radius:12px;padding:14px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;transition:all .2s;position:relative;user-select:none}
+.pc:active{transform:scale(.93)}
+.pc.free{border-color:rgba(34,197,94,.3)}
+.pc.busy,.pc.reserved,.pc.broken{cursor:default}
+.pc.vip.free{border-color:var(--vip-mid)}
+.pc.broken{opacity:.4}
+
+.pc-mon{width:42px;height:27px;border-radius:3px;border:2.5px solid currentColor;background:#080808;position:relative;flex-shrink:0}
+.pc-mon::after{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:10px;height:4px;background:currentColor;border-radius:1px}
+.pc-mon::before{content:'';position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);width:18px;height:2px;background:currentColor;border-radius:1px}
+
+.pc.free    .pc-mon{color:var(--free);box-shadow:0 0 10px rgba(34,197,94,.35)}
+.pc.busy    .pc-mon{color:var(--busy)}
+.pc.reserved .pc-mon{color:var(--reserved)}
+.pc.broken  .pc-mon{color:var(--t3)}
+.pc.vip.free .pc-mon{color:var(--vip);box-shadow:0 0 10px rgba(201,162,39,.4)}
+
+.pc-num{font-family:'Chakra Petch',sans-serif;font-size:16px;font-weight:700;line-height:1}
+.pc.free     .pc-num{color:var(--t1)}
+.pc.busy     .pc-num{color:var(--busy)}
+.pc.reserved .pc-num{color:var(--reserved)}
+.pc.broken   .pc-num{color:var(--t3)}
+.pc.vip.free .pc-num{color:var(--vip)}
+
+.pc-lbl{font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;font-family:'Chakra Petch',sans-serif}
+.pc.free     .pc-lbl{color:var(--free)}
+.pc.busy     .pc-lbl{color:var(--busy)}
+.pc.reserved .pc-lbl{color:var(--reserved)}
+.pc.broken   .pc-lbl{color:var(--t3)}
+
+.pc-dot{position:absolute;top:8px;right:8px;width:7px;height:7px;border-radius:50%}
+.pc.free     .pc-dot{background:var(--free);box-shadow:0 0 6px var(--free)}
+.pc.busy     .pc-dot{background:var(--busy)}
+.pc.reserved .pc-dot{background:var(--reserved)}
+.pc.broken   .pc-dot{background:var(--t3)}
+
+/* PS5 card — special */
+.ps5-card{background:var(--bg-card);border:1.5px solid #1e2040;border-radius:14px;padding:20px 16px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:all .2s;position:relative;margin-bottom:8px}
+.ps5-card:active{transform:scale(.97)}
+.ps5-card.free{border-color:rgba(61,90,241,.4)}
+.ps5-card.busy,.ps5-card.reserved{cursor:default;opacity:.75}
+.ps5-icon{width:60px;flex-shrink:0}
+.ps5-info{flex:1}
+.ps5-name{font-family:'Chakra Petch',sans-serif;font-size:20px;font-weight:700;color:#7b9dff;margin-bottom:4px}
+.ps5-status{font-size:12px;color:var(--t2)}
+.ps5-dot{position:absolute;top:12px;right:12px;width:9px;height:9px;border-radius:50%}
+.ps5-card.free .ps5-dot{background:var(--free);box-shadow:0 0 8px var(--free)}
+.ps5-card.busy .ps5-dot{background:var(--busy)}
+.ps5-card.reserved .ps5-dot{background:var(--reserved)}
+
+.hall-loading{text-align:center;padding:60px 0;color:var(--t3);font-family:'Chakra Petch',sans-serif;font-size:12px;letter-spacing:1px}
+
+/* Bottom nav */
+.bottom-nav{display:flex;background:var(--bg-card);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:var(--safe-bot)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;background:transparent;border:none;color:var(--t3);font-size:9px;font-weight:600;font-family:'Chakra Petch',sans-serif;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;transition:color .2s}
+.nav-btn.active{color:var(--accent)}
+.nav-ico{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── BOOKING SHEET ───────────────────────────── */
+.sheet-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;backdrop-filter:blur(2px)}
+.sheet-bg.open{display:block}
+.booking-sheet{position:fixed;bottom:0;left:0;right:0;background:var(--bg-card);border-radius:20px 20px 0 0;border-top:1px solid var(--border);padding:0 20px calc(20px + var(--safe-bot));z-index:201;transform:translateY(100%);transition:transform .35s cubic-bezier(.22,1,.36,1)}
+.booking-sheet.open{transform:translateY(0)}
+.sh-drag{width:36px;height:4px;background:var(--border);border-radius:2px;margin:14px auto 18px}
+.sh-label{font-family:'Chakra Petch',sans-serif;font-size:10px;font-weight:600;letter-spacing:2px;color:var(--t2);text-transform:uppercase;margin-bottom:4px}
+.sh-pc{font-family:'Chakra Petch',sans-serif;font-size:30px;font-weight:700;margin-bottom:3px}
+.sh-zone{font-size:12px;color:var(--t2);margin-bottom:22px}
+.sh-sec{font-family:'Chakra Petch',sans-serif;font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--t2);text-transform:uppercase;margin-bottom:10px}
+.dur-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:22px}
+.dur-btn{padding:13px 6px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg-input);color:var(--t2);font-family:'Chakra Petch',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;text-align:center}
+.dur-btn.sel{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+.sh-total{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--bg-input);border-radius:10px;margin-bottom:16px}
+.sh-total-l{font-size:13px;color:var(--t2)}
+.sh-total-v{font-family:'Chakra Petch',sans-serif;font-size:20px;font-weight:700;color:var(--accent)}
+
+/* ── OVERLAYS ────────────────────────────────── */
+.overlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:100;flex-direction:column}
+.overlay.open{display:flex}
+.ov-head{display:flex;align-items:center;justify-content:space-between;padding:calc(16px + var(--safe-top)) 20px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
+.ov-title{font-family:'Chakra Petch',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.ov-close{width:36px;height:36px;border-radius:50%;background:var(--bg-input);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.ov-body{flex:1;overflow-y:auto;padding:20px;-webkit-overflow-scrolling:touch}
+
+/* Tariffs */
+.tr-sec-title{font-family:'Chakra Petch',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--accent);text-transform:uppercase;margin:24px 0 12px}
+.tr-sec-title:first-child{margin-top:0}
+.tr-sec-title.vip{color:var(--vip)}
+.tr-row{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:6px}
+.tr-name{font-size:13px;color:var(--t1)}
+.tr-price{font-family:'Chakra Petch',sans-serif;font-size:15px;font-weight:700;color:var(--accent)}
+.tr-row.vip .tr-price{color:var(--vip)}
+.tr-note{margin-top:20px;font-size:11px;color:var(--t3);line-height:1.7;text-align:center}
+
+/* Profile */
+.prof-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;display:flex;align-items:center;gap:16px}
+.prof-ava{width:54px;height:54px;border-radius:50%;background:var(--accent-dim);border:2px solid var(--accent-mid);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.prof-name{font-family:'Chakra Petch',sans-serif;font-size:17px;font-weight:700;margin-bottom:4px}
+.prof-sub{font-size:12px;color:var(--t2)}
+.bal-card{background:var(--accent-dim);border:1px solid var(--accent-mid);border-radius:14px;padding:20px;margin-bottom:16px}
+.bal-lbl{font-size:11px;color:var(--t2);margin-bottom:6px;font-family:'Chakra Petch',sans-serif;letter-spacing:1px;text-transform:uppercase}
+.bal-val{font-family:'Chakra Petch',sans-serif;font-size:38px;font-weight:700;color:var(--accent)}
+.bal-sub{font-size:11px;color:var(--t2);margin-top:4px}
+.info-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-bottom:16px}
+.info-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.info-row:last-child{border-bottom:none;padding-bottom:0}
+.info-key{font-size:12px;color:var(--t2)}
+.info-val{font-family:'Chakra Petch',sans-serif;font-size:13px;font-weight:600;color:var(--t1)}
+.btn-danger{width:100%;padding:15px;background:transparent;border:1.5px solid rgba(239,68,68,.3);border-radius:10px;color:var(--busy);font-family:'Chakra Petch',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;margin-top:4px}
+.btn-danger:active{background:rgba(239,68,68,.08)}
+
+/* ── TOAST ───────────────────────────────────── */
+#toasts{position:fixed;top:calc(18px + var(--safe-top));left:50%;transform:translateX(-50%);z-index:9000;display:flex;flex-direction:column;gap:8px;pointer-events:none;width:calc(100% - 32px);max-width:360px}
+.toast{padding:13px 16px;border-radius:12px;font-size:13px;animation:toastIn .4s cubic-bezier(.22,1,.36,1) forwards}
+.toast.ok{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#4ade80}
+.toast.err{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#f87171}
+.toast.inf{background:var(--accent-dim);border:1px solid var(--accent-mid);color:var(--accent)}
+@keyframes toastIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+
+.live-dot{position:fixed;top:calc(16px + var(--safe-top));right:16px;width:8px;height:8px;border-radius:50%;background:var(--free);box-shadow:0 0 8px var(--free);z-index:50;animation:livePulse 2.5s ease infinite}
+@keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+
+/* Refresh timestamp */
+.refresh-row{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 0;flex-shrink:0}
+.refresh-txt{font-size:10px;color:var(--t3);font-family:'Chakra Petch',sans-serif;letter-spacing:.5px}
+</style>
 </head>
 <body>
-  <p><a href="./Mnogo%20Xyuni/public/">Открыть 1SHOT</a></p>
-  <script>
-    window.location.replace('./Mnogo%20Xyuni/public/' + window.location.search + window.location.hash);
-  </script>
+
+<!-- SPLASH -->
+<div id="splash" class="screen active">
+  <svg class="splash-logo" viewBox="0 0 522 138" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/>
+  </svg>
+  <div class="splash-tag">Gaming Club</div>
+  <div class="splash-made">made by tengizka</div>
+</div>
+
+<!-- AUTH -->
+<div id="auth" class="screen">
+  <svg class="auth-logo" viewBox="0 0 522 138" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/>
+  </svg>
+
+  <div class="auth-tabs">
+    <button class="auth-tab active" onclick="switchAuthTab('login',this)">Вход</button>
+    <button class="auth-tab" onclick="switchAuthTab('register',this)">Регистрация</button>
+  </div>
+
+  <form id="form-login" class="auth-form active" onsubmit="doLogin(event)">
+    <div class="field">
+      <label>Логин (как в клубе)</label>
+      <input type="text" id="l-user" placeholder="vasya_228" autocomplete="username" required>
+    </div>
+    <div class="field">
+      <label>Пароль</label>
+      <input type="password" id="l-pass" placeholder="••••••" autocomplete="current-password" required>
+    </div>
+    <button type="submit" class="btn-main" id="btn-login">Войти</button>
+    <div class="auth-err" id="err-login"></div>
+    <p class="auth-hint">Используй логин и пароль от своего аккаунта в клубе 1SHOT</p>
+  </form>
+
+  <form id="form-register" class="auth-form" onsubmit="doRegister(event)">
+    <div class="field">
+      <label>Придумай логин</label>
+      <input type="text" id="r-user" placeholder="vasya_228" autocomplete="username" required>
+    </div>
+    <div class="field">
+      <label>Придумай пароль</label>
+      <input type="password" id="r-pass" placeholder="минимум 6 символов" autocomplete="new-password" minlength="6" required>
+    </div>
+    <div class="field">
+      <label>Имя (необязательно)</label>
+      <input type="text" id="r-name" placeholder="Вася">
+    </div>
+    <button type="submit" class="btn-main" id="btn-reg">Зарегистрироваться</button>
+    <div class="auth-err" id="err-reg"></div>
+    <p class="auth-hint">После регистрации используй этот логин за компами клуба</p>
+  </form>
+</div>
+
+<!-- APP -->
+<div id="app" class="screen">
+  <div class="live-dot" id="live-dot" style="display:none"></div>
+
+  <!-- Header -->
+  <div class="app-header">
+    <svg class="header-logo" viewBox="0 0 522 138" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/>
+    </svg>
+    <div class="balance-chip">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+      <span id="ui-balance">—</span> ₽
+    </div>
+  </div>
+
+  <!-- Zone tabs -->
+  <div class="zone-tabs-wrap">
+    <div class="zone-tabs" id="zone-tabs">
+      <button class="ztab vip active" data-zone="vip" onclick="switchZone('vip',this)">VIP</button>
+      <button class="ztab" data-zone="100" onclick="switchZone('100',this)">100</button>
+      <button class="ztab" data-zone="200" onclick="switchZone('200',this)">200</button>
+      <button class="ztab" data-zone="300" onclick="switchZone('300',this)">300</button>
+      <button class="ztab" data-zone="400" onclick="switchZone('400',this)">400</button>
+      <button class="ztab ps5" data-zone="ps5" onclick="switchZone('ps5',this)">PS5</button>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend-bar">
+    <div class="leg-item"><div class="leg-dot free"></div>Свободен</div>
+    <div class="leg-item"><div class="leg-dot busy"></div>Занят</div>
+    <div class="leg-item"><div class="leg-dot reserved"></div>Бронь</div>
+    <div class="leg-item"><div class="leg-dot broken"></div>Оффлайн</div>
+    <div class="refresh-txt" id="refresh-time"></div>
+  </div>
+
+  <!-- Hall sections -->
+  <div class="hall-area" id="hall-area">
+    <div class="hall-loading" id="hall-loading">
+      <div class="spinner" style="margin:0 auto 12px"></div>
+      Загрузка зала…
+    </div>
+
+    <!-- VIP -->
+    <div class="zone-sec active" id="zone-vip">
+      <div class="zone-head">Ряд 10</div>
+      <div class="pc-grid" id="grid-10"></div>
+      <div class="zone-head">Ряд 20</div>
+      <div class="pc-grid" id="grid-20"></div>
+    </div>
+
+    <!-- 100 -->
+    <div class="zone-sec" id="zone-100">
+      <div class="pc-grid" id="grid-100"></div>
+    </div>
+
+    <!-- 200 -->
+    <div class="zone-sec" id="zone-200">
+      <div class="pc-grid" id="grid-200"></div>
+    </div>
+
+    <!-- 300 -->
+    <div class="zone-sec" id="zone-300">
+      <div class="pc-grid" id="grid-300"></div>
+    </div>
+
+    <!-- 400 -->
+    <div class="zone-sec" id="zone-400">
+      <div class="pc-grid" id="grid-400"></div>
+    </div>
+
+    <!-- PS5 -->
+    <div class="zone-sec" id="zone-ps5">
+      <div id="grid-ps5"></div>
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <button class="nav-btn active" id="nav-hall" onclick="navTo('hall')">
+      <svg class="nav-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Зал
+    </button>
+    <button class="nav-btn" id="nav-tariffs" onclick="navTo('tariffs')">
+      <svg class="nav-ico" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M4 10h16"/><circle cx="12" cy="14" r="1.5" fill="currentColor" stroke="none"/></svg>
+      Тарифы
+    </button>
+    <button class="nav-btn" id="nav-profile" onclick="navTo('profile')">
+      <svg class="nav-ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7"/></svg>
+      Профиль
+    </button>
+  </div>
+</div>
+
+<!-- BOOKING SHEET -->
+<div class="sheet-bg" id="sheet-bg" onclick="closeSheet()"></div>
+<div class="booking-sheet" id="booking-sheet">
+  <div class="sh-drag"></div>
+  <div class="sh-label">Бронирование</div>
+  <div class="sh-pc" id="sh-pc-num">—</div>
+  <div class="sh-zone" id="sh-pc-zone">—</div>
+  <div class="sh-sec">Длительность</div>
+  <div class="dur-grid" id="dur-grid"></div>
+  <div class="sh-total">
+    <div class="sh-total-l">К оплате из баланса</div>
+    <div class="sh-total-v" id="sh-price">По тарифу</div>
+  </div>
+  <button class="btn-main" id="btn-book" onclick="confirmBooking()">Забронировать</button>
+</div>
+
+<!-- TARIFFS OVERLAY -->
+<div class="overlay" id="ov-tariffs">
+  <div class="ov-head">
+    <div class="ov-title">Тарифы</div>
+    <div class="ov-close" onclick="navTo('hall')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </div>
+  </div>
+  <div class="ov-body">
+    <div class="tr-sec-title">Основной зал</div>
+    <div class="tr-row"><div class="tr-name">1 час</div><div class="tr-price">189 ₽</div></div>
+    <div class="tr-row"><div class="tr-name">3 часа</div><div class="tr-price">499 ₽</div></div>
+    <div class="tr-row"><div class="tr-name">5 часов</div><div class="tr-price">699 ₽</div></div>
+    <div class="tr-row"><div class="tr-name">12 часов</div><div class="tr-price">1 390 ₽</div></div>
+    <div class="tr-row"><div class="tr-name">Утро 8:00 – 13:00</div><div class="tr-price">399 ₽</div></div>
+    <div class="tr-row"><div class="tr-name">Ночь 22:00 – 8:00</div><div class="tr-price">899 ₽</div></div>
+
+    <div class="tr-sec-title vip">VIP зал</div>
+    <div class="tr-row vip"><div class="tr-name">1 час</div><div class="tr-price">229 ₽</div></div>
+    <div class="tr-row vip"><div class="tr-name">3 часа</div><div class="tr-price">599 ₽</div></div>
+    <div class="tr-row vip"><div class="tr-name">5 часов</div><div class="tr-price">799 ₽</div></div>
+    <div class="tr-row vip"><div class="tr-name">12 часов</div><div class="tr-price">1 590 ₽</div></div>
+    <div class="tr-row vip"><div class="tr-name">Утро 8:00 – 13:00</div><div class="tr-price">499 ₽</div></div>
+    <div class="tr-row vip"><div class="tr-name">Ночь 22:00 – 8:00</div><div class="tr-price">999 ₽</div></div>
+
+    <p class="tr-note">Оплата списывается с внутреннего баланса аккаунта.<br>Пополнить баланс можно на ресепшн клуба.</p>
+  </div>
+</div>
+
+<!-- PROFILE OVERLAY -->
+<div class="overlay" id="ov-profile">
+  <div class="ov-head">
+    <div class="ov-title">Профиль</div>
+    <div class="ov-close" onclick="navTo('hall')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </div>
+  </div>
+  <div class="ov-body">
+    <div class="prof-card">
+      <div class="prof-ava">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FF5A36" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7"/></svg>
+      </div>
+      <div>
+        <div class="prof-name" id="prof-name">—</div>
+        <div class="prof-sub" id="prof-gizmo">Аккаунт Gizmo</div>
+      </div>
+    </div>
+
+    <div class="bal-card">
+      <div class="bal-lbl">Баланс</div>
+      <div class="bal-val" id="prof-balance">— ₽</div>
+      <div class="bal-sub">Пополнить можно на ресепшн</div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-row">
+        <div class="info-key">Telegram ID</div>
+        <div class="info-val" id="prof-tgid">—</div>
+      </div>
+      <div class="info-row">
+        <div class="info-key">Gizmo ID</div>
+        <div class="info-val" id="prof-gid">—</div>
+      </div>
+    </div>
+
+    <button class="btn-danger" onclick="doLogout()">Выйти из аккаунта</button>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div id="toasts"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════
+const SUPA = 'https://zqhfvtgktbfnxcclqqny.supabase.co/functions/v1';
+
+// Duration options with approx prices [standard, vip]
+const DURATIONS = [
+  { h:1,  l:'1 ч',  ps:189,  pv:229  },
+  { h:2,  l:'2 ч',  ps:340,  pv:420  },
+  { h:3,  l:'3 ч',  ps:499,  pv:599  },
+  { h:4,  l:'4 ч',  ps:600,  pv:700  },
+  { h:5,  l:'5 ч',  ps:699,  pv:799  },
+  { h:8,  l:'8 ч',  ps:1050, pv:1200 },
+  { h:12, l:'12 ч', ps:1390, pv:1590 },
+];
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+const tg = window.Telegram?.WebApp;
+let telegram_id = tg?.initDataUnsafe?.user?.id || 0;
+
+let profile   = null;   // { telegram_id, gizmo_user_id, username, first_name, last_name }
+let hostsData = {};     // host_id → { status, zone }
+let pollTimer = null;
+
+let booking = { hostId: null, zone: null, isVip: false, dur: 1 };
+
+// ═══════════════════════════════════════════════
+// TELEGRAM INIT
+// ═══════════════════════════════════════════════
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tg.enableClosingConfirmation();
+  try { tg.disableVerticalSwipes(); } catch(e){}
+  if (!telegram_id) telegram_id = tg?.initDataUnsafe?.user?.id || 0;
+}
+
+// ═══════════════════════════════════════════════
+// SPLASH → AUTH / APP
+// ═══════════════════════════════════════════════
+setTimeout(() => {
+  document.getElementById('splash').classList.remove('active');
+  const saved = loadProfile();
+  if (saved && saved.telegram_id == telegram_id) {
+    profile = saved;
+    showApp();
+  } else {
+    document.getElementById('auth').classList.add('active');
+  }
+}, 3100);
+
+// ═══════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════
+function switchAuthTab(tab, btn) {
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('form-login').classList.toggle('active', tab === 'login');
+  document.getElementById('form-register').classList.toggle('active', tab === 'register');
+  clearAuthErr();
+}
+
+function setAuthLoading(formId, loading) {
+  const btn = document.getElementById(formId === 'form-login' ? 'btn-login' : 'btn-reg');
+  btn.disabled = loading;
+  btn.innerHTML = loading
+    ? '<div class="spinner"></div>Ждём агента…'
+    : (formId === 'form-login' ? 'Войти' : 'Зарегистрироваться');
+}
+
+function showAuthErr(formId, msg) {
+  const id = formId === 'form-login' ? 'err-login' : 'err-reg';
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function clearAuthErr() {
+  document.querySelectorAll('.auth-err').forEach(e => { e.textContent=''; e.classList.remove('show'); });
+}
+
+async function doLogin(e) {
+  e.preventDefault();
+  clearAuthErr();
+  const username = document.getElementById('l-user').value.trim();
+  const password = document.getElementById('l-pass').value;
+  if (!username || !password) return;
+
+  setAuthLoading('form-login', true);
+
+  try {
+    const res  = await apiFetch(`${SUPA}/auth-request`, {
+      method: 'POST',
+      body: JSON.stringify({ telegram_id, action: 'login', username, password })
+    });
+
+    if (res.status === 'already_logged_in') {
+      profile = { telegram_id, gizmo_user_id: res.gizmo_user_id, username: res.username };
+      saveProfile(profile);
+      showApp();
+      return;
+    }
+
+    if (!res.request_id) throw new Error('Сервер не вернул request_id');
+
+    await pollAuth(res.request_id, 'form-login');
+  } catch(err) {
+    showAuthErr('form-login', err.message || 'Ошибка соединения');
+    setAuthLoading('form-login', false);
+  }
+}
+
+async function doRegister(e) {
+  e.preventDefault();
+  clearAuthErr();
+  const username   = document.getElementById('r-user').value.trim();
+  const password   = document.getElementById('r-pass').value;
+  const first_name = document.getElementById('r-name').value.trim();
+  if (!username || !password) return;
+
+  setAuthLoading('form-register', true);
+
+  try {
+    const res = await apiFetch(`${SUPA}/auth-request`, {
+      method: 'POST',
+      body: JSON.stringify({ telegram_id, action: 'register', username, password, first_name })
+    });
+
+    if (!res.request_id) throw new Error('Сервер не вернул request_id');
+
+    await pollAuth(res.request_id, 'form-register');
+  } catch(err) {
+    showAuthErr('form-register', err.message || 'Ошибка соединения');
+    setAuthLoading('form-register', false);
+  }
+}
+
+async function pollAuth(requestId, formId) {
+  const MSGS = {
+    invalid_credentials: 'Неверный логин или пароль',
+    username_taken:      'Этот логин уже занят — попробуй другой',
+    failed:              'Техническая ошибка, попробуй позже',
+  };
+
+  for (let i = 0; i < 40; i++) {
+    await sleep(1500);
+    try {
+      const res = await apiFetch(`${SUPA}/auth-status?request_id=${requestId}&telegram_id=${telegram_id}`);
+
+      if (res.status === 'done') {
+        profile = res.profile;
+        saveProfile(profile);
+        showApp();
+        return;
+      }
+
+      if (MSGS[res.status]) {
+        showAuthErr(formId, MSGS[res.status]);
+        setAuthLoading(formId, false);
+        return;
+      }
+      // status === 'pending' → продолжаем ждать
+    } catch(err) { /* сеть моргнула — продолжаем */ }
+  }
+  showAuthErr(formId, 'Время ожидания истекло — проверь соединение');
+  setAuthLoading(formId, false);
+}
+
+// ═══════════════════════════════════════════════
+// APP INIT
+// ═══════════════════════════════════════════════
+function showApp() {
+  document.getElementById('auth').classList.remove('active');
+  document.getElementById('app').classList.add('active');
+  fillProfile();
+  fetchHosts();
+  pollTimer = setInterval(fetchHosts, 10000); // каждые 10 сек
+}
+
+function fillProfile() {
+  if (!profile) return;
+  const name = profile.first_name || profile.username || 'Гость';
+  document.getElementById('ui-balance').textContent = '—';
+  document.getElementById('prof-name').textContent = name;
+  document.getElementById('prof-gizmo').textContent = `@${profile.username}`;
+  document.getElementById('prof-tgid').textContent = telegram_id || '—';
+  document.getElementById('prof-gid').textContent = profile.gizmo_user_id || '—';
+  document.getElementById('prof-balance').textContent = '— ₽';
+}
+
+// ═══════════════════════════════════════════════
+// HOSTS
+// ═══════════════════════════════════════════════
+async function fetchHosts() {
+  try {
+    const data = await apiFetch(`${SUPA}/hosts`);
+    if (data.hosts && data.hosts.length) {
+      hostsData = {};
+      data.hosts.forEach(h => { hostsData[String(h.host_id)] = h; });
+      renderHall();
+      document.getElementById('hall-loading').style.display = 'none';
+      document.getElementById('live-dot').style.display = 'block';
+      const now = new Date();
+      document.getElementById('refresh-time').textContent =
+        `Обновлено ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+    }
+  } catch(e) {
+    console.warn('fetchHosts error', e);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// RENDER HALL
+// ═══════════════════════════════════════════════
+const ZONE_LABELS = {
+  '10':'10', '20':'20',
+  '100':'100','200':'200','300':'300','400':'400',
+  'ps5':'PS5'
+};
+const STATUS_LABELS = {
+  free:'Свободен', busy:'Занят', reserved:'Бронь', broken:'Оффлайн'
+};
+
+function renderHall() {
+  const grids = { '10':[], '20':[], '100':[], '200':[], '300':[], '400':[], 'ps5':[] };
+
+  Object.values(hostsData).forEach(h => {
+    const z = String(h.zone);
+    if (grids[z] !== undefined) grids[z].push(h);
+  });
+
+  // Sort by host_id numerically
+  Object.keys(grids).forEach(z => {
+    grids[z].sort((a,b) => parseInt(a.host_id) - parseInt(b.host_id));
+  });
+
+  // VIP grids
+  renderGrid('grid-10',  grids['10'],  true);
+  renderGrid('grid-20',  grids['20'],  true);
+  renderGrid('grid-100', grids['100'], false);
+  renderGrid('grid-200', grids['200'], false);
+  renderGrid('grid-300', grids['300'], false);
+  renderGrid('grid-400', grids['400'], false);
+
+  // PS5 special
+  const ps5el = document.getElementById('grid-ps5');
+  ps5el.innerHTML = '';
+  grids['ps5'].forEach(h => {
+    ps5el.innerHTML += buildPS5Card(h);
+  });
+}
+
+function renderGrid(gridId, hosts, isVip) {
+  const el = document.getElementById(gridId);
+  if (!el) return;
+  el.innerHTML = hosts.map(h => buildPC(h, isVip)).join('');
+}
+
+function buildPC(h, isVip) {
+  const st = h.status || 'broken';
+  const vipCls = isVip ? ' vip' : '';
+  const clickable = st === 'free' ? `onclick="openBooking('${h.host_id}','${h.zone}',${isVip})"` : '';
+  return `
+<div class="pc ${st}${vipCls}" ${clickable} data-hid="${h.host_id}">
+  <div class="pc-dot"></div>
+  <div class="pc-mon"></div>
+  <div class="pc-num">${h.host_id}</div>
+  <div class="pc-lbl">${STATUS_LABELS[st] || st}</div>
+</div>`;
+}
+
+function buildPS5Card(h) {
+  const st = h.status || 'broken';
+  const clickable = st === 'free' ? `onclick="openBooking('PS5','ps5',false)"` : '';
+  return `
+<div class="ps5-card ${st}" ${clickable} data-hid="${h.host_id}">
+  <div class="ps5-dot"></div>
+  <svg class="ps5-icon" viewBox="0 0 750 161" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M176.45 69.325C190.75 69.2 202.3 57.575 202.3 43.25C202.3 28.925 190.75 17.3 176.475 17.175H1.125C0.499999 17.15 0 16.65 0 16V1.125C0 0.500002 0.499999 0 1.125 0H193.35C216.7 0.65 235.4 19.75 235.4 43.225C235.4 66.7 216.725 85.775 193.4 86.45H193.35H60.375C46 86.45 34.35 98.1 34.35 112.475V159.775C34.35 160.4 33.85 160.9 33.225 160.9H1.15C0.525 160.9 0.0250012 160.4 0.0250012 159.775C0.0250012 159.725 0.0250012 159.7 0.0250012 159.65V112.375C0.125001 88.575 19.425 69.325 43.225 69.325C43.25 69.325 43.25 69.325 43.275 69.325H176.45ZM515.3 60.375V1.125C515.3 0.500002 515.8 0 516.425 0H744.725C745.35 0 745.875 0.500002 745.9 1.125V16C745.875 16.625 745.375 17.15 744.725 17.175H550.75C550.125 17.175 549.625 17.675 549.625 18.3V56.9C549.625 56.925 549.625 56.95 549.625 56.975C549.625 63.8 555.15 69.325 561.975 69.325H562H706.425C730.65 70.625 749.775 90.6 749.775 115.025C749.775 139.45 730.625 159.4 706.525 160.7H706.4H516.425C515.8 160.7 515.3 160.2 515.3 159.575V144.775C515.3 144.15 515.8 143.65 516.425 143.65H689.2C689.45 143.65 689.75 143.65 690.05 143.65C705.85 143.65 718.675 130.85 718.675 115.025C718.675 99.2 705.875 86.4 690.05 86.4C689.675 86.4 689.3 86.4 688.925 86.425H688.975H541.3C526.925 86.425 515.275 74.775 515.275 60.4V60.375H515.3ZM326.45 160.7C350.3 160.7 369.65 141.35 369.65 117.5V43.2C369.65 28.825 381.3 17.175 395.675 17.175H479.55C480.175 17.15 480.675 16.65 480.675 16V1.125C480.675 0.500002 480.175 0 479.55 0H378.525C354.675 0 335.3 19.35 335.3 43.2V117.575C335.3 131.95 323.65 143.625 309.275 143.625H226.6C225.975 143.625 225.475 144.125 225.475 144.75V159.625C225.475 160.25 225.975 160.75 226.6 160.75L326.45 160.7Z" fill="${st==='free'?'#7b9dff':'#374151'}"/>
+  </svg>
+  <div class="ps5-info">
+    <div class="ps5-name">PlayStation 5</div>
+    <div class="ps5-status">${STATUS_LABELS[st] || st}</div>
+  </div>
+</div>`;
+}
+
+// ═══════════════════════════════════════════════
+// ZONE NAVIGATION
+// ═══════════════════════════════════════════════
+let activeZone = 'vip';
+
+function switchZone(zone, btn) {
+  activeZone = zone;
+  document.querySelectorAll('.ztab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.zone-sec').forEach(s => s.classList.remove('active'));
+  document.getElementById('zone-' + zone)?.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════
+// BOTTOM NAV
+// ═══════════════════════════════════════════════
+function navTo(tab) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('nav-' + tab)?.classList.add('active');
+
+  document.getElementById('ov-tariffs').classList.toggle('open', tab === 'tariffs');
+  document.getElementById('ov-profile').classList.toggle('open', tab === 'profile');
+
+  if (tab === 'hall') {
+    document.getElementById('ov-tariffs').classList.remove('open');
+    document.getElementById('ov-profile').classList.remove('open');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// BOOKING SHEET
+// ═══════════════════════════════════════════════
+function openBooking(hostId, zone, isVip) {
+  if (!profile) { toast('Сначала войди в аккаунт', 'err'); return; }
+
+  booking = { hostId, zone, isVip, dur: 1 };
+
+  const zoneLabel = zone === 'ps5' ? 'PS5'
+    : isVip ? `VIP · Ряд ${zone}`
+    : `Зона ${zone}`;
+
+  document.getElementById('sh-pc-num').textContent = hostId === '1' ? 'PS5' : `ПК ${hostId}`;
+  document.getElementById('sh-pc-zone').textContent = zoneLabel;
+
+  // Build duration buttons
+  const grid = document.getElementById('dur-grid');
+  grid.innerHTML = DURATIONS.map(d => `
+    <button class="dur-btn${d.h===1?' sel':''}" onclick="selectDur(${d.h},this)">${d.l}</button>
+  `).join('');
+
+  updatePrice();
+  document.getElementById('sheet-bg').classList.add('open');
+  document.getElementById('booking-sheet').classList.add('open');
+}
+
+function selectDur(h, btn) {
+  booking.dur = h;
+  document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  updatePrice();
+}
+
+function updatePrice() {
+  const d = DURATIONS.find(x => x.h === booking.dur);
+  if (!d) return;
+  const price = booking.isVip ? d.pv : d.ps;
+  document.getElementById('sh-price').textContent = `~${price} ₽`;
+}
+
+function closeSheet() {
+  document.getElementById('sheet-bg').classList.remove('open');
+  document.getElementById('booking-sheet').classList.remove('open');
+}
+
+async function confirmBooking() {
+  if (!profile) return;
+  const btn = document.getElementById('btn-book');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div>Бронируем…';
+
+  try {
+    const res = await apiFetch(`${SUPA}/reservations`, {
+      method: 'POST',
+      body: JSON.stringify({
+        telegram_id,
+        gizmo_user_id: profile.gizmo_user_id,
+        host_id:       String(booking.hostId === 'PS5' ? '1' : booking.hostId),
+        duration_hours: booking.dur,
+      })
+    });
+
+    closeSheet();
+    toast(`ПК ${booking.hostId} забронирован на ${booking.dur} ч ✓`, 'ok');
+    setTimeout(fetchHosts, 2000);
+  } catch(err) {
+    toast(err.message || 'Ошибка бронирования', 'err');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Забронировать';
+  }
+}
+
+// ═══════════════════════════════════════════════
+// LOGOUT
+// ═══════════════════════════════════════════════
+function doLogout() {
+  const confirm = () => {
+    clearInterval(pollTimer);
+    clearProfile();
+    profile = null;
+    document.getElementById('app').classList.remove('active');
+    document.getElementById('ov-profile').classList.remove('open');
+    document.getElementById('auth').classList.add('active');
+    document.getElementById('live-dot').style.display = 'none';
+  };
+
+  if (tg) {
+    tg.showConfirm('Выйти из аккаунта?', ok => { if (ok) confirm(); });
+  } else if (window.confirm('Выйти из аккаунта?')) {
+    confirm();
+  }
+}
+
+// ═══════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════
+function toast(msg, type = 'inf') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function apiFetch(url, opts = {}) {
+  const res = await fetch(url, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) }
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error(`HTTP ${res.status}: ${txt.slice(0,120)}`);
+  }
+  return res.json();
+}
+
+function saveProfile(p) {
+  try { localStorage.setItem('1shot_v2_profile', JSON.stringify(p)); } catch(e){}
+}
+function loadProfile() {
+  try { return JSON.parse(localStorage.getItem('1shot_v2_profile') || 'null'); } catch(e){ return null; }
+}
+function clearProfile() {
+  try { localStorage.removeItem('1shot_v2_profile'); } catch(e){}
+}
+</script>
 </body>
 </html>
