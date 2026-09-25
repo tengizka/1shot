@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>1SHOT · Карта клуба</title>
+<script src="hall-map.js?v=1.4.1"></script>
+<link rel="preload" href="assets/fonts/unbounded/unbounded-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/unbounded/unbounded-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/fonts/unbounded.css">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+  --bg:          #0E0F13;
+  --bg-card:     #14151A;
+  --bg-input:    #1C1D23;
+  --border:      #23242B;
+  --accent:      #FF5A36;
+  --accent-dim:  rgba(255,90,54,.12);
+  --accent-mid:  rgba(255,90,54,.25);
+  --vip:         #C9A227;
+  --vip-dim:     rgba(201,162,39,.12);
+  --vip-mid:     rgba(201,162,39,.3);
+  --free:        #22C55E;
+  --free-dim:    rgba(34,197,94,.15);
+  --busy:        #EF4444;
+  --reserved:    #F59E0B;
+  --broken:      #2A2B30;
+  --t1:          #FFFFFF;
+  --t2:          #8A8B94;
+  --t3:          #3A3B44;
+  --safe-top:    env(safe-area-inset-top,  0px);
+  --safe-bot:    env(safe-area-inset-bottom, 0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;position:fixed;overscroll-behavior:none;background:var(--bg);color:var(--t1);font-family:'Unbounded',sans-serif}
+.screen{position:fixed;inset:0;display:none;flex-direction:column;background:var(--bg)}
+.screen.active{display:flex}
+
+/* ── SPLASH ─────────────────────────────────── */
+#splash{justify-content:center;align-items:center;z-index:9999}
+#splash.splash-started{animation:splashOut .5s ease 2.8s forwards}
+@keyframes splashOut{to{opacity:0;pointer-events:none}}
+.splash-logo{width:55%;max-width:240px;opacity:0;transform-origin:center}
+.splash-started .splash-logo{opacity:1}
+@keyframes logoIn{from{opacity:0;transform:scale(.8) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.splash-tag{margin-top:24px;font-family:'Unbounded',sans-serif;font-size:11px;font-weight:600;letter-spacing:4px;color:var(--accent);text-transform:uppercase;opacity:0}
+.splash-made{position:absolute;bottom:calc(36px + var(--safe-bot));font-size:9px;letter-spacing:3px;color:var(--t3);text-transform:uppercase;font-family:'Unbounded',sans-serif;opacity:0}
+.splash-started .splash-tag{animation:fadeUp .8s ease 1.4s forwards}
+.splash-started .splash-made{animation:fadeUp .8s ease 2s forwards}
+@keyframes fadeUp{to{opacity:1}}
+
+/* ── AUTH ────────────────────────────────────── */
+#auth{overflow-y:auto;padding:calc(56px + var(--safe-top)) 24px calc(40px + var(--safe-bot));animation:authIn .5s cubic-bezier(.22,1,.36,1) both}
+@keyframes authIn{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+.auth-logo{width:150px;display:block;margin:0 auto 44px}
+.auth-tabs{display:flex;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:4px;margin-bottom:28px}
+.auth-tab{flex:1;padding:11px;border:none;border-radius:7px;background:transparent;color:var(--t2);font-family:'Unbounded',sans-serif;font-size:13px;font-weight:600;letter-spacing:.5px;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.auth-tab.active{background:var(--accent);color:#fff}
+.auth-form{display:none}
+.auth-form.active{display:block}
+.field{margin-bottom:18px}
+.field label{display:block;font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--t2);text-transform:uppercase;margin-bottom:8px;font-family:'Unbounded',sans-serif}
+.field input{width:100%;padding:15px 16px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:10px;color:var(--t1);font-size:15px;font-family:'Unbounded',sans-serif;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+.field input::placeholder{color:var(--t3)}
+.btn-main{width:100%;padding:16px;background:var(--accent);border:none;border-radius:10px;color:#fff;font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;margin-top:8px;transition:opacity .2s,transform .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-main:active{transform:scale(.97)}
+.btn-main:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.auth-err{margin-top:14px;padding:12px 14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:8px;color:#F87171;font-size:13px;display:none}
+.auth-err.show{display:block}
+.auth-hint{margin-top:20px;font-size:12px;color:var(--t3);text-align:center;line-height:1.6}
+
+/* ── APP ─────────────────────────────────────── */
+.app-header{display:flex;align-items:center;justify-content:space-between;padding:calc(14px + var(--safe-top)) 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.header-logo{width:88px}
+.balance-chip{display:flex;align-items:center;gap:6px;background:var(--accent-dim);border:1px solid var(--accent-mid);border-radius:20px;padding:8px 14px;font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;color:var(--accent)}
+
+/* Zone tabs */
+.zone-tabs-wrap{overflow-x:auto;border-bottom:1px solid var(--border);flex-shrink:0;scrollbar-width:none}
+.zone-tabs-wrap::-webkit-scrollbar{display:none}
+.zone-tabs{display:flex;gap:6px;padding:10px 16px;white-space:nowrap}
+.ztab{padding:7px 16px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--t2);font-family:'Unbounded',sans-serif;font-size:12px;font-weight:600;letter-spacing:.5px;cursor:pointer;transition:all .2s;text-transform:uppercase;white-space:nowrap}
+.ztab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.ztab.vip.active{background:var(--vip);border-color:var(--vip);color:#000}
+.ztab.ps5.active{background:#1a1a2e;border-color:#3d5af1;color:#7b9dff}
+
+/* Legend */
+.legend-bar{display:flex;gap:14px;padding:10px 16px;flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+.legend-bar::-webkit-scrollbar{display:none}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--t2);white-space:nowrap;font-family:'Unbounded',sans-serif;letter-spacing:.5px}
+.leg-dot{width:7px;height:7px;border-radius:50%}
+.leg-dot.free{background:var(--free);box-shadow:0 0 5px var(--free)}
+.leg-dot.busy{background:var(--busy)}
+.leg-dot.reserved{background:var(--reserved)}
+.leg-dot.broken{background:var(--t3)}
+
+/* Hall */
+.hall-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px}
+.zone-sec{display:none}
+.zone-sec.active{display:block}
+.zone-head{font-family:'Unbounded',sans-serif;font-size:10px;font-weight:600;letter-spacing:2px;color:var(--t3);text-transform:uppercase;margin:20px 0 10px}
+.zone-head:first-child{margin-top:0}
+.pc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:9px;margin-bottom:4px}
+
+/* PC Card */
+.pc{background:var(--bg-card);border:1.5px solid var(--border);border-radius:12px;padding:14px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;transition:all .2s;position:relative;user-select:none}
+.pc:active{transform:scale(.93)}
+.pc.free{border-color:rgba(34,197,94,.3)}
+.pc.busy,.pc.reserved,.pc.broken{cursor:default}
+.pc.vip.free{border-color:var(--vip-mid)}
+.pc.broken{opacity:.4}
+
+.pc-mon{width:42px;height:27px;border-radius:3px;border:2.5px solid currentColor;background:#080808;position:relative;flex-shrink:0}
+.pc-mon::after{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:10px;height:4px;background:currentColor;border-radius:1px}
+.pc-mon::before{content:'';position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);width:18px;height:2px;background:currentColor;border-radius:1px}
+
+.pc.free    .pc-mon{color:var(--free);box-shadow:0 0 10px rgba(34,197,94,.35)}
+.pc.busy    .pc-mon{color:var(--busy)}
+.pc.reserved .pc-mon{color:var(--reserved)}
+.pc.broken  .pc-mon{color:var(--t3)}
+.pc.vip.free .pc-mon{color:var(--vip);box-shadow:0 0 10px rgba(201,162,39,.4)}
+
+.pc-num{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;line-height:1}
+.pc.free     .pc-num{color:var(--t1)}
+.pc.busy     .pc-num{color:var(--busy)}
+.pc.reserved .pc-num{color:var(--reserved)}
+.pc.broken   .pc-num{color:var(--t3)}
+.pc.vip.free .pc-num{color:var(--vip)}
+
+.pc-lbl{font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;font-family:'Unbounded',sans-serif}
+.pc.free     .pc-lbl{color:var(--free)}
+.pc.busy     .pc-lbl{color:var(--busy)}
+.pc.reserved .pc-lbl{color:var(--reserved)}
+.pc.broken   .pc-lbl{color:var(--t3)}
+
+.pc-dot{position:absolute;top:8px;right:8px;width:7px;height:7px;border-radius:50%}
+.pc.free     .pc-dot{background:var(--free);box-shadow:0 0 6px var(--free)}
+.pc.busy     .pc-dot{background:var(--busy)}
+.pc.reserved .pc-dot{background:var(--reserved)}
+.pc.broken   .pc-dot{background:var(--t3)}
+
+/* PS5 card — special */
+.ps5-card{background:var(--bg-card);border:1.5px solid #1e2040;border-radius:14px;padding:20px 16px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:all .2s;position:relative;margin-bottom:8px}
+.ps5-card:active{transform:scale(.97)}
+.ps5-card.free{border-color:rgba(61,90,241,.4)}
+.ps5-card.busy,.ps5-card.reserved{cursor:default;opacity:.75}
+.ps5-icon{width:60px;flex-shrink:0}
+.ps5-info{flex:1}
+.ps5-name{font-family:'Unbounded',sans-serif;font-size:20px;font-weight:700;color:#7b9dff;margin-bottom:4px}
+.ps5-status{font-size:12px;color:var(--t2)}
+.ps5-dot{position:absolute;top:12px;right:12px;width:9px;height:9px;border-radius:50%}
+.ps5-card.free .ps5-dot{background:var(--free);box-shadow:0 0 8px var(--free)}
+.ps5-card.busy .ps5-dot{background:var(--busy)}
+.ps5-card.reserved .ps5-dot{background:var(--reserved)}
+
+.hall-loading{text-align:center;padding:60px 0;color:var(--t3);font-family:'Unbounded',sans-serif;font-size:12px;letter-spacing:1px}
+
+/* Bottom nav */
+.bottom-nav{display:flex;background:var(--bg-card);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:var(--safe-bot)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;background:transparent;border:none;color:var(--t3);font-size:9px;font-weight:600;font-family:'Unbounded',sans-serif;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;transition:color .2s}
+.nav-btn.active{color:var(--accent)}
+.nav-ico{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── BOOKING SHEET ───────────────────────────── */
+.sheet-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;backdrop-filter:blur(2px)}
+.sheet-bg.open{display:block}
+.booking-sheet{position:fixed;bottom:0;left:0;right:0;background:var(--bg-card);border-radius:20px 20px 0 0;border-top:1px solid var(--border);padding:0 20px calc(20px + var(--safe-bot));z-index:201;transform:translateY(100%);transition:transform .35s cubic-bezier(.22,1,.36,1)}
+.booking-sheet.open{transform:translateY(0)}
+.sh-drag{width:36px;height:4px;background:var(--border);border-radius:2px;margin:14px auto 18px}
+.sh-label{font-family:'Unbounded',sans-serif;font-size:10px;font-weight:600;letter-spacing:2px;color:var(--t2);text-transform:uppercase;margin-bottom:4px}
+.sh-pc{font-family:'Unbounded',sans-serif;font-size:30px;font-weight:700;margin-bottom:3px}
+.sh-zone{font-size:12px;color:var(--t2);margin-bottom:22px}
+.sh-sec{font-family:'Unbounded',sans-serif;font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--t2);text-transform:uppercase;margin-bottom:10px}
+.dur-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:22px}
+.dur-btn{padding:13px 6px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg-input);color:var(--t2);font-family:'Unbounded',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;text-align:center}
+.dur-btn.sel{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+.sh-total{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--bg-input);border-radius:10px;margin-bottom:16px}
+.sh-total-l{font-size:13px;color:var(--t2)}
+.sh-total-v{font-family:'Unbounded',sans-serif;font-size:20px;font-weight:700;color:var(--accent)}
+
+/* ── OVERLAYS ────────────────────────────────── */
+.overlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:100;flex-direction:column}
+.overlay.open{display:flex}
+.ov-head{display:flex;align-items:center;justify-content:space-between;padding:calc(16px + var(--safe-top)) 20px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
+.ov-title{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.ov-close{width:36px;height:36px;border-radius:50%;background:var(--bg-input);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.ov-body{flex:1;overflow-y:auto;padding:20px;-webkit-overflow-scrolling:touch}
+
+/* Tariffs */
+.tr-sec-title{font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--accent);text-transform:uppercase;margin:24px 0 12px}
+.tr-sec-title:first-child{margin-top:0}
+.tr-sec-title.vip{color:var(--vip)}
+.tr-row{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:6px}
+.tr-name{font-size:13px;color:var(--t1)}
+.tr-price{font-family:'Unbounded',sans-serif;font-size:15px;font-weight:700;color:var(--accent)}
+.tr-row.vip .tr-price{color:var(--vip)}
+.tr-note{margin-top:20px;font-size:11px;color:var(--t3);line-height:1.7;text-align:center}
+
+/* Profile */
+.prof-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;display:flex;align-items:center;gap:16px}
+.prof-ava{width:54px;height:54px;border-radius:50%;background:var(--accent-dim);border:2px solid var(--accent-mid);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.prof-name{font-family:'Unbounded',sans-serif;font-size:17px;font-weight:700;margin-bottom:4px}
+.prof-sub{font-size:12px;color:var(--t2)}
+.bal-card{background:var(--accent-dim);border:1px solid var(--accent-mid);border-radius:14px;padding:20px;margin-bottom:16px}
+.bal-lbl{font-size:11px;color:var(--t2);margin-bottom:6px;font-family:'Unbounded',sans-serif;letter-spacing:1px;text-transform:uppercase}
+.bal-val{font-family:'Unbounded',sans-serif;font-size:38px;font-weight:700;color:var(--accent)}
+.bal-sub{font-size:11px;color:var(--t2);margin-top:4px}
+.info-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-bottom:16px}
+.info-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.info-row:last-child{border-bottom:none;padding-bottom:0}
+.info-key{font-size:12px;color:var(--t2)}
+.info-val{font-family:'Unbounded',sans-serif;font-size:13px;font-weight:600;color:var(--t1)}
+.btn-danger{width:100%;padding:15px;background:transparent;border:1.5px solid rgba(239,68,68,.3);border-radius:10px;color:var(--busy);font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;margin-top:4px}
+.btn-danger:active{background:rgba(239,68,68,.08)}
+
+/* ── TOAST ───────────────────────────────────── */
+#toasts{position:fixed;top:calc(18px + var(--safe-top));left:50%;transform:translateX(-50%);z-index:9000;display:flex;flex-direction:column;gap:8px;pointer-events:none;width:calc(100% - 32px);max-width:360px}
+.toast{padding:13px 16px;border-radius:12px;font-size:13px;animation:toastIn .4s cubic-bezier(.22,1,.36,1) forwards}
+.toast.ok{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#4ade80}
+.toast.err{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#f87171}
+.toast.inf{background:var(--accent-dim);border:1px solid var(--accent-mid);color:var(--accent)}
+@keyframes toastIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+
+.live-dot{position:fixed;top:calc(16px + var(--safe-top));right:16px;width:8px;height:8px;border-radius:50%;background:var(--free);box-shadow:0 0 8px var(--free);z-index:50;animation:livePulse 2.5s ease infinite}
+@keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+
+/* Refresh timestamp */
+.refresh-row{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 0;flex-shrink:0}
+.refresh-txt{font-size:10px;color:var(--t3);font-family:'Unbounded',sans-serif;letter-spacing:.5px}
+
+/* 1SHOT floor-plan edition · 20260925-2 */
+:root{--bg:#000;--bg-card:#000;--bg-input:#000;--border:#ffffff26;--accent:#fff;--accent-dim:#ffffff08;--accent-mid:#ffffff35;--vip:#fff;--vip-dim:#ffffff08;--vip-mid:#ffffff40;--free:#3dff94;--busy:#ff3b58;--reserved:#3dff94;--t1:#fff;--t2:#fff;--t3:#ffffffa6}
+.app-header{padding:calc(18px + var(--safe-top)) 22px 18px;border-bottom:0}
+.balance-chip{color:#fff;background:#000;border-color:#ffffff40}
+.header-logo{width:96px}.zone-tabs-wrap{border:0}.zone-tabs{padding:8px 22px;gap:10px}
+.ztab,.ztab.vip{border-radius:8px;min-width:112px;color:#fff;padding:12px 20px;font-size:11px;letter-spacing:2px}
+.ztab.active,.ztab.vip.active,.auth-tab.active{background:#000;color:#fff;border-color:#fff;box-shadow:inset 0 -2px #fff}
+.hall-heading{padding:10px 22px 4px;display:flex;align-items:center;justify-content:space-between}
+.hall-heading h1{font-size:27px;letter-spacing:-1px;font-weight:500}.hall-heading span{font-size:10px;letter-spacing:2px;color:#ffffffa6}
+.legend-bar{padding:14px 22px;gap:14px;flex-wrap:wrap;overflow:visible}.leg-item{font-family:'Unbounded',sans-serif;font-size:10px;letter-spacing:0;color:#fff}
+.leg-dot{width:6px;height:6px}.leg-dot.reserved{background:var(--free);border:1px solid #fff;border-radius:2px}.leg-dot.broken{background:#000;border:1px solid #fff}
+.refresh-txt{flex-basis:100%;font-size:10px;color:#ffffffa6;letter-spacing:0}
+.hall-area{padding:0 14px 14px;display:flex;flex-direction:column;min-height:0}
+.hall-loading{padding:10px 12px;color:#fff;font:11px/1.6 'Unbounded',sans-serif;text-align:left;border:1px solid #ffffff30;border-radius:10px;margin:4px 6px 12px}
+.hall-loading p{display:inline}.hall-loading button{background:#000;color:#fff;border:0;border-bottom:1px solid #fff;font:inherit;margin-left:8px;padding:3px 0;cursor:pointer}
+.floor-shell{border:1px solid #ffffff25;border-radius:18px;position:relative;background:#000;margin:0 4px}
+.floor-caption{display:flex;justify-content:space-between;padding:14px 14px 0;font:9px 'Unbounded',sans-serif;letter-spacing:2px;color:#ffffffa0}
+.floor-map{position:relative;aspect-ratio:1015/960;width:100%;margin-top:10px}
+.map-pc{position:absolute;transform:translate(-50%,-30%);width:6.8%;min-width:25px;border:0;background:none;color:#fff;padding:0;display:flex;align-items:center;flex-direction:column;gap:2px;cursor:pointer;transition:opacity .2s}
+.map-pc:disabled{cursor:default}.map-pc.dimmed{opacity:.18}.map-pc:focus-visible{outline:1px solid #fff;outline-offset:5px;border-radius:4px}
+.map-monitor{width:clamp(17px,4.7vw,33px);height:clamp(12px,3.3vw,22px);border:1px solid #fff;border-radius:3px;position:relative;display:flex;align-items:center;justify-content:center;background:#000}
+.map-monitor::after{content:'';position:absolute;bottom:-5px;width:11px;height:3px;border-bottom:1px solid #fff;border-top:1px solid #fff}
+.map-pc.free .map-monitor,.map-pc.reserved .map-monitor{background:var(--free);border-color:var(--free);box-shadow:0 0 11px #3dff9466,inset 0 1px 6px #ffffff60}
+.map-pc.busy .map-monitor{background:var(--busy);border-color:var(--busy);box-shadow:0 0 11px #ff3b5866,inset 0 1px 6px #ffffff60}
+.map-pc.unknown .map-monitor{border-style:dashed;border-color:#ffffff70;color:#ffffff90;box-shadow:none}
+.map-pc.broken .map-monitor{border-color:#fff;background:#000}
+.map-number{font:600 clamp(9px,2.4vw,12px) 'Unbounded',sans-serif;margin-top:2px;line-height:1}
+.map-symbol{width:75%;height:75%;stroke:#fff;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 1px #000)}
+.map-hint{padding:15px 8px;font-size:11px;line-height:1.7;color:#ffffffa6;text-align:center}
+.call-club{display:flex;align-items:center;justify-content:space-between;gap:12px;text-decoration:none;color:#fff;border:1px solid #ffffff40;border-radius:12px;padding:14px 16px;font-size:12px;margin:0 4px}.call-club span{font-size:11px;color:#ffffffa6}
+.bottom-nav{background:#000;border-top:1px solid #ffffff30;min-height:70px;z-index:110;position:relative}
+#nav-tariffs{order:0}#nav-hall{order:1}#nav-profile{order:2}
+.nav-btn{color:#ffffffa0;gap:6px;padding:14px 8px;font-family:'Unbounded',sans-serif;letter-spacing:1px;font-size:9px}.nav-btn.active{color:#fff}
+#nav-hall .nav-ico{width:25px;height:25px}#nav-hall.active::before{content:'';position:absolute;top:0;width:32px;height:2px;background:#fff;box-shadow:0 0 12px #ffffff80}
+.overlay{bottom:calc(70px + var(--safe-bot));background:#000}.ov-head{border-color:#ffffff30}
+.ov-body{padding:20px}.rate-intro{font-size:13px;line-height:1.8;color:#ffffffa6;margin-bottom:22px}.rate-intro strong{color:#fff}
+.rate-card{border:1px solid #ffffff35;border-radius:18px;padding:22px;margin-bottom:16px;background:radial-gradient(ellipse at top right,#ffffff0b,transparent 65%),#000;position:relative;overflow:hidden}
+.rate-card.vip-rate{border-color:#ffffff90}.rate-eyebrow{font-size:9px;letter-spacing:3px;color:#ffffffa6;margin-bottom:10px}.rate-title{font:600 26px 'Unbounded',sans-serif;letter-spacing:1px}.rate-start{margin:16px 0 20px;font:600 42px 'Unbounded',sans-serif;letter-spacing:-2px}.rate-start small{font:12px 'Unbounded',sans-serif;letter-spacing:0;color:#ffffffa6}
+.rate-packages{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid #ffffff25;border-radius:10px;margin-bottom:18px}.rate-package{padding:12px 4px;text-align:center;border-right:1px solid #ffffff25}.rate-package:last-child{border:0}.rate-package span{display:block;font-size:10px;color:#ffffffa6;margin-bottom:6px}.rate-package b{font:600 16px 'Unbounded',sans-serif}
+.rate-special{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #ffffff20;font-size:12px}.rate-special span{font-size:11px;color:#ffffffa6}.rate-badge{position:absolute;right:20px;top:24px;border:1px solid #ffffff50;border-radius:20px;padding:5px 8px;font-size:8px;letter-spacing:1px}
+.btn-main{background:#000;border:1px solid #fff;color:#fff}.booking-sheet{max-height:85dvh;overflow:auto;background:#000}.booking-rules{font-size:13px;line-height:1.8;margin-bottom:16px}
+.btn-danger,.auth-err,.toast.ok,.toast.err{color:#fff;background:#000;border-color:#ffffff70}.prof-ava svg{stroke:#fff}
+@media(min-width:700px){.hall-area{padding-left:max(16px,calc((100% - 720px)/2));padding-right:max(16px,calc((100% - 720px)/2))}.floor-map{max-height:540px}.map-monitor{width:32px;height:23px}.ov-body{width:100%;max-width:700px;margin:auto}.rate-card{padding:28px}}
+
+
+/* Accessible enlarged map + restrained Matrix atmosphere. */
+#matrix-rain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.24}
+.screen{background:rgba(0,0,0,.72);z-index:1}#splash{background:rgba(0,0,0,.4)}
+.overlay{background:rgba(0,0,0,.94)}
+.floor-shell{background:rgba(0,0,0,.85)}
+.contact-dialog{color:#fff;background:#050505;border:1px solid #ffffff80;border-radius:20px;width:min(92vw,420px);padding:28px 22px;margin:auto}
+.contact-dialog::backdrop{background:#000b;backdrop-filter:blur(5px)}
+.contact-dialog h2{font-size:22px;margin:12px 0}.contact-close{position:absolute;right:12px;top:10px;border:0;background:transparent;color:#fff;font-size:30px;min-width:44px;min-height:44px;cursor:pointer}
+.club-phone{font-size:23px;letter-spacing:.5px;margin:24px 0}.contact-dialog a{text-decoration:none}.contact-hint,#contact-result{font-size:12px;line-height:1.7;margin-top:18px;color:#ffffffc0}
+.booking-error{padding:12px;border:1px solid #fff;border-radius:10px;font-size:12px;line-height:1.7;margin-top:16px}
+.bal-val{font-size:30px}.splash-tag{letter-spacing:5px}
+@media(prefers-reduced-motion:reduce){#matrix-rain{display:none}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+
+/* Unbounded is wider: keep small-phone controls and labels within their cells. */
+button,input,select,textarea{font-family:'Unbounded',sans-serif}
+.hall-heading h1{font-size:clamp(17px,5.1vw,23px);letter-spacing:-.7px;white-space:nowrap}
+.hall-heading>span{font-size:8px;letter-spacing:1px;white-space:nowrap}
+.balance-chip{font-size:10px;padding:8px 10px;gap:5px}
+.leg-item{font-size:8px}.legend-bar{column-gap:9px}.refresh-txt{font-size:8px;letter-spacing:0}
+.floor-caption{font-size:8px;letter-spacing:.4px}.seat-status{font-size:clamp(6px,1.5vw,8px);letter-spacing:-.2px}
+.ztab{font-size:11px;letter-spacing:1px}.nav-btn{font-size:8px;letter-spacing:.5px}
+.ps5-phone-card strong{font-size:12px}.ps5-phone-card small{font-size:8px}.phone-cta{font-size:9px}
+.rate-title{font-size:clamp(19px,6vw,25px)}.rate-badge{position:static;float:right;font-size:7px;letter-spacing:.2px;margin:0 0 10px 8px}.rate-title{clear:both}
+.rate-package b{font-size:13px}.rate-package span{font-size:9px}.rate-special{font-size:11px}.rate-special span{font-size:9px}
+.club-phone{font-size:clamp(16px,5vw,22px);letter-spacing:0}.contact-dialog h2{font-size:18px}
+@media(max-width:350px){.hall-heading>span{display:none}.auth-tab{font-size:11px;letter-spacing:0}.ps5-phone-card{gap:7px}.console-symbol{width:24px}.ps5-phone-card strong{font-size:10px}.phone-cta{font-size:8px}.floor-caption{font-size:7px}.leg-item{font-size:7px}}
+
+
+/* Fragment assembly, monochrome glyph rain, and gentle zone dividers. */
+.splash-logo{overflow:visible}.logo-fragment{opacity:0;transform-origin:261px 69px}
+.splash-started .logo-fragment{animation:assembleLogo 1.65s cubic-bezier(.16,1,.3,1) var(--piece-delay) both}
+@keyframes assembleLogo{0%{opacity:0;transform:translate(var(--piece-x),var(--piece-y)) rotate(var(--piece-r)) scale(.3);filter:blur(6px)}35%{opacity:1}78%{filter:blur(0);transform:translate(0,-2px) rotate(0deg) scale(1.02)}100%{opacity:1;transform:translate(0,0) rotate(0deg) scale(1);filter:blur(0)}}
+.splash-started .splash-tag{animation-delay:1.9s}
+#matrix-rain{opacity:.65}.screen{background:rgba(0,0,0,.56)}#splash{background:rgba(0,0,0,.3)}
+.legend-icon{width:12px;height:12px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+#free-count{display:block!important;font-size:9px;letter-spacing:0;color:#fff;text-align:right}
+@media(prefers-reduced-motion:reduce){.logo-fragment{opacity:1;transform:none;filter:none}}
+</style>
+<link rel="stylesheet" href="club-booking.css?v=1.4.1">
+<link rel="stylesheet" href="hall.css?v=1.4.1">
+</head>
+<body>
+<canvas id="matrix-rain" aria-hidden="true"></canvas>
+
+<!-- SPLASH -->
+<div id="splash" class="screen active">
+  <svg class="splash-logo" viewBox="0 0 522 138" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="logo-piece-0"><rect x="0" y="-2" width="59" height="142"/></clipPath><clipPath id="logo-piece-1"><rect x="58" y="-2" width="59" height="142"/></clipPath><clipPath id="logo-piece-2"><rect x="116" y="-2" width="59" height="142"/></clipPath><clipPath id="logo-piece-3"><rect x="174" y="-2" width="59" height="142"/></clipPath><clipPath id="logo-piece-4"><rect x="232" y="-2" width="59" height="142"/></clipPath><clipPath id="logo-piece-5"><rect x="290" y="-2" width="59" height="142"/></clipPath><clipPath id="logo-piece-6"><rect x="348" y="-2" width="59" height="142"/></clipPath><clipPath id="logo-piece-7"><rect x="406" y="-2" width="59" height="142"/></clipPath><clipPath id="logo-piece-8"><rect x="464" y="-2" width="59" height="142"/></clipPath></defs><g class="logo-fragment" style="--piece-x:150px;--piece-y:80px;--piece-r:30deg;--piece-delay:0.120s"><g clip-path="url(#logo-piece-0)"><path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/></g></g><g class="logo-fragment" style="--piece-x:-172px;--piece-y:-93px;--piece-r:-37deg;--piece-delay:0.185s"><g clip-path="url(#logo-piece-1)"><path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/></g></g><g class="logo-fragment" style="--piece-x:194px;--piece-y:-106px;--piece-r:44deg;--piece-delay:0.250s"><g clip-path="url(#logo-piece-2)"><path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/></g></g><g class="logo-fragment" style="--piece-x:-216px;--piece-y:119px;--piece-r:-51deg;--piece-delay:0.315s"><g clip-path="url(#logo-piece-3)"><path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/></g></g><g class="logo-fragment" style="--piece-x:238px;--piece-y:-132px;--piece-r:58deg;--piece-delay:0.380s"><g clip-path="url(#logo-piece-4)"><path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/></g></g><g class="logo-fragment" style="--piece-x:-260px;--piece-y:-145px;--piece-r:-65deg;--piece-delay:0.445s"><g clip-path="url(#logo-piece-5)"><path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/></g></g><g class="logo-fragment" style="--piece-x:282px;--piece-y:158px;--piece-r:72deg;--piece-delay:0.510s"><g clip-path="url(#logo-piece-6)"><path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/></g></g><g class="logo-fragment" style="--piece-x:-304px;--piece-y:-171px;--piece-r:-79deg;--piece-delay:0.575s"><g clip-path="url(#logo-piece-7)"><path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/></g></g><g class="logo-fragment" style="--piece-x:326px;--piece-y:-184px;--piece-r:86deg;--piece-delay:0.640s"><g clip-path="url(#logo-piece-8)"><path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/></g></g></svg>
+  <div class="splash-tag">КИБЕРХАУС</div>
+  <div class="splash-made">made by tengizka</div>
+</div>
+
+<!-- AUTH -->
+<div id="auth" class="screen">
+  <svg class="auth-logo" viewBox="0 0 522 138" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/>
+  </svg>
+
+  <div class="auth-tabs">
+    <button class="auth-tab active" onclick="switchAuthTab('login',this)">Вход</button>
+    <button class="auth-tab" onclick="switchAuthTab('register',this)">Регистрация</button>
+  </div>
+
+  <form id="form-login" class="auth-form active" onsubmit="doLogin(event)">
+    <div class="field">
+      <label>Номер телефона или никнейм</label>
+      <input type="text" id="l-user" placeholder="vasya_228" autocomplete="username" required>
+    </div>
+    <div class="field">
+      <label>Пароль</label>
+      <input type="password" id="l-pass" placeholder="••••••" autocomplete="current-password" required>
+    </div>
+    <button type="submit" class="btn-main" id="btn-login">Войти</button>
+    <div class="auth-err" id="err-login"></div>
+    <p class="auth-hint">Используй номер телефона или никнейм и пароль от своего аккаунта в клубе 1SHOT</p>
+  </form>
+
+  <form id="form-register" class="auth-form" onsubmit="doRegister(event)">
+    <div class="field">
+      <label>Придумай никнейм</label>
+      <input type="text" id="r-user" placeholder="vasya_228" autocomplete="username" required>
+    </div>
+    <div class="field">
+      <label>Придумай пароль</label>
+      <input type="password" id="r-pass" placeholder="минимум 6 символов" autocomplete="new-password" minlength="6" required>
+    </div>
+    <div class="field"><label>Номер телефона</label><input id="r-phone" type="tel" autocomplete="tel" maxlength="20" required placeholder="+7 999 123-45-67"></div>
+    <div class="field">
+      <label>Имя</label>
+      <input type="text" id="r-name" placeholder="Вася" maxlength="45" required>
+    </div>
+    <div class="field"><label>Фамилия</label><input id="r-last" autocomplete="family-name" maxlength="45" required></div>
+    <fieldset class="gender-choice"><legend>Пол</legend><label title="Мужчина"><input type="radio" name="sex" value="1" required aria-label="Мужчина"><svg viewBox="0 0 32 40" aria-hidden="true"><circle cx="16" cy="6" r="4"/><path d="M10 38V24H7V14h18v10h-3v14m-6-14v14"/></svg></label><label title="Женщина"><input type="radio" name="sex" value="2" required aria-label="Женщина"><svg viewBox="0 0 32 40" aria-hidden="true"><circle cx="16" cy="6" r="4"/><path d="m11 14-5 15h7v9m6 0v-9h7l-5-15Z"/></svg></label></fieldset>
+    <div class="field"><label>Дата рождения</label><button type="button" id="birthday-open">Выбрать дату рождения</button><input id="r-birth" type="hidden"></div>
+    <button type="submit" class="btn-main" id="btn-reg">Зарегистрироваться</button>
+    <div class="auth-err" id="err-reg"></div>
+    <p class="auth-hint">После регистрации используй этот никнейм за компами клуба</p>
+  </form>
+</div>
+
+<!-- APP -->
+<div id="app" class="screen">
+  <div class="live-dot" id="live-dot" style="display:none"></div>
+
+  <!-- Header -->
+  <div class="app-header">
+    <svg class="header-logo" viewBox="0 0 522 138" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/>
+    </svg>
+    <div class="balance-chip">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+      <span id="ui-balance">Нет данных</span><span id="ui-currency" hidden>₽</span>
+    </div>
+  </div>
+
+  <div class="hall-heading"><h1>Выбери свой ПК</h1><span id="free-count">Свободно — / 30</span></div>
+  <div class="zone-tabs-wrap"><div class="zone-tabs" id="zone-tabs">
+    <button class="ztab active" data-zone="vip" aria-pressed="true" onclick="switchZone('vip',this)">VIP</button>
+    <button class="ztab" data-zone="standard" aria-pressed="false" onclick="switchZone('standard',this)">STANDARD</button>
+  </div></div>
+  <div class="legend-bar">
+    <div class="leg-item"><div class="leg-dot free"></div>Свободен</div>
+    <div class="leg-item"><div class="leg-dot busy"></div>Занят</div>
+    <div class="leg-item"><svg class="legend-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Бронь</div>
+    <div class="leg-item"><svg class="legend-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3a6 6 0 0 0-7 8L2 16a3 3 0 0 0 4 4l5-5a6 6 0 0 0 8-7l-4 4-3-3 4-4Z"/></svg>Ремонт</div>
+    <div class="refresh-txt" id="refresh-time">Получаем статусы компьютеров…</div>
+  </div>
+  <div class="hall-area" id="hall-area">
+    <div class="hall-loading" id="hall-loading" role="status">Получаем статусы компьютеров…</div>
+    <section class="floor-shell" aria-label="Компьютеры выбранной зоны">
+      <div class="floor-caption"><span id="map-filter-label">VIP</span><span id="seat-count">10 ПК</span></div>
+      <div class="seat-viewport" id="seat-viewport" aria-label="Компьютеры: листайте влево или вправо"><div class="floor-map" id="floor-map" aria-label="Выбор компьютера"></div></div>
+      <div class="seat-pagination">
+        <button id="seat-prev" type="button" onclick="changeSeatPage(-1)" aria-label="Предыдущие компьютеры"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5m7-7-7 7 7 7"/></svg></button>
+        <span id="seat-page" role="status">1 / 1</span>
+        <button id="seat-next" type="button" onclick="changeSeatPage(1)" aria-label="Следующие компьютеры"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></button>
+      </div>
+    </section>
+    <a class="ps5-phone-card" href="tel:+74955837811" onclick="openClubContact(event)" aria-label="PS5 — бронирование только по телефону">
+      <svg class="console-symbol" aria-hidden="true" viewBox="0 0 32 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M10 5h12c3 0 4 3 5 6l2 7c1 4-3 5-5 2l-3-3H11l-3 3c-2 3-6 2-5-2l2-7c1-3 2-6 5-6Z"/><path d="M9 9v6m-3-3h6"/><circle cx="22" cy="10" r="1"/><circle cx="25" cy="13" r="1"/></svg>
+      <span><strong>PlayStation 5</strong><small>Бронь только по телефону</small></span>
+      <span class="phone-cta">Позвонить <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14"/></svg></span>
+    </a>
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <button class="nav-btn active" id="nav-hall" onclick="navTo('hall')">
+      <svg class="nav-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Зал
+    </button>
+    <button class="nav-btn" id="nav-tariffs" onclick="navTo('tariffs')">
+      <svg class="nav-ico" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M4 10h16"/><circle cx="12" cy="14" r="1.5" fill="currentColor" stroke="none"/></svg>
+      Тарифы
+    </button>
+    <button class="nav-btn" id="nav-profile" onclick="navTo('profile')">
+      <svg class="nav-ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7"/></svg>
+      Профиль
+    </button>
+  </div>
+</div>
+
+<!-- BOOKING SHEET -->
+<div class="sheet-bg" id="sheet-bg" onclick="closeSheet()"></div>
+<div class="booking-sheet" id="booking-sheet">
+  <div class="sh-drag"></div>
+  <div class="sh-label">Бронирование</div>
+  <div class="sh-pc" id="sh-pc-num">—</div>
+  <div class="sh-zone" id="sh-pc-zone">—</div>
+  <p class="booking-rules">Только бронь, не покупка игрового времени. Срок — 60 минут.<br>Для бронирования больше двух компьютеров позвоните в клуб.</p>
+  <a class="call-club" href="tel:+74955837811" onclick="openClubContact(event)">Позвонить в клуб <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14"/></svg></span></a>
+  <p id="booking-error" class="booking-error" role="alert" hidden></p>
+  <button class="btn-main" id="btn-book" onclick="confirmBooking()">Забронировать</button>
+</div>
+
+<!-- TARIFFS OVERLAY -->
+<div class="overlay" id="ov-tariffs">
+  <div class="ov-head">
+    <div class="ov-title">Тарифы</div>
+    <div class="ov-close" onclick="navTo('hall')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </div>
+  </div>
+  <div class="ov-body"><p class="rate-intro"><strong>Твой темп. Твоё время.</strong><br>Игровое время оплачивается в клубе. Здесь — только бронирование места.</p><article class="rate-card"><span class="rate-badge">ОСНОВНОЙ ЗАЛ</span><div class="rate-eyebrow">ВРЕМЯ ИГРАТЬ</div><h2 class="rate-title">STANDARD</h2><div class="rate-start">189 ₽ <small>/ 1 час</small></div><div class="rate-packages"><div class="rate-package"><span>3 ч</span><b>499 ₽</b></div><div class="rate-package"><span>5 ч</span><b>699 ₽</b></div><div class="rate-package"><span>12 ч</span><b>1 390 ₽</b></div></div><div class="rate-special"><div>Утро <span>08:00–13:00</span></div><b>399 ₽</b></div><div class="rate-special"><div>Ночь <span>22:00–08:00</span></div><b>899 ₽</b></div></article><article class="rate-card vip-rate"><span class="rate-badge">ПРЕМИУМ</span><div class="rate-eyebrow">ВРЕМЯ ИГРАТЬ</div><h2 class="rate-title">VIP</h2><div class="rate-start">229 ₽ <small>/ 1 час</small></div><div class="rate-packages"><div class="rate-package"><span>3 ч</span><b>599 ₽</b></div><div class="rate-package"><span>5 ч</span><b>799 ₽</b></div><div class="rate-package"><span>12 ч</span><b>1 590 ₽</b></div></div><div class="rate-special"><div>Утро <span>08:00–13:00</span></div><b>499 ₽</b></div><div class="rate-special"><div>Ночь <span>22:00–08:00</span></div><b>999 ₽</b></div></article><article class="rate-card ps5-rate"><div class="rate-eyebrow">КОНСОЛЬ</div><h2 class="rate-title">PS5</h2><div class="rate-start">299 ₽ <small>/ 1 час</small></div><p>Бронь по телефону</p></article><p class="tr-note">Цены из текущего прайса приложения.<br>Актуальные условия уточняйте у администратора.</p><a class="call-club" href="tel:+74955837811" onclick="openClubContact(event)">Позвонить в клуб <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14"/></svg></span></a></div>
+</div>
+
+<!-- PROFILE OVERLAY -->
+<div class="overlay" id="ov-profile">
+  <div class="ov-head">
+    <div class="ov-title">Профиль</div>
+    <div class="ov-close" onclick="navTo('hall')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </div>
+  </div>
+  <div class="ov-body">
+    <div class="prof-card">
+      <div class="prof-ava">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FF5A36" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7"/></svg>
+      </div>
+      <div>
+        <div class="prof-name" id="prof-name">—</div>
+        <div class="prof-sub" id="prof-account">Аккаунт клуба</div>
+      </div>
+    </div>
+
+    <div class="bal-card">
+      <div class="bal-lbl">Баланс</div>
+      <div class="bal-val" id="prof-balance">— ₽</div>
+      <div class="bal-sub" id="balance-note">Баланс клуба пока не подключён</div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-row">
+        <div class="info-key">Telegram ID</div>
+        <div class="info-val" id="prof-tgid">—</div>
+      </div>
+      <div class="info-row">
+        <div class="info-key">ID аккаунта</div>
+        <div class="info-val" id="prof-gid">—</div>
+      </div>
+    </div>
+
+    <button class="btn-danger" onclick="doLogout()">Выйти из аккаунта</button>
+    <p id="mini-build" class="version-label">version 1.4.1</p>
+  </div>
+</div>
+
+<!-- Build: floor-plan-20260925-2 -->
+<dialog id="club-contact" class="contact-dialog" aria-labelledby="contact-title">
+  <button type="button" class="contact-close" onclick="closeClubContact()" aria-label="Закрыть"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button>
+  <div class="rate-eyebrow">1SHOT · КИБЕРХАУС</div>
+  <h2 id="contact-title">На связи с клубом</h2>
+  <p class="club-phone">+7 (495) 583-78-11</p>
+  <a class="btn-main" href="tel:+74955837811" target="_blank" rel="noopener">Открыть звонилку <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14"/></svg></a>
+  <button class="btn-main" type="button" onclick="copyClubPhone()">Скопировать номер</button>
+  <p class="contact-hint">Telegram на компьютере может не открывать звонки. Скопируйте номер и наберите его с телефона.</p>
+  <p id="contact-result" role="status"></p>
+</dialog>
+<!-- TOASTS -->
+<div id="toasts"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════
+const SUPA = 'https://zqhfvtgktbfnxcclqqny.supabase.co/functions/v1';
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+const tg = window.Telegram?.WebApp;
+let telegram_id = tg?.initDataUnsafe?.user?.id || 0;
+
+let profile   = null;   // { telegram_id, gizmo_user_id, username, first_name, last_name }
+let hostsData = {};     // host_id → { status, zone }
+let pollTimer = null;
+
+let booking = { hostId: null, zone: null, isVip: false, dur: 1 };
+
+// ═══════════════════════════════════════════════
+// TELEGRAM INIT
+// ═══════════════════════════════════════════════
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tg.enableClosingConfirmation();
+  try { tg.setHeaderColor('#000000'); tg.setBackgroundColor('#000000'); } catch(e){}
+  try { tg.disableVerticalSwipes(); } catch(e){}
+  if (!telegram_id) telegram_id = tg?.initDataUnsafe?.user?.id || 0;
+}
+
+// ═══════════════════════════════════════════════
+// SPLASH → AUTH / APP
+// ═══════════════════════════════════════════════
+// Start the original SVG entrance as a sequence, and let the 500ms exit finish.
+const splash = document.getElementById('splash');
+let splashFinished = false;
+let splashFallback;
+function finishSplash() {
+  if (splashFinished) return;
+  splashFinished = true;
+  clearTimeout(splashFallback);
+  splash.classList.remove('active');
+  const saved = loadProfile();
+  if (saved && saved.telegram_id == telegram_id) {
+    profile = saved;
+    showApp();
+  } else {
+    document.getElementById('auth').classList.add('active');
+  }
+}
+splash.addEventListener('animationend', event => {
+  if (event.target === splash && event.animationName === 'splashOut') finishSplash();
+});
+const splashFontReady = document.fonts
+  ? document.fonts.load('600 12px Unbounded', 'КИБЕРХАУС').catch(() => {})
+  : Promise.resolve();
+Promise.race([splashFontReady, new Promise(resolve => setTimeout(resolve, 600))]).then(() => {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { finishSplash(); return; }
+  requestAnimationFrame(() => {
+    splash.classList.add('splash-started');
+    splashFallback = setTimeout(finishSplash, 3500);
+  });
+});
+
+// ═══════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════
+function switchAuthTab(tab, btn) {
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('form-login').classList.toggle('active', tab === 'login');
+  document.getElementById('form-register').classList.toggle('active', tab === 'register');
+  clearAuthErr();
+}
+
+function setAuthLoading(formId, loading) {
+  const btn = document.getElementById(formId === 'form-login' ? 'btn-login' : 'btn-reg');
+  btn.disabled = loading;
+  btn.innerHTML = loading
+    ? '<div class="spinner"></div>Ждём агента…'
+    : (formId === 'form-login' ? 'Войти' : 'Зарегистрироваться');
+}
+
+function showAuthErr(formId, msg) {
+  const id = formId === 'form-login' ? 'err-login' : 'err-reg';
+  const el = document.getElementById(id);
+  el.textContent = clubText(msg);
+  el.classList.add('show');
+}
+
+function clearAuthErr() {
+  document.querySelectorAll('.auth-err').forEach(e => { e.textContent=''; e.classList.remove('show'); });
+}
+
+async function doLogin(e) {
+  e.preventDefault();
+  clearAuthErr();
+  const username = document.getElementById('l-user').value.trim();
+  const password = document.getElementById('l-pass').value;
+  if (!username || !password) return;
+
+  setAuthLoading('form-login', true);
+
+  try {
+    const res  = await apiFetch(`${SUPA}/club-auth`, {
+      method: 'POST',
+      body: JSON.stringify({ initData:tg?.initData||'', action: 'login', username, password })
+    });
+
+    if (res.status === 'already_logged_in') {
+      profile = { telegram_id, gizmo_user_id: res.gizmo_user_id, username: res.username, balance: res.profile?.balance ?? res.balance };
+      saveProfile(profile);
+      showApp();
+      return;
+    }
+
+    if (!res.request_id) throw new Error('Сервер не вернул request_id');
+
+    await pollAuth(res.request_id, 'form-login');
+  } catch(err) {
+    showAuthErr('form-login', err.message || 'Ошибка соединения');
+    setAuthLoading('form-login', false);
+  }
+}
+
+async function doRegister(e) {
+  e.preventDefault();
+  clearAuthErr();
+  const username   = document.getElementById('r-user').value.trim();
+  const password   = document.getElementById('r-pass').value;
+  const first_name = document.getElementById('r-name').value.trim();
+  const mobile_phone=document.getElementById('r-phone').value.trim(),last_name=document.getElementById('r-last').value.trim(),birth_date=document.getElementById('r-birth').value,sex=Number(document.querySelector('[name=sex]:checked')?.value);
+  if (!username || !password || !first_name || !last_name || !mobile_phone || !birth_date || !sex) {showAuthErr('form-register','Заполните все поля, включая дату рождения');return;}
+
+  setAuthLoading('form-register', true);
+
+  try {
+    const res = await apiFetch(`${SUPA}/club-auth`, {
+      method: 'POST',
+      body: JSON.stringify({ initData:tg?.initData||'', action: 'register', username, password, first_name,last_name,mobile_phone,birth_date,sex })
+    });
+
+    if (!res.request_id) throw new Error('Сервер не вернул request_id');
+
+    await pollAuth(res.request_id, 'form-register');
+  } catch(err) {
+    showAuthErr('form-register', err.message || 'Ошибка соединения');
+    setAuthLoading('form-register', false);
+  }
+}
+
+async function pollAuth(requestId, formId) {
+  const MSGS = {
+    invalid_credentials: 'Неверный номер телефона, никнейм или пароль',
+    username_taken:      'Этот никнейм уже занят — попробуй другой',
+    failed:              'Техническая ошибка, попробуй позже',
+  };
+
+  for (let i = 0; i < 40; i++) {
+    await sleep(1500);
+    try {
+      const res = await apiFetch(`${SUPA}/club-auth`,{method:'POST',body:JSON.stringify({action:'status',request_id:requestId,initData:tg?.initData||''})});
+
+      if (res.status === 'done') {
+        document.getElementById('l-pass').value='';document.getElementById('r-pass').value='';
+        profile = res.profile;
+        saveProfile(profile);
+        showApp();
+        return;
+      }
+
+      if (MSGS[res.status]) {
+        showAuthErr(formId, MSGS[res.status]);
+        setAuthLoading(formId, false);
+        return;
+      }
+      // status === 'pending' → продолжаем ждать
+    } catch(err) { /* сеть моргнула — продолжаем */ }
+  }
+  showAuthErr(formId, 'Время ожидания истекло — проверь соединение');
+  setAuthLoading(formId, false);
+}
+
+// ═══════════════════════════════════════════════
+// APP INIT
+// ═══════════════════════════════════════════════
+function showApp() {
+  document.getElementById('auth').classList.remove('active');
+  document.getElementById('app').classList.add('active');
+  fillProfile();
+  renderHall();
+  fetchHosts();
+  clearInterval(pollTimer);
+  pollTimer = setInterval(fetchHosts, 10000); // каждые 10 сек
+}
+
+function fillProfile() {
+  if (!profile) return;
+  const name = profile.first_name || profile.username || 'Гость';
+  const amount = typeof profile.balance === 'number' && Number.isFinite(profile.balance) ? profile.balance : null;
+  const formatted = amount === null ? null : amount.toLocaleString('ru-RU', {maximumFractionDigits:2});
+  document.getElementById('ui-balance').textContent = formatted ?? 'Нет данных';
+  document.getElementById('ui-currency').hidden = formatted === null;
+  document.getElementById('prof-name').textContent = name;
+  document.getElementById('prof-account').textContent = `@${profile.username}`;
+  document.getElementById('prof-tgid').textContent = telegram_id || '—';
+  document.getElementById('prof-gid').textContent = profile.gizmo_user_id || '—';
+  document.getElementById('prof-balance').textContent = formatted === null ? 'Нет данных' : `${formatted} ₽`;
+  document.getElementById('balance-note').textContent = formatted === null
+    ? 'Сервер пока не передаёт баланс клуба. Уточните сумму у администратора.'
+    : 'Баланс, полученный при входе. Актуальную сумму уточняйте в клубе.';
+}
+
+// ═══════════════════════════════════════════════
+// HOSTS
+// ═══════════════════════════════════════════════
+let hostsRequestPending = false;
+function showHostsMessage(message) {
+  const container = document.getElementById('hall-loading');
+  container.style.display = 'block';
+  container.setAttribute('role','status');
+  container.replaceChildren();
+  const text = document.createElement('p');
+  text.textContent = clubText(message);
+  const retry = document.createElement('button');
+  retry.type = 'button'; retry.textContent = 'Повторить'; retry.onclick = () => fetchHosts();
+  container.append(text,retry);
+}
+async function fetchHosts() {
+  if (hostsRequestPending) return;
+  hostsRequestPending = true;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const data = await apiFetch(`${SUPA}/hosts`, {signal:controller.signal, cache:'no-store'});
+    if (!data || !Array.isArray(data.hosts)) throw new Error('Некорректный ответ сервера');
+    hostsData = Object.fromEntries(data.hosts.map(h => [String(h.host_id),h]));
+    const live = HALL_LAYOUT.filter(pc => pc.id !== '1' && liveHostStatus(hostsData[pc.id]) !== 'unknown').length;
+    renderHall();
+    document.getElementById('live-dot').style.display = live ? 'block' : 'none';
+    document.getElementById('refresh-time').textContent = live
+      ? ''
+      : 'Нет актуальных данных от клуба';
+    if (live) document.getElementById('hall-loading').style.display='none';
+    else showHostsMessage(data.hosts.length
+      ? 'Нет связи с клубом. Бронирование временно недоступно.'
+      : 'Список ПК пока пустой. Ожидаем данные от клуба.');
+  } catch(e) {
+    hostsData = {}; renderHall();
+    document.getElementById('live-dot').style.display='none';
+    document.getElementById('refresh-time').textContent='Нет связи · бронирование временно недоступно';
+    showHostsMessage(e.name==='AbortError' ? 'Сервер не ответил за 8 секунд. Повторим автоматически.' : 'Не удалось получить статусы. Повторим автоматически.');
+    console.warn('fetchHosts error',e);
+  } finally { clearTimeout(timeout); hostsRequestPending=false; }
+}
+
+// ═══════════════════════════════════════════════
+// RENDER HALL
+// ═══════════════════════════════════════════════
+let activeZone = 'vip';
+let seatPage = 0;
+function statusIcon(status) {
+  const paths = status==='reserved' ? '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>'
+    : status==='broken' ? '<path d="M14 3a6 6 0 0 0-7 8L2 16a3 3 0 0 0 4 4l5-5a6 6 0 0 0 8-7l-4 4-3-3 4-4Z"/>' : '';
+  return paths ? `<svg class="map-symbol" viewBox="0 0 24 24" aria-hidden="true">${paths}</svg>` : '';
+}
+function renderHall() {
+  const map = document.getElementById('floor-map');
+  const fresh = HALL_LAYOUT.filter(pc=>pc.id!=='1' && liveHostStatus(hostsData[pc.id])!=='unknown');
+  const free = fresh.filter(pc=>liveHostStatus(hostsData[pc.id])==='free').length;
+  document.getElementById('free-count').textContent = `Свободно ${fresh.length ? free : '—'} / 30`;
+  const seats = getZoneSeats(activeZone);
+  const zonePages=getZonePages(activeZone);
+  const pages = zonePages.length;
+  seatPage = Math.max(0, Math.min(seatPage, pages - 1));
+  const renderKey=activeZone+':'+seatPage+':'+seats.map(pc=>pc.id+liveHostStatus(hostsData[pc.id])+!!window.ownBookingIds?.has(pc.id)+!!window.instantHostIds?.has(pc.id)).join('|');
+  if(map.dataset.renderKey===renderKey&&map.children.length)return;map.dataset.renderKey=renderKey;
+  const focusedId = map.contains(document.activeElement) ? document.activeElement.dataset.hid : null;
+  map.replaceChildren();
+  const groups = new Map();
+  zonePages[seatPage].forEach(pc => {
+    const status = window.instantHostIds?.has(pc.id)?'connecting':liveHostStatus(hostsData[pc.id]);
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = `map-pc ${status}`;
+    if(window.ownBookingIds?.has(pc.id))button.classList.add('my-booking');
+    button.dataset.hid = pc.id;button.dataset.zoneLabel=pc.group==='vip'?`Ряд ${pc.zone}`:`Зона ${pc.zone}`;
+    button.disabled = !['free','busy','reserved'].includes(status)&&!window.ownBookingIds?.has(pc.id);
+    button.setAttribute('aria-label', `ПК ${pc.id}: ${HOST_LABELS[status]}`);
+    button.innerHTML = `<span class="map-monitor">${statusIcon(status)}</span><span class="seat-prefix">ПК</span><span class="map-number">${pc.id}</span><span class="seat-status">${HOST_LABELS[status]}</span>`;
+    button.onclick = () => {const current=liveHostStatus(hostsData[pc.id]);if(window.openOwnBooking?.(pc.id))return;if(current==='busy')return window.showOccupied();if(current!=='free')return toast('Этот ПК недоступен','inf');openBooking(pc.id, pc.zone, pc.group === 'vip')};
+    if (!groups.has(pc.zone)) {
+      const section=document.createElement('section'); section.className='seat-zone';
+      const title=document.createElement('div'); title.className='seat-zone-title';title.textContent=activeZone==='vip'?`Ряд ${pc.zone}`:`Зона ${pc.zone}`;
+      const grid=document.createElement('div');grid.className='seat-zone-grid';
+      section.append(title,grid);map.append(section);groups.set(pc.zone,grid);
+    }
+    groups.get(pc.zone).append(button);
+    if (focusedId === pc.id && !button.disabled) button.focus({preventScroll:true});
+  });
+  groups.forEach(grid=>{grid.style.setProperty('--seat-columns',grid.children.length>5?Math.ceil(grid.children.length/2):grid.children.length);grid.style.setProperty('--seat-rows',Math.ceil(grid.children.length/5));grid.parentElement.style.setProperty('--seat-weight',Math.ceil(grid.children.length/5))});
+  map.style.setProperty('--zone-count', groups.size);
+  document.getElementById('map-filter-label').textContent = activeZone.toUpperCase();
+  document.getElementById('seat-count').textContent = `${seats.length} компьютеров`;
+  const position = hallPageIndex(), total = hallPages().length;
+  document.getElementById('seat-page').textContent = `${activeZone.toUpperCase()} · ${position + 1} / ${total}`;
+  document.getElementById('seat-prev').disabled = position === 0;
+  document.getElementById('seat-next').disabled = position >= total - 1;
+}
+function hallPages() {
+  return ['vip','standard'].flatMap(zone => getZonePages(zone).map((_,page)=>({zone,page})));
+}
+function hallPageIndex() { return hallPages().findIndex(p=>p.zone===activeZone&&p.page===seatPage); }
+function goToHallPage(index, offset=0) {
+  const pages=hallPages(), previous=hallPageIndex();
+  if(index<0||index>=pages.length||index===previous)return false;
+  const update=()=>{
+    activeZone=pages[index].zone;seatPage=pages[index].page;
+    document.querySelectorAll('.ztab').forEach(t=>{
+      const selected=t.dataset.zone===activeZone;
+      t.classList.toggle('active',selected);t.setAttribute('aria-pressed',String(selected));
+    });
+    renderHall();
+  };
+  if(window.hallMotion)window.hallMotion.change(update,Math.sign(index-previous),offset);
+  else update();
+  return true;
+}
+function switchZone(zone) {
+  if(!['vip','standard'].includes(zone))return;
+  goToHallPage(hallPages().findIndex(p=>p.zone===zone));
+}
+function changeSeatPage(direction) { goToHallPage(hallPageIndex()+Math.sign(direction)); }
+
+// ═══════════════════════════════════════════════
+// BOTTOM NAV
+// ═══════════════════════════════════════════════
+function navTo(tab) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('nav-' + tab)?.classList.add('active');
+
+  document.getElementById('ov-tariffs').classList.toggle('open', tab === 'tariffs');
+  document.getElementById('ov-profile').classList.toggle('open', tab === 'profile');
+
+  if (tab === 'hall') {
+    document.getElementById('ov-tariffs').classList.remove('open');
+    document.getElementById('ov-profile').classList.remove('open');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// BOOKING SHEET
+// ═══════════════════════════════════════════════
+function openBooking(hostId, zone, isVip) {
+  if (isPhoneOnlyHost(hostId, zone)) { openClubContact(); return; }
+  if (!profile) { toast('Сначала войди в аккаунт', 'err'); return; }
+  if (window.clubV2) { openClubBooking(hostId); return; }
+  if (liveHostStatus(hostsData[String(hostId)]) !== 'free') { toast('Статус изменился. Обновите зал.', 'err'); return; }
+
+  booking = { hostId, zone, isVip, dur: 1 };
+  document.getElementById('booking-error').hidden = true;
+
+  const zoneLabel = zone === 'ps5' ? 'PS5'
+    : isVip ? `VIP · Ряд ${zone}`
+    : `Зона ${zone}`;
+
+  document.getElementById('sh-pc-num').textContent = hostId === '1' ? 'PS5' : `ПК ${hostId}`;
+  document.getElementById('sh-pc-zone').textContent = zoneLabel;
+
+  document.getElementById('sheet-bg').classList.add('open');
+  document.getElementById('booking-sheet').classList.add('open');
+}
+
+function closeSheet() {
+  document.getElementById('sheet-bg').classList.remove('open');
+  document.getElementById('booking-sheet').classList.remove('open');
+}
+
+async function confirmBooking() {
+  if (isPhoneOnlyHost(booking.hostId, booking.zone)) { closeSheet(); openClubContact(); return; }
+  if (!profile) return;
+  if (!tg?.initData) { toast('Откройте приложение через Telegram', 'err'); return; }
+  if (liveHostStatus(hostsData[String(booking.hostId)]) !== 'free') { toast('Нет свежего статуса компьютера', 'err'); return; }
+  const btn = document.getElementById('btn-book');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div>Бронируем…';
+  document.getElementById('booking-error').hidden = true;
+
+  try {
+    const res = await apiFetch(`${SUPA}/reservations`, {
+      method: 'POST',
+      body: JSON.stringify({
+        initData: tg.initData,
+        host_id:       String(booking.hostId === 'PS5' ? '1' : booking.hostId),
+        duration_minutes: 60,
+      })
+    });
+
+    closeSheet();
+    toast('Заявка отправлена в клуб. Ожидаем подтверждение агента.', 'ok');
+    setTimeout(fetchHosts, 2000);
+  } catch(err) {
+    const message = `Бронь не создана. Ответ сервера: ${err.message || 'Неизвестная ошибка'}`;
+    document.getElementById('booking-error').textContent = message;
+    document.getElementById('booking-error').hidden = false;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Забронировать';
+  }
+}
+
+// ═══════════════════════════════════════════════
+// LOGOUT
+// ═══════════════════════════════════════════════
+function doLogout() {
+  const confirm = () => {
+    clearInterval(pollTimer);
+    clearProfile();
+    profile = null;
+    document.getElementById('app').classList.remove('active');
+    document.getElementById('ov-profile').classList.remove('open');
+    document.getElementById('auth').classList.add('active');
+    document.getElementById('live-dot').style.display = 'none';
+  };
+
+  if (tg) {
+    tg.showConfirm('Выйти из аккаунта?', ok => { if (ok) confirm(); });
+  } else if (window.confirm('Выйти из аккаунта?')) {
+    confirm();
+  }
+}
+
+// ═══════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════
+function toast(msg, type = 'inf') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = clubText(msg);
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function apiFetch(url, opts = {}) {
+  const res = await fetch(url, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) }
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    let message = `Ошибка сервера (${res.status})`;
+    try {
+      const body = JSON.parse(txt);
+      const detail = typeof body.error === 'string' ? body.error
+        : body.error?.message || body.message;
+      if (typeof detail === 'string') message = `HTTP ${res.status}: ${detail}`;
+    } catch(e){}
+    throw new Error(clubText(message));
+  }
+  return res.json();
+}
+
+// Normalize provider names only in service copy, never in account data or API keys.
+function clubText(value) { return String(value ?? '').replace(/в\s+gizmo/gi, 'в системе клуба').replace(/gizmo/gi, 'сервис клуба'); }
+
+function saveProfile(p) {
+  try { localStorage.setItem('1shot_v2_profile', JSON.stringify(p)); } catch(e){}
+}
+function loadProfile() {
+  try { return JSON.parse(localStorage.getItem('1shot_v2_profile') || 'null'); } catch(e){ return null; }
+}
+function clearProfile() {
+  try { localStorage.removeItem('1shot_v2_profile'); } catch(e){}
+}
+</script>
+<script src="hall-swipe.js?v=20260925-7"></script>
+<script src="experience.js?v=1.4.1"></script>
+<script src="club-booking.js?v=1.4.1"></script>
+<link rel="stylesheet" href="polish.css?v=1.4.1"><script src="polish.js?v=1.4.1"></script></body>
+</html>

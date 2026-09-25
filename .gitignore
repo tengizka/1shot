@@ -1,0 +1,17 @@
+.env
+.env.*
+__pycache__/
+*.pyc
+node_modules/
+
+agent-reservations.json
+agent-reservations.tmp
+.venv/
+build/
+dist/
+*.spec
+*.sqlite3
+*.sqlite3-*
+
+desktop/assets/fonts/
+desktop/assets/hall-map.js

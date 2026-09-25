@@ -1,0 +1,9 @@
+requests>=2.32,<3
+python-dotenv>=1.0,<2
+pywebview>=6,<7
+PySide6>=6.8,<7
+QtPy>=2.4,<3
+pystray>=0.19,<1
+Pillow>=10,<13
+pyinstaller>=6,<7
+cryptography>=44,<47

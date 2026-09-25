@@ -1,0 +1,23 @@
+[functions.hosts]
+verify_jwt = false
+
+[functions.reservations]
+verify_jwt = false
+
+[functions.pending-reservations]
+verify_jwt = false
+
+[functions.upsert-profile]
+verify_jwt = false
+
+[functions.club-bookings]
+verify_jwt = false
+
+[functions.club-agent]
+verify_jwt = false
+
+[functions.club-desk]
+verify_jwt = false
+
+[functions.club-auth]
+verify_jwt = false
