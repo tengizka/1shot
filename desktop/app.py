@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 from .engine import Controller,Store
 from .accounts import Accounts
+from .polling import PollBudget
 from .sound import Sound
 from .services import Cloud,Gizmo,LegacyBridge
 from .version import VERSION, AUTHOR, APP_TITLE, APP_ID
@@ -21,8 +22,10 @@ class App:
         self.bridge=LegacyBridge(self.gizmo,self.cloud,self.store)
         self.stop=threading.Event();self.lock=threading.RLock();self.operations=threading.RLock();self.exit_prompt=threading.Lock()
         self.controller.stopping=self.stop.is_set
+        self.bridge.guard=self.controller.guard
         self.accounts=Accounts(self.gizmo,self.cloud,self.store,self.controller.guard)
         self.sound=Sound(HOME,self.store);self.host_rows=[];self.password_requests=[];self.protocol_ready=False;self.maximized=False
+        self.cloud.host_source=lambda:self.host_rows if self.last_sync and time.time()-self.last_sync<15 else None
         self.online=False;self.error='Подключение…';self.sync_error='';self.last_sync=0
         self.rows=[];self.alerts={};self.notified_cursor=0;self.muted_until=0;self.window=None;self.tray=None;self.exiting=False
     def alarm(self):self.sound.play()
@@ -104,13 +107,17 @@ class App:
     def mute(self):self.muted_until=0 if time.time()<self.muted_until else time.time()+300;self.sound.stop();return True
     def test_sound(self):self.alarm();return True
     def work(self):
-        last_alarm=0
+        last_alarm=0;last_legacy=0;budget=PollBudget()
         while not self.stop.is_set():
+            started=time.monotonic();failed=False
             try:
                 with self.operations:
-                    self.controller.tick()
+                    snapshot=self.controller.tick()
+                    if snapshot.get("auth_pending"):self.bridge.auth()
+                    if os.getenv("LEGACY_AUTH_ENABLED","false").lower()=="true" and time.monotonic()-last_legacy>=60:
+                        last_legacy=time.monotonic();self.bridge.legacy_auth()
                     try:
-                        self.accounts.tick();self.protocol_ready=True
+                        self.accounts.tick(snapshot["desk"]);self.protocol_ready=True
                         self.password_requests=[{k:r.get(k) for k in ('id','gizmo_user_id','telegram_id','created_at')} for r in self.accounts.requests]
                     except Exception as error:
                         self.protocol_ready=False;self.controller.errors.append('Аккаунты: '+str(error))
@@ -121,7 +128,8 @@ class App:
                         self.rows.append({k:b.get(k) for k in ('id','username','telegram_id','gizmo_user_id','host_id','mode','duration_kind','status','starts_at','ends_at','hold_until','message','for_friend','instant','protocol')}|{'code':record.get('code') if b['status']=='holding' and time.time()-record.get('code_at',0)<180 else None})
                     self.online=True;self.error=' · '.join(self.controller.errors)
             except Exception as error:
-                with self.lock:self.online=False;self.error=str(error)[:220]
+                failed=True
+                with self.lock:self.online=False;self.protocol_ready=False;self.error=str(error)[:220]
             # Only an actual new booking alert may trigger a tray popup.
             cursor=max((int(k) for k in self.store.get('alerts',{}) if str(k).isdigit()),default=0)
             if self.tray and self.store.get('alerts',{}) and cursor>self.notified_cursor:
@@ -130,10 +138,11 @@ class App:
                 self.notified_cursor=cursor
             if self.store.get('alerts',{}) and time.time()>self.muted_until and time.time()-last_alarm>self.sound.settings['repeat'] and self.sound.settings['enabled']:
                 self.alarm();last_alarm=time.time()
-            self.stop.wait(2)
+            delay=budget.interval(self.rows,failed)
+            self.stop.wait(max(1,delay-(time.monotonic()-started)))
     def sync_loop(self):
         while not self.stop.is_set():
-            try:self.bridge.sync();self.host_rows=self.bridge.host_rows;self.last_sync=time.time();self.sync_error='';self.bridge.auth()
+            try:self.host_rows=self.bridge.collect_hosts();self.last_sync=time.time();self.sync_error=''
             except Exception as error:self.sync_error=str(error)[:180]
             self.stop.wait(5)
     def reveal(self,*_):self.window.show();self.window.restore()

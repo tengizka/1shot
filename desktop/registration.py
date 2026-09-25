@@ -47,6 +47,8 @@ def login_name(gizmo,identity):
 def process_auth(bridge):
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
     cloud,gizmo,store=bridge.cloud,bridge.gizmo,bridge.store
+    guard=getattr(bridge,'guard',lambda:None)
+    guard()
     rows=cloud.request('club-auth',body={'action':'claim','worker_id':cloud.worker_id}).get('requests',[])
     for row in rows:
         key='auth-v2:'+row['id'];result=store.get(key)
@@ -65,9 +67,9 @@ def process_auth(bridge):
                     if gizmo.request('GET',f'users/loginname/{quote(username,safe="")}/exist'):
                         result={'status':'username_taken'}
                     else:
-                        uid=gizmo.request('PUT','users',params=params)
+                        guard();uid=gizmo.request('PUT','users',params=params)
                         if type(uid) is not int or uid<=0:raise ApiError('Нет ID нового аккаунта')
-                        gizmo.request('POST',f'users/{uid}/password/{quote(password,safe="")}')
+                        guard();gizmo.request('POST',f'users/{uid}/password/{quote(password,safe="")}')
                         actual=gizmo.user(uid)
                         if actual.get('userGroupId')!=params['UserGroupId'] or str(actual.get('birthDate',''))[:10]!=req['birth_date']:
                             raise ApiError('Gizmo не подтвердил группу / дату рождения')

@@ -11,7 +11,20 @@ window.clubV2=false;
  const time=a=>a.map(n=>String(n).padStart(2,'0')).join(':');
  const fmt=v=>new Date(v).toLocaleTimeString('ru-RU',{timeZone:'Europe/Moscow',hour:'2-digit',minute:'2-digit'});
  const date=()=>new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Moscow'});
- async function call(action,data={}){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);try{return await apiFetch(`${SUPA}/club-bookings`,{method:'POST',signal:controller.signal,body:JSON.stringify({action,initData:tg?.initData||'',...data})})}finally{clearTimeout(timer)}}
+ async function rawCall(action,data={}){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);try{return await apiFetch(`${SUPA}/club-bookings`,{method:'POST',signal:controller.signal,body:JSON.stringify({action,initData:tg?.initData||'',...data})})}finally{clearTimeout(timer)}}
+ let bundlePromise=null,bundleCache=null,bundleTime=0,pollFailures=0,fastUntil=0;
+ window.getClubState=async()=>{
+  if(bundlePromise)return bundlePromise;
+  if(bundleCache&&Date.now()-bundleTime<1000)return bundleCache;
+  bundlePromise=rawCall('state').then(data=>{if(!Array.isArray(data.hosts)||!Array.isArray(data.bookings))throw Error('Обновите сервис клуба');bundleCache=data;bundleTime=Date.now();pollFailures=0;return data}).catch(e=>{pollFailures=Math.min(pollFailures+1,3);throw e}).finally(()=>bundlePromise=null);
+  return bundlePromise;
+ };
+ async function call(action,data={}){
+  if(window.pollBundleReady&&['list','account'].includes(action))return window.getClubState();
+  const result=await rawCall(action,data);
+  if(!['capabilities','list','account'].includes(action)){bundleCache=null;fastUntil=Date.now()+30000;clearTimeout(pollTimer);if(!document.hidden)pollTimer=setTimeout(poll,5000);}
+  return result;
+ }
  function open(){window.hallMotion?.cancel();if(!sheet.open)sheet.showModal()}
  function close(){if(!state.busy)sheet.close()}
  const handle=sheet.querySelector('.club-sheet-head');let drag=null;
@@ -144,7 +157,21 @@ window.clubV2=false;
   catch{/* A failed refresh never frees an owned PC in the UI. */}
   finally{fetching=false}
  }
- async function init(){try{const c=await call('capabilities');window.clubV2=!!c.enabled;state.protocol=c.protocol||1;$('instant-mode').hidden=state.protocol<2;if(state.protocol>=2)setupAccount();if(window.clubV2){renderHall();refresh()}}catch{/* Keep the UI usable while the club reconnects. */}}
- init();setInterval(refresh,5000);setInterval(refreshAccount,10000);
- document.addEventListener('visibilitychange',()=>{if(!document.hidden){init();refresh()}});
+ let capabilitiesAt=0;
+ async function init(){capabilitiesAt=Date.now();try{const c=await call('capabilities');window.clubV2=!!c.enabled;state.protocol=c.protocol||1;window.pollBundleReady=c.poll_bundle===1&&state.protocol>=2;$('instant-mode').hidden=state.protocol<2;if(state.protocol>=2)setupAccount();if(window.clubV2){renderHall();refresh()}}catch{/* Keep the UI usable while the club reconnects. */}}
+ let pollTimer=null,polling=false;
+ async function poll(){
+  clearTimeout(pollTimer);
+  if(polling)return;
+  if(document.hidden){pollTimer=null;return;}
+  polling=true;
+  try{if(!window.clubV2&&Date.now()-capabilitiesAt>=60000)await init();await Promise.all([refresh(),refreshAccount(),profile?fetchHosts():Promise.resolve()])}finally{polling=false;}
+  const seconds=pollFailures?Math.min(60,20*2**pollFailures):Date.now()<fastUntil?5:15;
+  clearTimeout(pollTimer);if(!document.hidden)pollTimer=setTimeout(poll,seconds*1000);
+ }
+ init().then(()=>{if(!polling){clearTimeout(pollTimer);pollTimer=setTimeout(poll,15000)}});
+ document.addEventListener('visibilitychange',()=>{clearTimeout(pollTimer);if(!document.hidden){bundleCache=null;poll()}});
+ window.addEventListener('club:resume',()=>{bundleCache=null;poll()});
+ // Expire cached availability locally, without another network request.
+ setInterval(()=>{if(!document.hidden&&profile){renderHall();renderSessionBanner()}},5000);
 })();

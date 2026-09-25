@@ -6,6 +6,10 @@ Deno.serve(async req=>{
  if(!secret||req.headers.get('x-agent-secret')!==secret)return json({error:'Unauthorized'},403);
  try{
   const b=await req.json();const client=db();
+  if(b.action==='snapshot'&&b.eco===1){
+   const {data,error}=await client.rpc('club_worker_poll',{p_worker:b.worker_id,p_after:Number(b.after_event)||0,p_hosts:b.hosts??null,p_accounts:b.accounts||[]});
+   if(error)throw error;return json(data);
+  }
   const {data:leased,error:leaseError}=await client.rpc('club_worker_lease',{p_worker:b.worker_id});
   if(leaseError)throw leaseError;if(!leased)return json({error:'Другой экземпляр панели уже управляет клубом'},409);
   if(b.action==='snapshot'){

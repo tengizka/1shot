@@ -1,4 +1,5 @@
 import base64
+from datetime import datetime,timezone
 import os
 import uuid
 import requests
@@ -45,13 +46,26 @@ class Cloud:
         self.base=os.environ['SUPABASE_URL'].rstrip('/')+'/functions/v1/'
         self.headers={'x-agent-secret':os.environ['AGENT_SECRET']}
         self.worker_id=str(uuid.uuid4())
+        self.host_source=lambda:None
+        self.account_updates={}
     def request(self,path,method='POST',body=None):
         try:r=requests.request(method,self.base+path,headers=self.headers,json=body,timeout=(3,8))
         except requests.RequestException as e:raise ApiError('Supabase: нет связи') from e
         if not r.ok:raise ApiError(f'Supabase {path}: HTTP {r.status_code}')
         return r.json()
-    def snapshot(self,cursor):return self.request('club-agent',body={'action':'snapshot','worker_id':self.worker_id,'after_event':cursor})
-    def desk(self,action,**data):return self.request('club-desk',body={'action':action,'worker_id':self.worker_id,**data})
+    def snapshot(self,cursor):
+        updates=list(self.account_updates.values())[:10]
+        result=self.request('club-agent',body={'action':'snapshot','eco':1,'worker_id':self.worker_id,'after_event':cursor,'hosts':self.host_source(),'accounts':updates})
+        if result.get('eco_version')!=1:raise ApiError('Обновите миграцию 011 и функцию club-agent перед Desk 1.5')
+        for item in updates:
+            key=str(item['telegram_id'])
+            if self.account_updates.get(key)==item:self.account_updates.pop(key,None)
+        return result
+    def desk(self,action,**data):
+        if action=='account':
+            self.account_updates[str(data['telegram_id'])]={**data,'observed_at':datetime.now(timezone.utc).isoformat()}
+            return {'ok':True,'queued':True}
+        return self.request('club-desk',body={'action':action,'worker_id':self.worker_id,**data})
     def transition(self,id,old,new,message='',code=None):
         body={'action':'transition','worker_id':self.worker_id,'id':id,'from':old,'to':new,'message':message}
         if code is not None:body['code']=code
@@ -63,7 +77,7 @@ class Cloud:
 class LegacyBridge:
     """Existing sync/auth endpoints only. Never calls pending-reservations."""
     def __init__(self,gizmo,cloud,store):self.gizmo,self.cloud,self.store=gizmo,cloud,store
-    def sync(self):
+    def collect_hosts(self):
         hosts=self.gizmo.hosts();busy={str(s.get('hostNumber')) for s in self.gizmo.sessions()}
         rows=[]
         for h in hosts:
@@ -71,13 +85,17 @@ class LegacyBridge:
             n=int(h['number']);state=h.get('state')
             zone='ps5' if n==1 else str((n//10)*10) if 10<=n<30 else str((n//100)*100)
             status='busy' if str(n) in busy else 'broken' if state not in (0,2) else 'reserved' if state==2 else 'free'
-            rows.append({'host_id':str(n),'gizmo_host_id':str(h['id']),'zone':zone,'status':status})
+            rows.append({'host_id':str(n),'gizmo_host_id':str(h['id']),'zone':zone,'status':status,'updated_at':datetime.now(timezone.utc).isoformat()})
+        return rows
+    def sync(self):
+        rows=self.collect_hosts()
         self.cloud.request('sync-hosts',body={'hosts':rows})
         self.host_rows=rows
         return len(rows)
     def auth(self):
         from .registration import process_auth
         process_auth(self)
+    def legacy_auth(self):
         from urllib.parse import quote
         data=self.cloud.request('pending-auth',method='GET')
         for req in data.get('requests',[]):

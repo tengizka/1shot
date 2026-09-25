@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>1SHOT · Карта клуба</title>
-<script src="hall-map.js?v=1.4.1"></script>
+<script src="hall-map.js?v=1.5.0"></script>
 <link rel="preload" href="assets/fonts/unbounded/unbounded-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/unbounded/unbounded-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/unbounded.css">
@@ -316,8 +316,8 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
 #free-count{display:block!important;font-size:9px;letter-spacing:0;color:#fff;text-align:right}
 @media(prefers-reduced-motion:reduce){.logo-fragment{opacity:1;transform:none;filter:none}}
 </style>
-<link rel="stylesheet" href="club-booking.css?v=1.4.1">
-<link rel="stylesheet" href="hall.css?v=1.4.1">
+<link rel="stylesheet" href="club-booking.css?v=1.5.0">
+<link rel="stylesheet" href="hall.css?v=1.5.0">
 </head>
 <body>
 <canvas id="matrix-rain" aria-hidden="true"></canvas>
@@ -500,7 +500,7 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
     </div>
 
     <button class="btn-danger" onclick="doLogout()">Выйти из аккаунта</button>
-    <p id="mini-build" class="version-label">version 1.4.1</p>
+    <p id="mini-build" class="version-label">version 1.5.0</p>
   </div>
 </div>
 
@@ -677,7 +677,7 @@ async function pollAuth(requestId, formId) {
   };
 
   for (let i = 0; i < 40; i++) {
-    await sleep(1500);
+    await sleep(i<5?2000:4000);
     try {
       const res = await apiFetch(`${SUPA}/club-auth`,{method:'POST',body:JSON.stringify({action:'status',request_id:requestId,initData:tg?.initData||''})});
 
@@ -711,7 +711,7 @@ function showApp() {
   renderHall();
   fetchHosts();
   clearInterval(pollTimer);
-  pollTimer = setInterval(fetchHosts, 10000); // каждые 10 сек
+  window.dispatchEvent(new Event('club:resume'));
 }
 
 function fillProfile() {
@@ -747,12 +747,12 @@ function showHostsMessage(message) {
   container.append(text,retry);
 }
 async function fetchHosts() {
-  if (hostsRequestPending) return;
+  if (document.hidden || hostsRequestPending) return;
   hostsRequestPending = true;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {
-    const data = await apiFetch(`${SUPA}/hosts`, {signal:controller.signal, cache:'no-store'});
+    const data = window.pollBundleReady ? await window.getClubState() : await apiFetch(`${SUPA}/hosts`, {signal:controller.signal, cache:'no-store'});
     if (!data || !Array.isArray(data.hosts)) throw new Error('Некорректный ответ сервера');
     hostsData = Object.fromEntries(data.hosts.map(h => [String(h.host_id),h]));
     const live = HALL_LAYOUT.filter(pc => pc.id !== '1' && liveHostStatus(hostsData[pc.id]) !== 'unknown').length;
@@ -999,7 +999,7 @@ function clearProfile() {
 }
 </script>
 <script src="hall-swipe.js?v=20260925-7"></script>
-<script src="experience.js?v=1.4.1"></script>
-<script src="club-booking.js?v=1.4.1"></script>
-<link rel="stylesheet" href="polish.css?v=1.4.1"><script src="polish.js?v=1.4.1"></script></body>
+<script src="experience.js?v=1.5.0"></script>
+<script src="club-booking.js?v=1.5.0"></script>
+<link rel="stylesheet" href="polish.css?v=1.5.0"><script src="polish.js?v=1.5.0"></script></body>
 </html>

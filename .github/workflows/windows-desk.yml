@@ -20,6 +20,8 @@ jobs:
         run: python -m unittest discover -s tests -p test_club_controller.py
       - name: Test account safety and shutdown
         run: python -m unittest discover -s tests -p test_desk_accounts.py
+      - name: Test economical polling and cache safety
+        run: python -m unittest discover -s tests -p test_economy.py
       - name: Test strict registration
         run: python -m unittest discover -s tests -p test_registration.py
       - name: Test branding assets
@@ -51,6 +53,7 @@ jobs:
           Copy-Item desktop/UPGRADE-1.2.md dist/1SHOT-Desk/UPGRADE-1.2.md
           Copy-Item desktop/UPGRADE-1.3.md dist/1SHOT-Desk/UPGRADE-1.3.md
           Copy-Item desktop/UPGRADE-1.4.md dist/1SHOT-Desk/UPGRADE-1.4.md
+          Copy-Item desktop/UPGRADE-1.5.md dist/1SHOT-Desk/UPGRADE-1.5.md
       - uses: actions/upload-artifact@v4
         with:
           name: 1SHOT-Desk-Windows

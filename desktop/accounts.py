@@ -103,9 +103,10 @@ class Accounts:
             except Exception:
                 pass  # Includes expired lease: only the outcome is retried, never the password.
             self.store.set('password-outcomes',pending)
-    def tick(self):
+    def tick(self,data=None):
         self.flush_password_results()
-        data=self.cloud.desk('poll');self.requests=[r for r in data['commands'] if r['status']=='awaiting_admin']
+        if data is None:data=self.cloud.desk('poll')
+        self.requests=[r for r in data['commands'] if r['status']=='awaiting_admin']
         for cmd in data['commands']:
             if cmd['status']=='awaiting_admin':continue
             self.guard()
@@ -121,7 +122,7 @@ class Accounts:
             try:result={'status':'done','message':self.execute(cmd)}
             except Exception as error:result={'status':'attention','message':str(error)[:250]}
             self.store.set(key,result);self.cloud.desk('finish',id=cmd['id'],**result)
-        for item in data['accounts'][:3]:
+        for item in data['accounts'][:10]:
             self.guard()
             if item.get('updated_at'):
                 age=time.time()-datetime.fromisoformat(item['updated_at'].replace('Z','+00:00')).timestamp()
