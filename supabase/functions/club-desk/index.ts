@@ -44,11 +44,14 @@ Deno.serve(async req=>{
    }
    return json({ok:true});
   }
+  if(b.action==='admin_booking'){
+   const {data,error}=await client.rpc('club_admin_booking',{p_worker:b.worker_id,p_mode:b.mode,p_host:b.host_id,p_start:b.starts_at||null,p_guest:b.guest_name||'',p_request:b.request_id,p_uid:b.gizmo_user_id||null,p_booking:b.booking_id||null});if(error)throw error;
+   return json({ok:true,booking_id:data});
+  }
   if(b.action==='cancel'){
-   const {data:booking,error}=await client.from('club_bookings').select('telegram_id').eq('id',b.id).single();if(error)throw error;
-   const {data,error:cancelError}=await client.rpc('club_cancel',{p_user:booking.telegram_id,p_id:b.id});if(cancelError)throw cancelError;
+   const {data,error}=await client.rpc('club_admin_cancel',{p_worker:b.worker_id,p_id:b.id});if(error)throw error;
    return data?json({ok:true}):json({error:'Бронь нельзя отменить в текущем состоянии. Сессии не прерываем'},409);
   }
   return json({error:'unknown_action'},400);
- }catch{return json({error:'desk_service_error'},500);}
+ }catch(e){const error=e as {code?:string,message?:string};return json({error:error.code==='P0001'?error.message:'desk_service_error'},error.code==='P0001'?409:500);}
 });

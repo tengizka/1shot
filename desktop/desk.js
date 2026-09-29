@@ -5,7 +5,7 @@ const fmt=v=>new Date(v).toLocaleTimeString('ru-RU',{timeZone:'Europe/Moscow',ho
 let current=null,selectedHost=null,foundAccount=null,inFlight=false,soundLoaded=false,selectedResetRequest=null;
 function panel(name){document.querySelectorAll('[id^=panel-]').forEach(e=>e.hidden=e.id!=='panel-'+name);document.querySelectorAll('[data-panel]').forEach(e=>e.classList.toggle('active',e.dataset.panel===name))}
 document.querySelectorAll('[data-panel]').forEach(e=>e.onclick=()=>panel(e.dataset.panel));
-async function invoke(method,...args){try{const result=await window.pywebview.api[method](...args);if(!['booking_guest','find_account'].includes(method))await refresh();return result}catch{$('error').textContent='Не удалось выполнить команду. Проверьте связь с агентом';return null}}
+async function invoke(method,...args){try{const result=await window.pywebview.api[method](...args);if(!['booking_guest','find_account','search_accounts','select_account'].includes(method))await refresh();return result}catch{$('error').textContent='Не удалось выполнить команду. Проверьте связь с агентом';return null}}
 function selectHost(id){selectedHost=id;panel('bookings');if(current){bookings(current);refresh.bookingKey=JSON.stringify(current.rows)+selectedHost}}
 function bookings(s){
  const grid=$('grid');grid.replaceChildren();$('booking-title').textContent=selectedHost?'Брони ПК '+selectedHost:'Все брони';
@@ -14,7 +14,7 @@ function bookings(s){
  for(const b of rows){
   const card=document.createElement('article');card.className='card '+b.status;
   const add=(tag,text,cl)=>{const e=document.createElement(tag);e.textContent=text;if(cl)e.className=cl;card.append(e);return e};
-  add('span',b.instant?'ВХОД СЕЙЧАС':b.mode==='arrival'?'В ТЕЧЕНИЕ ЧАСА':'СЕГОДНЯ К…','tag');add('h2','ПК '+b.host_id);add('p',b.username+(b.for_friend?' · для друга':''));add('p',labels[b.status]||b.status);add('p',fmt(b.starts_at)+' → '+(b.duration_kind==='open'?'Как пойдёт':fmt(b.ends_at))+' МСК');
+  add('span',b.instant?'ВХОД СЕЙЧАС':b.mode==='arrival'?'В ТЕЧЕНИЕ ЧАСА':'КО ВРЕМЕНИ','tag');add('h2','ПК '+b.host_id);add('p',(b.guest_name||b.username)+(b.for_friend?' · для друга':''));add('p',labels[b.status]||b.status);add('p',clubArrivalLabel(b.starts_at)+' → '+(b.duration_kind==='open'?'Как пойдёт':clubArrivalLabel(b.ends_at)));
   const details=document.createElement('details');details.className='guest-details';const heading=document.createElement('summary');heading.textContent='Информация о госте';details.append(heading);for(const [label,value] of [['Имя',[b.first_name,b.last_name].filter(Boolean).join(' ')],['Никнейм',b.username],['Телефон',b.mobile_phone],['Gizmo ID',b.gizmo_user_id],['Telegram ID',b.telegram_id]]){const p=document.createElement('p');p.textContent=label+': '+(value||'Нет данных');details.append(p)}details.addEventListener('toggle',async()=>{if(!details.open||details.dataset.loaded)return;details.dataset.loaded='1';const r=await invoke('booking_guest',b.id);if(!details.isConnected)return;if(r?.user){for(const p of [...details.querySelectorAll('p')])p.remove();for(const [label,value] of [['Имя',[r.user.firstName,r.user.lastName].filter(Boolean).join(' ')],['Никнейм',r.user.username],['Телефон',r.user.mobilePhone||r.user.phone],['Gizmo ID',r.gizmo_user_id],['Telegram ID',r.telegram_id]]){const p=document.createElement('p');p.textContent=label+': '+(value||'Нет данных');details.append(p)}}else{delete details.dataset.loaded;const p=document.createElement('p');p.textContent=r?.error||'Нет связи с Gizmo';details.append(p)}});card.append(details);
   if(b.code){add('small','Код старой брони');add('strong',b.code,'code')}
   add('p',b.message||'Без прерывания активных сессий','dim');add('small','Бронь '+b.id);
@@ -42,7 +42,7 @@ function hall(s){
 async function refresh(){
  if(document.hidden||inFlight||!window.pywebview?.api)return;inFlight=true;
  try{
-  const s=await window.pywebview.api.snapshot();current=s;
+  const s=await window.pywebview.api.snapshot();current=s;window.updateAdminActions?.();
   $('connection').textContent=s.online?'SUPABASE · НА СВЯЗИ':'SUPABASE · НЕТ СВЯЗИ';$('connection').className=s.online?'online':'offline';
   const gizmoOk=!!s.last_sync&&Date.now()/1000-s.last_sync<30;
   $('gizmo-connection').textContent=gizmoOk?'GIZMO · НА СВЯЗИ':'GIZMO · НЕТ СВЯЗИ';$('gizmo-connection').className=gizmoOk?'online':'offline';

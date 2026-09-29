@@ -51,7 +51,13 @@ class Cloud:
     def request(self,path,method='POST',body=None):
         try:r=requests.request(method,self.base+path,headers=self.headers,json=body,timeout=(3,8))
         except requests.RequestException as e:raise ApiError('Supabase: нет связи') from e
-        if not r.ok:raise ApiError(f'Supabase {path}: HTTP {r.status_code}')
+        if not r.ok:
+            detail=''
+            try:
+                message=r.json().get('error')
+                if isinstance(message,str):detail=': '+message[:180]
+            except (ValueError,AttributeError):pass
+            raise ApiError(f'Supabase {path}: HTTP {r.status_code}'+detail)
         return r.json()
     def snapshot(self,cursor):
         updates=list(self.account_updates.values())[:10]

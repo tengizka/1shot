@@ -23,6 +23,8 @@ class Accounts:
     def __init__(self,gizmo,cloud,store,guard):
         self.gizmo,self.cloud,self.store,self.guard=gizmo,cloud,store,guard
         self.requests=[]
+        from .directory import Directory
+        self.directory=Directory(gizmo)
     def guest(self,uid):
         user=self.gizmo.user(uid)
         if user.get('userGroupId')!=int(os.getenv('GUEST_USER_GROUP_ID','3')):
@@ -137,11 +139,12 @@ class Accounts:
         if not isinstance(result,dict) or not result.get('id'):raise UnsafeOperation('Аккаунт не найден')
         user=self.guest(result['id'])
         return {k:user.get(k) for k in ('id','username','firstName','lastName','mobilePhone','phone')}
-    def reset(self,uid,expected_username,password,request_id=None):
+    def reset(self,uid,expected_username,password,request_id=None,admin=False,privileged_confirmed=False):
         if not isinstance(password,str) or not 8<=len(password)<=64 or password.isspace():raise UnsafeOperation('Новый пароль: от 8 до 64 символов')
-        user=self.guest(uid)
+        user=self.directory.get(uid,fresh=True) if admin else self.guest(uid)
+        if admin and user['requires_privileged_confirmation'] and privileged_confirmed is not True:raise UnsafeOperation('Подтвердите смену пароля служебной или неподтверждённой гостевой группы')
         if user.get('username')!=expected_username:raise UnsafeOperation('Логин изменился. Найдите аккаунт заново')
-        if any(s.get('userId')==int(uid) for s in self.gizmo.sessions()):raise UnsafeOperation('Сначала гость должен завершить сессию')
+        if any(s.get('userId')==int(uid) for s in self.gizmo.sessions()):raise UnsafeOperation('Сначала владелец должен завершить игровую сессию')
         journal='password-reset:'+str(request_id) if request_id else None
         previous=self.store.get(journal) if journal else None
         if previous:

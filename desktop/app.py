@@ -44,11 +44,34 @@ class App:
         try:
             with self.operations:return {'user':self.accounts.find(username)}
         except Exception as error:return {'error':str(error)}
+    def search_accounts(self,query):
+        try:return self.accounts.directory.search(query)
+        except Exception:return {'error':'Не удалось выполнить поиск. Проверьте связь с локальным сервером'}
+    def select_account(self,id):
+        try:return {'user':self.accounts.directory.get(int(id),fresh=True)}
+        except Exception:return {'error':'Аккаунт недоступен. Повторите поиск'}
+    def create_manual_booking(self,host,starts_at,guest_name,request_id):
+        try:
+            with self.operations:
+                self.renew_account_lease()
+                return self.cloud.desk('admin_booking',mode='reserve',host_id=str(host),starts_at=starts_at,guest_name=guest_name,request_id=request_id)
+        except Exception as error:return {'error':str(error)}
+    def login_account(self,host,id,username,request_id,booking_id=None,confirmed=False,privileged_confirmed=False):
+        try:
+            if confirmed is not True:raise ValueError('Подтвердите вход')
+            with self.operations:
+                user=self.accounts.directory.get(int(id),fresh=True)
+                if user['username']!=username or user.get('isDisabled'):raise ValueError('Аккаунт изменён или отключён. Повторите поиск')
+                if user['requires_privileged_confirmation'] and privileged_confirmed is not True:raise ValueError('Подтвердите работу со служебной группой')
+                self.renew_account_lease()
+                return self.cloud.desk('admin_booking',mode='login',host_id=str(host),gizmo_user_id=int(id),guest_name=username[:60],request_id=request_id,booking_id=booking_id)
+        except Exception as error:return {'error':str(error)}
     def booking_guest(self,id):
         try:
             with self.operations:
                 booking=next((b for b in self.controller.rows if b['id']==id),None)
                 if not booking:return {'error':'Бронь уже завершена'}
+                if booking.get('admin_created') and not booking.get('gizmo_user_id'):return {'user':{'firstName':booking.get('guest_name') or 'Гость без имени'},'telegram_id':None,'gizmo_user_id':None}
                 user=self.gizmo.user(int(booking['gizmo_user_id']))
                 return {'user':{k:user.get(k) for k in ('username','firstName','lastName','mobilePhone','phone')},'telegram_id':booking.get('telegram_id'),'gizmo_user_id':booking['gizmo_user_id']}
         except Exception:return {'error':'Не удалось получить данные гостя из Gizmo'}
@@ -61,8 +84,8 @@ class App:
             with self.operations:
                 self.renew_account_lease()
                 request=self.cloud.desk('password_request',id=id)['request']
-                user=self.accounts.guest(int(request['gizmo_user_id']))
-                return {'user':{k:user.get(k) for k in ('id','username','firstName','lastName','mobilePhone','phone')},'request_id':request['id']}
+                user=self.accounts.directory.get(int(request['gizmo_user_id']),fresh=True)
+                return {'user':user,'request_id':request['id']}
         except Exception as error:return {'error':str(error)}
     def resolve_password_request(self,id,outcome,confirmed=False):
         try:
@@ -76,25 +99,26 @@ class App:
                     self.password_requests=[r for r in self.password_requests if r['id']!=id]
                 return {'ok':True,'synced':synced}
         except Exception as error:return {'error':str(error)}
-    def reset_password_request(self,id,username,password,confirmed=False):
+    def reset_password_request(self,id,username,password,confirmed=False,privileged_confirmed=False):
         try:
             if confirmed is not True:return {'error':'Сначала подтвердите личность гостя'}
             with self.operations:
                 self.renew_account_lease()
                 request=self.cloud.desk('password_request',id=id)['request']
-                self.accounts.reset(int(request['gizmo_user_id']),username,password,request_id=id)
+                self.accounts.reset(int(request['gizmo_user_id']),username,password,request_id=id,admin=True,privileged_confirmed=privileged_confirmed)
                 synced=id not in self.store.get('password-outcomes',{})
                 if synced:self.password_requests=[r for r in self.password_requests if r['id']!=id]
                 return {'ok':True,'synced':synced}
         except Exception as error:return {'error':str(error)}
-    def reset_password(self,id,username,password):
+    def reset_password(self,id,username,password,confirmed=False,privileged_confirmed=False):
         try:
+            if confirmed is not True:return {'error':'Сначала подтвердите личность владельца'}
             with self.operations:
                 # Renew the same worker's lease without running arbitrary queued operations.
                 started=time.time();mono=time.monotonic()
                 self.cloud.snapshot(self.store.get('event_cursor',0))
                 self.controller.lease_until=started+25;self.controller.lease_mono=mono+25
-                self.accounts.reset(int(id),username,password)
+                self.accounts.reset(int(id),username,password,admin=True,privileged_confirmed=privileged_confirmed)
                 return {'ok':True}
         except Exception as error:return {'error':str(error)}
     def snapshot(self):
@@ -125,7 +149,7 @@ class App:
                     self.rows=[]
                     for b in self.controller.rows:
                         record=self.store.get('booking:'+b['id'],{})
-                        self.rows.append({k:b.get(k) for k in ('id','username','telegram_id','gizmo_user_id','host_id','mode','duration_kind','status','starts_at','ends_at','hold_until','message','for_friend','instant','protocol')}|{'code':record.get('code') if b['status']=='holding' and time.time()-record.get('code_at',0)<180 else None})
+                        self.rows.append({k:b.get(k) for k in ('id','username','telegram_id','gizmo_user_id','host_id','mode','duration_kind','status','starts_at','ends_at','hold_until','message','for_friend','instant','protocol','admin_created','guest_name')}|{'code':record.get('code') if b['status']=='holding' and time.time()-record.get('code_at',0)<180 else None})
                     self.online=True;self.error=' · '.join(self.controller.errors)
             except Exception as error:
                 failed=True

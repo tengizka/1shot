@@ -22,6 +22,10 @@ jobs:
         run: python -m unittest discover -s tests -p test_desk_accounts.py
       - name: Test economical polling and cache safety
         run: python -m unittest discover -s tests -p test_economy.py
+      - name: Test staff directory and password boundaries
+        run: python -m unittest discover -s tests -p test_directory.py
+      - name: Test manual reservation safety
+        run: python -m unittest discover -s tests -p test_manual_controller.py
       - name: Test strict registration
         run: python -m unittest discover -s tests -p test_registration.py
       - name: Test branding assets
@@ -29,7 +33,7 @@ jobs:
       - name: Generate release identity
         run: python -m desktop.write_metadata
       - name: Build portable app
-        run: python -m PyInstaller --noconfirm --clean --windowed --name 1SHOT-Desk --paths . --icon desktop/assets/app.ico --version-file desktop/version-info.txt --add-data "desktop/assets;desktop/assets" --add-data "desktop/brand.js;desktop" --add-data "desktop/index.html;desktop" --add-data "desktop/desk.js;desktop" --add-data "desktop/desk.css;desktop" --add-data "desktop/polish.css;desktop" --add-data "desktop/polish.js;desktop" --add-data "assets/fonts;assets/fonts" --collect-all webview --exclude-module webview.platforms.winforms --exclude-module webview.platforms.edgechromium --exclude-module clr --exclude-module pythonnet desktop/launcher.py
+        run: python -m PyInstaller --noconfirm --clean --windowed --name 1SHOT-Desk --paths . --icon desktop/assets/app.ico --version-file desktop/version-info.txt --add-data "desktop/assets;desktop/assets" --add-data "desktop/brand.js;desktop" --add-data "desktop/index.html;desktop" --add-data "desktop/desk.js;desktop" --add-data "desktop/admin-tools.js;desktop" --add-data "desktop/desk.css;desktop" --add-data "desktop/polish.css;desktop" --add-data "desktop/polish.js;desktop" --add-data "assets/fonts;assets/fonts" --collect-all webview --exclude-module webview.platforms.winforms --exclude-module webview.platforms.edgechromium --exclude-module clr --exclude-module pythonnet desktop/launcher.py
       - name: Launch packaged Qt UI and verify JS bridge (no club connections)
         shell: pwsh
         run: |
@@ -55,6 +59,7 @@ jobs:
           Copy-Item desktop/UPGRADE-1.4.md dist/1SHOT-Desk/UPGRADE-1.4.md
           Copy-Item desktop/UPGRADE-1.5.md dist/1SHOT-Desk/UPGRADE-1.5.md
           Copy-Item desktop/UPGRADE-1.5.1.md dist/1SHOT-Desk/UPGRADE-1.5.1.md
+          Copy-Item desktop/UPGRADE-1.6.md dist/1SHOT-Desk/UPGRADE-1.6.md
       - uses: actions/upload-artifact@v4
         with:
           name: 1SHOT-Desk-Windows

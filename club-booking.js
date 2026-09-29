@@ -5,7 +5,7 @@ window.clubV2=false;
  const statusNames={requested:'Ждём подтверждение клуба',waiting:'ПК пока занят · клуб уведомлён',holding:'Ваш ПК ждёт вас',checkin_pending:'Выполняем вход…',in_session:'Вы вошли · приятной игры',attention:'Бронь требует проверки',cancel_requested:'Снимаем бронь',cancelled:'Отменена',expired:'Время ожидания истекло',completed:'Завершена'};
  const terminal=new Set(['cancelled','expired','completed']);
  const sheet=document.createElement('dialog');sheet.id='club-booking';sheet.className='club-booking-dialog';
- sheet.innerHTML=`<div class="club-sheet-head"><span id="club-pc">БРОНЬ</span><button type="button" id="club-close" aria-label="Закрыть"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div><div id="club-create"><h2>Когда ждать тебя?</h2><div class="club-segments" id="club-modes"><button data-mode="instant" id="instant-mode" hidden>Войти сейчас</button><button data-mode="arrival">В течение часа</button><button data-mode="scheduled">Сегодня к…</button></div><div id="club-schedule" hidden><p class="club-note">Время клуба · Москва</p><p id="club-start" class="arrival-time"></p><div class="club-wheels"><div class="club-wheel" id="club-hours" role="listbox" tabindex="0" aria-label="Часы"></div><b>:</b><div class="club-wheel" id="club-minutes" role="listbox" tabindex="0" aria-label="Минуты"></div></div></div><p id="club-rules" class="club-note"></p><button id="club-submit" class="btn-main">Забронировать</button></div><div id="club-mine" hidden></div><p id="club-error" role="alert"></p><a class="club-help" href="tel:+74955837811">Если нужна помощь: +7 (495) 583-78-11</a>`;
+ sheet.innerHTML=`<div class="club-sheet-head"><span id="club-pc">БРОНЬ</span><button type="button" id="club-close" aria-label="Закрыть"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div><div id="club-create"><h2>Когда ждать тебя?</h2><div class="club-segments" id="club-modes"><button data-mode="instant" id="instant-mode" hidden>Войти сейчас</button><button data-mode="arrival">В течение часа</button><button data-mode="scheduled">Ко времени</button></div><div id="club-schedule" hidden><p class="club-note">Время клуба · Москва</p><p id="club-start" class="arrival-time"></p><div class="club-wheels"><div class="club-wheel" id="club-hours" role="listbox" tabindex="0" aria-label="Часы"></div><b>:</b><div class="club-wheel" id="club-minutes" role="listbox" tabindex="0" aria-label="Минуты"></div></div></div><p id="club-rules" class="club-note"></p><button id="club-submit" class="btn-main">Забронировать</button></div><div id="club-mine" hidden></div><p id="club-error" role="alert"></p><a class="club-help" href="tel:+74955837811">Если нужна помощь: +7 (495) 583-78-11</a>`;
  document.body.append(sheet);
  const $=id=>document.getElementById(id);
  const time=a=>a.map(n=>String(n).padStart(2,'0')).join(':');
@@ -39,15 +39,15 @@ window.clubV2=false;
   $('club-schedule').hidden=state.mode!=='scheduled';
   $('club-submit').textContent=state.mode==='instant'?'Войти в свой аккаунт':'Забронировать';
   document.querySelectorAll('[data-mode]').forEach(e=>e.setAttribute('aria-pressed',String(e.dataset.mode===state.mode)));
-  $('club-start').textContent='К '+time(state.start)+' · ждём 30 минут';
+  $('club-start').textContent=clubArrivalLabel(state.arrival||nextClubArrival(...state.start))+' · ждём 30 минут';
   $('club-rules').textContent=state.mode==='arrival'?'Ждём вас в течение часа.':'';
   $('club-rules').hidden=state.mode!=='arrival';
  }
- document.querySelectorAll('[data-mode]').forEach(e=>e.onclick=()=>{state.mode=e.dataset.mode;if(state.mode==='instant')state.forFriend=false;state.request=null;render();wheels()});
+ document.querySelectorAll('[data-mode]').forEach(e=>e.onclick=()=>{state.mode=e.dataset.mode;state.arrival=nextClubArrival(...state.start);if(state.mode==='instant')state.forFriend=false;state.request=null;render();wheels()});
  ['hours','minutes'].forEach((name,i)=>{
   const el=$('club-'+name),count=i?12:24;let timer;
   for(let n=0;n<count;n++){const opt=document.createElement('button');opt.type='button';opt.tabIndex=-1;opt.setAttribute('role','option');opt.textContent=String(n*(i?5:1)).padStart(2,'0');opt.onclick=()=>el.scrollTo({top:n*44,behavior:'smooth'});el.append(opt)}
-  function select(){const n=Math.max(0,Math.min(count-1,Math.round(el.scrollTop/44)));state.start[i]=n*(i?5:1);state.request=null;el.querySelectorAll('[role=option]').forEach((o,j)=>o.setAttribute('aria-selected',String(n===j)));render()}
+  function select(){const n=Math.max(0,Math.min(count-1,Math.round(el.scrollTop/44)));const changed=state.start[i]!==n*(i?5:1);state.start[i]=n*(i?5:1);if(changed||!state.arrival)state.arrival=nextClubArrival(...state.start);state.request=null;el.querySelectorAll('[role=option]').forEach((o,j)=>o.setAttribute('aria-selected',String(n===j)));render()}
   el.addEventListener('scroll',()=>{if(el.dataset.setting)return;clearTimeout(timer);timer=setTimeout(select,90)});
   el.commitSelection=select;
   el.onkeydown=e=>{if(!['ArrowUp','ArrowDown','Home','End'].includes(e.key))return;e.preventDefault();const n=e.key==='Home'?0:e.key==='End'?count-1:state.start[i]/(i?5:1)+(e.key==='ArrowDown'?1:-1);el.scrollTop=Math.max(0,Math.min(count-1,n))*44;select()};
@@ -56,15 +56,16 @@ window.clubV2=false;
   if(liveHostStatus(hostsData[String(id)])!=='free'){window.showOccupied?.();return}
   state.host=String(id);state.forFriend=false;state.mode=liveHostStatus(hostsData[String(id)])==='free'?(state.protocol>=2&&!state.forFriend?'instant':'arrival'):'scheduled';state.kind='range';state.part='start';state.request=null;
   const soon=new Date(Date.now()+600000);state.start=[Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Moscow',hour:'2-digit',hourCycle:'h23'}).format(soon)),Math.floor(soon.getUTCMinutes()/5)*5];state.end=[(state.start[0]+1)%24,state.start[1]];
-  $('club-create').hidden=false;$('club-mine').hidden=true;render();open();requestAnimationFrame(wheels);
+  state.arrival=nextClubArrival(...state.start);$('club-create').hidden=false;$('club-mine').hidden=true;render();open();requestAnimationFrame(wheels);
  };
  $('club-submit').onclick=async()=>{
   if(state.busy)return;if(!tg?.initData){$('club-error').textContent='Откройте приложение через Telegram';return}
   if(liveHostStatus(hostsData[state.host])!=='free'){$('club-error').textContent='ПК сейчас недоступен. Выберите свободный компьютер';return}
   if(state.mode==='scheduled'){for(const name of ['hours','minutes'])$('club-'+name).commitSelection()}
+  if(state.mode==='scheduled'&&Date.parse(state.arrival)<=Date.now()){$('club-error').textContent='Выбранное время уже прошло. Выберите новое время';return}
   state.busy=true;$('club-submit').disabled=true;$('club-error').textContent='';
   state.request ||= crypto.randomUUID();
-  const start=state.mode==='scheduled'?`${date()}T${time(state.start)}:00+03:00`:null;
+  const start=state.mode==='scheduled'?state.arrival:null;
   const end=start?new Date(Date.parse(start)+30*60000).toISOString():null;
   try{await call(state.protocol>=2?'create_v2':'create',{for_friend:state.forFriend,host_id:state.host,mode:state.mode,duration_kind:state.kind,starts_at:start,ends_at:end,client_request_id:state.request});state.request=null;await refresh();if(state.mode==='instant'){showMine();$('club-pc').textContent='ПОДКЛЮЧЕНИЕ'}else showMine();fetchHosts()}
   catch(e){$('club-error').textContent=clubText(e.message)||'Не удалось отправить бронь'}
@@ -79,7 +80,7 @@ window.clubV2=false;
    const card=document.createElement('section');card.className='club-reservation';
    const add=(tag,text,cl)=>{const e=document.createElement(tag);e.textContent=text;if(cl)e.className=cl;card.append(e);return e};
    add('h2','ПК '+b.host_id);if(b.instant&&!['attention','cancelled','expired'].includes(b.status)){add('strong','Подключаем ваш аккаунт…');box.append(card);return}add('strong',statusNames[b.status]||b.status);
-   add('p',b.mode==='arrival'?`Ждём до ${fmt(b.hold_until)} МСК`:`Сегодня ${fmt(b.starts_at)} → ${b.duration_kind==='open'?'Как пойдёт':fmt(b.ends_at)} МСК`,'club-note');
+   add('p',b.mode==='arrival'?`Ждём до ${fmt(b.hold_until)} МСК`:`${clubArrivalLabel(b.starts_at)} → ${b.duration_kind==='open'?'Как пойдёт':clubArrivalLabel(b.ends_at)}`,'club-note');
    if(b.for_friend)add('p','Бронь старой версии · доступна отмена','club-note');
    if(b.status==='release_requested')add('p','Снимаем блокировку. Друг войдёт сам.','club-note');
    if(b.status==='holding'&&!b.for_friend&&b.protocol>=2&&['free','reserved'].includes(liveHostStatus(hostsData[b.host_id]))){
