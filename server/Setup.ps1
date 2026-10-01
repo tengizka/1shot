@@ -23,8 +23,15 @@ if (-not (Test-Path '.env')) {
     $path = Join-Path $PSScriptRoot '.env'
     [IO.File]::WriteAllLines($path,$lines,(New-Object Text.UTF8Encoding($false)))
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
-    icacls $path /inheritance:r /grant:r "${identity}:(F)" 'SYSTEM:(F)' | Out-Null
+    icacls $path /inheritance:r /grant:r "${identity}:(F)" '*S-1-5-18:(F)' | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Could not restrict .env permissions. Restrict them manually before continuing.' }
+}
+# Protect operator-only data directories independently of the repository folder.
+$identity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+foreach ($directory in @('private','backups')) {
+    New-Item -ItemType Directory -Force -Path $directory | Out-Null
+    icacls $directory /inheritance:r /grant:r "${identity}:(OI)(CI)(F)" '*S-1-5-18:(OI)(CI)(F)' | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Could not restrict permissions on $directory" }
 }
 docker compose up -d --build
 if ($LASTEXITCODE -ne 0) { throw 'Startup failed. Do not change Desk or delete the database volume.' }
