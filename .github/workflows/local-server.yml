@@ -25,6 +25,10 @@ jobs:
           docker compose up -d --build --wait --wait-timeout 180
       - name: Verify containers and isolated public/private routes
         run: python server/tests/container_smoke.py
+      - name: Verify transfer with native PostgreSQL driver
+        working-directory: server
+        run: |
+          docker compose exec -T -e CI_NATIVE_TRANSFER=YES -e LOCAL_ADMIN_DATABASE_URL=postgres://oneshot_owner:ci-only-owner-password@db:5432/oneshot api deno run --allow-net --allow-env --allow-read tests/native-transfer.ts
       - name: Logs on failure
         if: failure()
         working-directory: server
