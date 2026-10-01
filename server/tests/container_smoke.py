@@ -1,5 +1,6 @@
 """CI only. Never talks to club PCs and never enables production bookings."""
-import json,urllib.request,urllib.error,uuid,subprocess
+import json,urllib.request,urllib.error,uuid,subprocess,sys,traceback
+sys.excepthook=lambda t,v,tb: print("::error::"+"".join(traceback.format_exception(t,v,tb)).replace("%","%25").replace("\n","%0A").replace("\r","%0D"))
 
 def call(port,path,body=None,secret=None):
  headers={'Content-Type':'application/json'}
