@@ -28,7 +28,7 @@ export async function importBundle(run:Runner,bundle:Bundle){
   const groups=new Map<string,Record<string,unknown>[]>();
   for(const row of rows){const keys=columns.filter(k=>Object.hasOwn(row,k));if(!keys.length)throw Error('Empty row');const key=keys.join(',');if(!groups.has(key))groups.set(key,[]);groups.get(key)!.push(row);}
   for(const [key,group] of groups){const quoted=key.split(',').map(k=>'"'+k+'"').join(',');
-   for(let offset=0;offset<group.length;offset+=250)await run(`insert into public.${table} (${quoted}) overriding system value select ${quoted} from jsonb_populate_recordset(null::public.${table},$1::jsonb)`,[JSON.stringify(group.slice(offset,offset+250))]);
+   for(let offset=0;offset<group.length;offset+=250)await run(`insert into public.${table} (${quoted}) overriding system value select ${quoted} from jsonb_populate_recordset(null::public.${table},$1::jsonb)`,[group.slice(offset,offset+250)]);
   }
   const count=Number((await run(`select count(*) as n from public.${table}`))[0].n);if(count!==rows.length)throw Error('Row count mismatch: '+table);
  }

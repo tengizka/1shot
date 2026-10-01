@@ -1,0 +1,4 @@
+# Docker's Linux init scripts must remain LF even when cloned on Windows.
+*.sh text eol=lf
+*.sql text eol=lf
+Dockerfile text eol=lf

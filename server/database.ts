@@ -11,7 +11,7 @@ class Query implements PromiseLike<any> {
  private maximum: number|null=null; private one=false; private row: Record<string,unknown>|null=null; private conflict: string|null=null;
  private writing=false; private returning=false;
  constructor(private table: string) { if(!tables.has(table))throw Error('table_not_allowed'); }
- private param(v: unknown){this.args.push(typeof v==='object'&&v!==null?JSON.stringify(v):v);return '$'+this.args.length;}
+ private param(v: unknown){this.args.push(v);return '$'+this.args.length;}
  select(fields='*'){this.fields=fields==='*'?'*':fields.split(',').map(ident).join(',');if(this.writing)this.returning=true;return this;}
  update(row: Record<string,unknown>){this.row=row;this.writing=true;return this;}
  upsert(row: Record<string,unknown>, opts:{onConflict:string}){this.row=row;this.writing=true;this.conflict=ident(opts.onConflict);return this;}
@@ -43,7 +43,9 @@ export const db=()=>({
  rpc:async(name:string,args:Record<string,unknown>={})=>{
   try{
    if(!functions.has(name))throw Error('function_not_allowed');
-   const values=Object.values(args).map(v=>typeof v==='object'&&v!==null?JSON.stringify(v):v);
+   // postgres.js serializes json/jsonb using the parameter type from PostgreSQL.
+   // Do not stringify here: that would encode arrays/objects as JSON strings.
+   const values=Object.values(args);
    const call=`public.${ident(name)}(${Object.keys(args).map((k,i)=>`${ident(k)} => $${i+1}`).join(',')})`;
    const rows=await run(`SELECT to_jsonb(result) AS value FROM ${call} AS result`,values);
    return {data:name==='club_auth_claim'?rows.map(r=>r.value):rows[0]?.value??null,error:null};
