@@ -28,7 +28,9 @@ jobs:
       - name: Logs on failure
         if: failure()
         working-directory: server
-        run: docker compose logs --tail 100
+        run: |
+          docker compose logs --tail 100
+          docker compose logs db | grep -E 'ERROR:|DETAIL:|HINT:' | while IFS= read -r line; do echo "::error::$line"; done
       - name: Stop test stack
         if: always()
         working-directory: server
