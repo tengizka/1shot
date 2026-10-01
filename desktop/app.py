@@ -123,7 +123,7 @@ class App:
         except Exception as error:return {'error':str(error)}
     def snapshot(self):
         with self.lock:
-            return {'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с Supabase' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'online':self.online,'error':self.error,'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
+            return {'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':self.error,'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
     def acknowledge(self):
         with self.lock:self.store.set('alerts',{})
         self.sound.stop()
@@ -197,8 +197,9 @@ def main():
         prepare()
     from dotenv import load_dotenv
     load_dotenv(HOME/'.env')
-    required=('GIZMO_BASE_URL','GIZMO_LOGIN','GIZMO_PASSWORD','SUPABASE_URL','AGENT_SECRET')
+    required=('GIZMO_BASE_URL','GIZMO_LOGIN','GIZMO_PASSWORD','AGENT_SECRET')
     missing=[key for key in required if not os.getenv(key)]
+    if not (os.getenv('CLUB_API_URL') or os.getenv('SUPABASE_URL')):missing.append('CLUB_API_URL (или SUPABASE_URL для старого сервера)')
     if missing:
         message='Заполните '+str(HOME/'.env')+'\nНе заданы: '+', '.join(missing)
         if sys.platform=='win32':

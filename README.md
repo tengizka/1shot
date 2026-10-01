@@ -102,3 +102,7 @@ Windows EXE собирается workflow **Build Windows Desk** или `desktop
 Без обновления backend сайт сохраняет прежний сценарий. Новые тесты:
 `tests/club-sessions-schema.test.ts`, `tests/test_desk_accounts.py`,
 `tests/club-v2-browser.cjs`, `tests/desk-browser.cjs`.
+
+## Независимый локальный сервер (preview)
+
+[Установка на Windows, перенос данных и безопасное переключение](server/README.md). В локальном режиме нет обращений к Supabase. Рабочая облачная конфигурация пока сохранена для контролируемого переноса; не отключайте её до приёмки.

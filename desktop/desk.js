@@ -43,7 +43,7 @@ async function refresh(){
  if(document.hidden||inFlight||!window.pywebview?.api)return;inFlight=true;
  try{
   const s=await window.pywebview.api.snapshot();current=s;window.updateAdminActions?.();
-  $('connection').textContent=s.online?'SUPABASE · НА СВЯЗИ':'SUPABASE · НЕТ СВЯЗИ';$('connection').className=s.online?'online':'offline';
+  $('connection').textContent=(s.backend_label||'Сервер').toUpperCase()+(s.online?' · НА СВЯЗИ':' · НЕТ СВЯЗИ');$('connection').className=s.online?'online':'offline';
   const gizmoOk=!!s.last_sync&&Date.now()/1000-s.last_sync<30;
   $('gizmo-connection').textContent=gizmoOk?'GIZMO · НА СВЯЗИ':'GIZMO · НЕТ СВЯЗИ';$('gizmo-connection').className=gizmoOk?'online':'offline';
   $('error').textContent=[s.error,s.sync_error,s.password_sync_error,!s.protocol_ready?'Сервис аккаунтов пока недоступен. Проверьте сообщение об ошибке выше.':''].filter(Boolean).join('\n');

@@ -43,26 +43,35 @@ class Gizmo:
 
 class Cloud:
     def __init__(self):
-        self.base=os.environ['SUPABASE_URL'].rstrip('/')+'/functions/v1/'
+        local=os.getenv('CLUB_API_URL','').strip()
+        self.base=local.rstrip('/')+'/' if local else os.environ['SUPABASE_URL'].rstrip('/')+'/functions/v1/'
+        self.label='Локальный сервер' if local else 'Supabase'
+        if local:
+            from urllib.parse import urlparse
+            parsed=urlparse(local)
+            if parsed.scheme not in ('http','https') or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
+                raise ApiError('Некорректный CLUB_API_URL')
+            if parsed.scheme=='http' and parsed.hostname not in ('localhost','127.0.0.1','::1'):
+                raise ApiError('HTTP разрешён только для локального сервера')
         self.headers={'x-agent-secret':os.environ['AGENT_SECRET']}
         self.worker_id=str(uuid.uuid4())
         self.host_source=lambda:None
         self.account_updates={}
     def request(self,path,method='POST',body=None):
         try:r=requests.request(method,self.base+path,headers=self.headers,json=body,timeout=(3,8))
-        except requests.RequestException as e:raise ApiError('Supabase: нет связи') from e
+        except requests.RequestException as e:raise ApiError(f'{self.label}: нет связи') from e
         if not r.ok:
             detail=''
             try:
                 message=r.json().get('error')
                 if isinstance(message,str):detail=': '+message[:180]
             except (ValueError,AttributeError):pass
-            raise ApiError(f'Supabase {path}: HTTP {r.status_code}'+detail)
+            raise ApiError(f'{self.label} {path}: HTTP {r.status_code}'+detail)
         return r.json()
     def snapshot(self,cursor):
         updates=list(self.account_updates.values())[:10]
         result=self.request('club-agent',body={'action':'snapshot','eco':1,'worker_id':self.worker_id,'after_event':cursor,'hosts':self.host_source(),'accounts':updates})
-        if result.get('eco_version')!=1:raise ApiError('Обновите миграцию 011 и функцию club-agent перед Desk 1.5')
+        if result.get('eco_version')!=1:raise ApiError('Сервер не поддерживает протокол Desk: обновите серверную часть')
         for item in updates:
             key=str(item['telegram_id'])
             if self.account_updates.get(key)==item:self.account_updates.pop(key,None)

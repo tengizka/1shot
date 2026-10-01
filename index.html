@@ -518,11 +518,13 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
 <!-- TOASTS -->
 <div id="toasts"></div>
 
+<script src="backend-config.js?v=local-preview-1"></script>
 <script>
 // ═══════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════
-const SUPA = 'https://zqhfvtgktbfnxcclqqny.supabase.co/functions/v1';
+const SUPA = window.CLUB_API_BASE;
+if (!SUPA) throw new Error('Не задан адрес сервера клуба');
 
 // ═══════════════════════════════════════════════
 // STATE

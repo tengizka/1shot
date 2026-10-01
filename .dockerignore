@@ -1,0 +1,9 @@
+.git
+**/.env
+**/.env.*
+**/node_modules
+**/__pycache__
+**/*.sqlite3*
+**/*.dump
+server/backups
+server/private
