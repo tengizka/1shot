@@ -1,0 +1,19 @@
+name: Test Windows export helper
+on:
+  push:
+    branches: [arena/01a0d663-1shot]
+    paths: ['server/Export.ps1', 'server/tests/export-powershell.ps1', '.github/workflows/export-helper.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  powershell:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Windows PowerShell 5.1 export tests (synthetic secrets, no club connections)
+        shell: powershell
+        run: .\server\tests\export-powershell.ps1
+      - name: PowerShell 7 export tests
+        shell: pwsh
+        run: .\server\tests\export-powershell.ps1
