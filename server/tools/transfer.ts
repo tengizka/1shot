@@ -6,9 +6,12 @@ if(!['export','import'].includes(action)||!file)throw Error('Usage: transfer.ts 
 const url=Deno.env.get(action==='export'?'SOURCE_DATABASE_URL':'LOCAL_ADMIN_DATABASE_URL');
 if(!url)throw Error('Set the appropriate database URL locally, never in chat');
 if(action==='import'&&Deno.env.get('CONFIRM_LOCAL_IMPORT')!=='YES')throw Error('Import is only for a fresh local database; set CONFIRM_LOCAL_IMPORT=YES');
-const sql=postgres(url,{max:1,connect_timeout:10,onnotice:()=>{}});
+let sql:ReturnType<typeof postgres>|undefined;
 const hash=async(data:Uint8Array)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new Uint8Array(data)))).map(x=>x.toString(16).padStart(2,'0')).join('');
 try{
+ // URL parsing can throw with the full credential-bearing URL. Keep it inside
+ // the sanitized error boundary; never print the original exception.
+ sql=postgres(url,{max:1,connect_timeout:10,onnotice:()=>{}});
  if(action==='export'){
   const bundle=await sql.begin(async tx=>{await tx.unsafe('set transaction isolation level repeatable read, read only');return await exportBundle(async(q,args=[])=>Array.from(await tx.unsafe(q,args as any[])));});
   const data=new TextEncoder().encode(JSON.stringify(bundle));
@@ -22,4 +25,4 @@ try{
   for(const warning of warnings)console.log(warning);
   console.log('Import complete and row counts verified. Bookings disabled until explicit cutover.');
  }
-}catch{console.error('Transfer failed. No import transaction was committed. Check connection, empty target, source readiness and backup checksum locally.');Deno.exitCode=1;}finally{await sql.end();}
+}catch{console.error('Transfer failed. No import transaction was committed. Check connection, empty target, source readiness and backup checksum locally.');Deno.exitCode=1;}finally{if(sql){try{await sql.end();}catch{console.error('Database connection cleanup failed');Deno.exitCode=1;}}}
