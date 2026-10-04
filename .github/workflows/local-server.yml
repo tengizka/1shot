@@ -29,6 +29,8 @@ jobs:
         working-directory: server
         run: |
           docker compose exec -T -e CI_NATIVE_TRANSFER=YES -e LOCAL_ADMIN_DATABASE_URL=postgres://oneshot_owner:ci-only-owner-password@db:5432/oneshot api deno run --allow-net --allow-env --allow-read tests/native-transfer.ts
+      - name: Verify native psql export format
+        run: python server/tests/native-export-sql.py
       - name: Logs on failure
         if: failure()
         working-directory: server

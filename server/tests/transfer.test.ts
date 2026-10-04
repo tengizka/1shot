@@ -20,3 +20,22 @@ Deno.test('offline transfer preserves account links, bookings/events and safety;
   await source.exec("update club_worker set lease_until=null;insert into club_auth_requests(id,telegram_id,cipher) values(gen_random_uuid(),123,'encrypted')");refused=false;try{await exportBundle(run(source));}catch{refused=true;}assert(refused);
  }finally{await source.close();await target.close();}
 });
+
+Deno.test('native psql export SQL is read-only, import-compatible and guards unfinished work',async()=>{
+ const source=await database(),target=await database();
+ const run=(pg:PGlite)=>async(q:string,args:unknown[]=[])=> (await pg.query(q,args)).rows as any[];
+ const text=(await Deno.readTextFile('server/Export-Native.ps1')).replace(/\r\n/g,'\n');
+ const query=text.split("$query = @'\n")[1].split("\n'@")[0];
+ try{
+  await source.exec("insert into profiles(telegram_id,gizmo_user_id,username) values(123,7,'test');insert into club_auth_requests(id,telegram_id,cipher,status) values(gen_random_uuid(),123,'must-not-export','done')");
+  const results=await source.exec(query);
+  const bundle=results.flatMap(r=>r.rows).find((r:any)=>r.jsonb_build_object)?.jsonb_build_object as any;
+  assert(bundle?.format==='1shot-local-v1'&&bundle.tables.profiles.length===1&&bundle.tables.club_auth_requests[0].cipher===null);
+  await target.exec('begin');await importBundle(run(target),bundle);await target.exec('commit');
+  assert((await target.query<any>('select count(*) n from profiles')).rows[0].n===1);
+  await source.exec("update club_worker set lease_until=now()+interval '1 minute'");
+  let refused=false;try{await source.exec(query);}catch{refused=true;await source.exec('rollback');}assert(refused);
+  await source.exec("update club_worker set lease_until=null;update club_auth_requests set status='pending'");
+  refused=false;try{await source.exec(query);}catch{refused=true;await source.exec('rollback');}assert(refused);
+ }finally{await source.close();await target.close();}
+});
