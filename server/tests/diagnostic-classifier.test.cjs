@@ -1,5 +1,5 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const script=fs.readFileSync('server/Diagnose-Export.ps1','utf8');
+const script=fs.readFileSync('server/Diagnose-Export.ps1','utf8').replace(/\r\n/g,'\n');
 const fn=script.slice(script.indexOf('function classify(e){'),script.indexOf('\ntry {\n stage=\'CONFIG\''));
 const classify=vm.runInNewContext(fn+'\nclassify');
 for(const [error,result] of [
