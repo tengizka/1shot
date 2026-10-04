@@ -969,6 +969,7 @@ function toast(msg, type = 'inf') {
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function apiFetch(url, opts = {}) {
+  if (typeof window !== 'undefined') window.deskAvailability?.guard(url, opts);
   const res = await fetch(url, {
     ...opts,
     headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) }
@@ -1003,6 +1004,8 @@ function clearProfile() {
 <script src="hall-swipe.js?v=20260925-7"></script>
 <script src="experience.js?v=1.6.0"></script>
 <script src="arrival-time.js?v=1.6.0"></script>
-<script src="club-booking.js?v=1.6.0"></script>
+<link rel="stylesheet" href="desk-availability.css?v=1">
+<script src="desk-availability.js?v=1"></script>
+<script src="club-booking.js?v=desk-availability-1"></script>
 <link rel="stylesheet" href="polish.css?v=1.6.0"><script src="polish.js?v=1.6.0"></script></body>
 </html>

@@ -15,8 +15,8 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
    if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*'}});
    if(url.pathname.endsWith('/club-bookings')){
     const b=route.request().postDataJSON();calls.push(b.action);
-    const data=b.action==='capabilities'?{enabled:true,protocol:2,poll_bundle:1}:{bookings:[],hosts:[11,12,13,14,15,21,22,23,24,25].map(id=>({host_id:String(id),status:'free',updated_at:new Date().toISOString()})),account:{data:{username:'guest',balance:123,session:null},updated_at:new Date().toISOString()},commands:[],password_request:null};
-    return route.fulfill({contentType:'application/json',body:JSON.stringify(data)});
+    const data=b.action==='capabilities'?{desk:{online:true,valid_for_ms:30000},enabled:true,protocol:2,poll_bundle:1}:{bookings:[],hosts:[11,12,13,14,15,21,22,23,24,25].map(id=>({host_id:String(id),status:'free',updated_at:new Date().toISOString()})),account:{data:{username:'guest',balance:123,session:null},updated_at:new Date().toISOString()},commands:[],password_request:null};
+    return route.fulfill({contentType:'application/json',body:JSON.stringify({...data,desk:{online:true,valid_for_ms:30000}})});
    }
    if(url.pathname.endsWith('/hosts')){calls.push('hosts');return route.fulfill({contentType:'application/json',body:'{"hosts":[]}'})}
    return route.abort();

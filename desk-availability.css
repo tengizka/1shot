@@ -1,0 +1,10 @@
+#desk-availability{position:fixed;inset:0;margin:auto;box-sizing:border-box;width:calc(100% - 40px);max-width:390px;padding:36px 24px;border:1px solid #343434;border-radius:24px;background:#0b0b0b;color:#fff;text-align:center;font-family:'Unbounded',sans-serif;box-shadow:0 24px 90px #0009;max-height:calc(100dvh - 40px);overflow:auto}
+#desk-availability::backdrop{background:rgba(0,0,0,.94)}
+#desk-availability section{display:flex;align-items:center;flex-direction:column;gap:20px}
+#desk-availability svg{color:#d8d8d8;flex-shrink:0}
+#desk-availability h1{font-size:20px;line-height:1.5;margin:0;font-weight:600}
+#desk-availability p{font-size:12px;line-height:1.8;color:#a5a5a5;margin:0}
+#desk-availability a{color:#fff;font-size:11px;text-underline-offset:5px;padding:10px;-webkit-tap-highlight-color:transparent}
+.desk-availability-pulse{width:6px;height:6px;border-radius:50%;background:#fff;animation:desk-wait 2s ease-in-out infinite}
+@keyframes desk-wait{50%{opacity:.25}}
+@media(prefers-reduced-motion:reduce){.desk-availability-pulse{animation:none}}

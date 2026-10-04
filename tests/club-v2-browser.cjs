@@ -15,7 +15,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
    if(url.pathname.endsWith('/club-bookings')){
     if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*'}});
     const b=route.request().postDataJSON();requests.push(b);let result={ok:true};
-    if(b.action==='capabilities')result={enabled:true,protocol:2};
+    if(b.action==='capabilities')result={desk:{online:true,valid_for_ms:30000},enabled:true,protocol:2};
     if(b.action==='list')result={bookings:rows};
     if(b.action==='account')result={account:{data:{username:'guest',firstName:'Андрей',lastName:'Тест',birthDate:'2000-01-02',balance:321.5,session},updated_at:new Date().toISOString()},commands:[],password_request:passwordRequest,telegram:{first_name:'Андрей',photo_url:'https://club.test/avatar.svg'}};
     if(b.action==='create_v2'){const now=new Date().toISOString();rows.push({id:'b'+rows.length,host_id:b.host_id,mode:b.mode==='instant'?'arrival':b.mode,protocol:2,instant:b.mode==='instant',for_friend:b.for_friend,duration_kind:b.duration_kind,starts_at:now,ends_at:new Date(Date.now()+3600000).toISOString(),hold_until:new Date(Date.now()+3600000).toISOString(),status:b.mode==='instant'?'in_session':'holding'});if(b.mode==='instant')session={key:'session-1',host_id:b.host_id,last_login:now};result={booking_id:rows.at(-1).id}}

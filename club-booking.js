@@ -11,7 +11,15 @@ window.clubV2=false;
  const time=a=>a.map(n=>String(n).padStart(2,'0')).join(':');
  const fmt=v=>new Date(v).toLocaleTimeString('ru-RU',{timeZone:'Europe/Moscow',hour:'2-digit',minute:'2-digit'});
  const date=()=>new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Moscow'});
- async function rawCall(action,data={}){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);try{return await apiFetch(`${SUPA}/club-bookings`,{method:'POST',signal:controller.signal,body:JSON.stringify({action,initData:tg?.initData||'',...data})})}finally{clearTimeout(timer)}}
+ async function rawCall(action,data={}){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000),started=performance.now();
+  try{
+   const result=await apiFetch(`${SUPA}/club-bookings`,{method:'POST',signal:controller.signal,body:JSON.stringify({action,initData:tg?.initData||'',...data})});
+   if(['capabilities','state'].includes(action))window.deskAvailability?.accept(result.desk,started);
+   return result;
+  }catch(e){if(['capabilities','state'].includes(action))window.deskAvailability?.failure();throw e}
+  finally{clearTimeout(timer)}
+ }
  let bundlePromise=null,bundleCache=null,bundleTime=0,pollFailures=0;
  window.getClubState=async()=>{
   if(bundlePromise)return bundlePromise;
@@ -158,15 +166,14 @@ window.clubV2=false;
   catch{/* A failed refresh never frees an owned PC in the UI. */}
   finally{fetching=false}
  }
- let capabilitiesAt=0;
- async function init(){capabilitiesAt=Date.now();try{const c=await call('capabilities');window.clubV2=!!c.enabled;state.protocol=c.protocol||1;window.pollBundleReady=c.poll_bundle===1&&state.protocol>=2;$('instant-mode').hidden=state.protocol<2;if(state.protocol>=2)setupAccount();if(window.clubV2){renderHall();refresh()}}catch{/* Keep the UI usable while the club reconnects. */}}
+ async function init(){try{const c=await call('capabilities');pollFailures=0;window.clubV2=!!c.enabled;state.protocol=c.protocol||1;window.pollBundleReady=c.poll_bundle===1&&state.protocol>=2;$('instant-mode').hidden=state.protocol<2;if(state.protocol>=2)setupAccount();if(window.clubV2){renderHall();refresh()}}catch{pollFailures=Math.min(pollFailures+1,3)}}
  let pollTimer=null,polling=false;
  async function poll(){
   clearTimeout(pollTimer);
   if(polling)return;
   if(document.hidden){pollTimer=null;return;}
   polling=true;
-  try{if(!window.clubV2&&Date.now()-capabilitiesAt>=60000)await init();await Promise.all([refresh(),refreshAccount(),profile?fetchHosts():Promise.resolve()])}finally{polling=false;}
+  try{if(!window.clubV2||!profile||!tg?.initData||!window.pollBundleReady)await init();await Promise.all([refresh(),refreshAccount(),profile?fetchHosts():Promise.resolve()])}finally{polling=false;}
   const seconds=pollFailures?Math.min(60,20*2**pollFailures):5;
   clearTimeout(pollTimer);if(!document.hidden)pollTimer=setTimeout(poll,seconds*1000);
  }

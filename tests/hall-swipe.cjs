@@ -15,7 +15,7 @@ const fs=require('node:fs'),assert=require('node:assert/strict');
     if(fs.existsSync(file))return route.fulfill({contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.woff2')?'font/woff2':'text/html',body:fs.readFileSync(file)});
    }
    if(url.pathname.endsWith('/hosts'))return route.fulfill({contentType:'application/json',body:JSON.stringify({hosts:ids.map(id=>({host_id:String(id),status:'free',updated_at:new Date().toISOString()}))})});
-   if(url.pathname.endsWith('/club-bookings'))return route.fulfill({contentType:'application/json',body:'{"enabled":false}'});
+   if(url.pathname.endsWith('/club-bookings'))return route.fulfill({contentType:'application/json',body:'{"enabled":false,"desk":{"online":true,"valid_for_ms":30000}}'});
    return route.abort();
   });
   await page.goto('https://club.test/');await page.waitForSelector('#splash',{state:'hidden'});await page.waitForSelector('.map-pc.free');

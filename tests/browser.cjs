@@ -19,7 +19,7 @@ const assert=require('node:assert/strict');
    }
    if(url.startsWith('https://club.test/hall.css'))return route.fulfill({contentType:'text/css',body:fs.readFileSync('hall.css','utf8')});
    if(url.startsWith('https://club.test/club-booking.css'))return route.fulfill({contentType:'text/css',body:fs.readFileSync('club-booking.css','utf8')});
-   if(url.includes('/functions/v1/club-bookings'))return route.fulfill({contentType:'application/json',body:'{"enabled":false}'});
+   if(url.includes('/functions/v1/club-bookings'))return route.fulfill({contentType:'application/json',body:'{"enabled":false,"desk":{"online":true,"valid_for_ms":30000}}'});
    if(url==='https://club.test/')return route.fulfill({contentType:'text/html',body:fs.readFileSync('index.html','utf8')});
    if(url.includes('/functions/v1/hosts'))return route.fulfill({contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify({hosts})});
    if(url.includes('/functions/v1/reservations')){reservationCalls++;return route.fulfill({contentType:'application/json',body:'{}'});}
