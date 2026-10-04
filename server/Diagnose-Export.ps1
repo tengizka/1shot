@@ -13,18 +13,24 @@ try {
     $script = @'
 let stage='START',sql;
 const report=(a,b)=>console.log('ONESHOT_DIAG '+a+' '+b);
+report('START','AUTH_DETAILS');
 const timer=setTimeout(()=>{report(stage,'TIMEOUT');Deno.exit(1)},45000);
 function classify(e){
  const chain=[];for(let n=0;e&&n<4;n++,e=e.cause)chain.push(e);
  const codes=chain.map(e=>String(e.code||''));
- if(codes.includes('28P01')||codes.includes('28000'))return 'AUTH_REJECTED';
+ // Inspect internally but emit ONLY fixed labels, never database messages.
+ const text=chain.map(e=>String(e.message||'')).join(' ').toLowerCase();
+ if(/tenant or user not found/.test(text))return 'POOLER_TENANT_OR_USER_NOT_FOUND';
+ if(/password authentication failed/.test(text))return 'PASSWORD_AUTH_FAILED';
+ if(/sasl|scram/.test(text))return 'AUTH_PROTOCOL_ERROR';
+ if(codes.includes('28P01'))return 'INVALID_PASSWORD_RESPONSE';
+ if(codes.includes('28000'))return 'AUTHORIZATION_REJECTED';
  if(codes.includes('42501'))return 'PERMISSION_DENIED';
  if(codes.includes('42P01')||codes.includes('42703'))return 'SCHEMA_MISSING';
  if(codes.includes('53300'))return 'TOO_MANY_CONNECTIONS';
  if(codes.includes('57014'))return 'QUERY_TIMEOUT';
- const text=chain.map(e=>String(e.message||'')).join(' ').toLowerCase();
  if(/certificate|self.signed|issuer|cert_|tls|ssl/.test(text))return 'TLS_ERROR';
- if(/password authentication|tenant or user not found/.test(text))return 'AUTH_REJECTED';
+ if(/password authentication/.test(text))return 'AUTH_REJECTED';
  if(/timeout|timed out/.test(text))return 'TIMEOUT';
  if(/econnrefused|econnreset|enotfound|ehostunreach|enetunreach|connection refused|connection closed|network|dns/.test(text+' '+codes.join(' ').toLowerCase()))return 'NETWORK_ERROR';
  return 'FAILED';
@@ -86,7 +92,7 @@ finally{if(sql)try{await sql.end({timeout:2})}catch{report('CLOSE','FAILED')}cle
     } finally { $ErrorActionPreference = 'Stop' }
     $found = $false
     $stages = @('START','CONFIG','FILES','WRITE','DRIVER','CERTIFICATE','CONNECT','READINESS','TABLES','CLOSE','DONE')
-    $results = @('OK','MISSING','INVALID','FAILED','TIMEOUT','AUTH_REJECTED','PERMISSION_DENIED','SCHEMA_MISSING','TOO_MANY_CONNECTIONS','QUERY_TIMEOUT','TLS_ERROR','NETWORK_ERROR','EXPORT_PRESENT','EXPORT_ABSENT','CHECKSUM_PRESENT','CHECKSUM_ABSENT','DESK_ACTIVE','PENDING_OPERATIONS')
+    $results = @('OK','MISSING','INVALID','FAILED','TIMEOUT','AUTH_REJECTED','AUTH_DETAILS','POOLER_TENANT_OR_USER_NOT_FOUND','PASSWORD_AUTH_FAILED','AUTH_PROTOCOL_ERROR','INVALID_PASSWORD_RESPONSE','AUTHORIZATION_REJECTED','PERMISSION_DENIED','SCHEMA_MISSING','TOO_MANY_CONNECTIONS','QUERY_TIMEOUT','TLS_ERROR','NETWORK_ERROR','EXPORT_PRESENT','EXPORT_ABSENT','CHECKSUM_PRESENT','CHECKSUM_ABSENT','DESK_ACTIVE','PENDING_OPERATIONS')
     foreach ($entry in $output) {
         $line = [string]$entry
         if ($line -cmatch '^ONESHOT_DIAG ([A-Z_]+) ([A-Z_]+)$' -and $stages -ccontains $Matches[1] -and $results -ccontains $Matches[2]) {

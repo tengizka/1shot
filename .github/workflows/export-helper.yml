@@ -2,7 +2,7 @@ name: Test Windows export helper
 on:
   push:
     branches: [arena/01a0d663-1shot]
-    paths: ['server/Export.ps1', 'server/Set-SourceConnection.ps1', 'server/Diagnose-Export.ps1', 'server/tests/*powershell.ps1', '.github/workflows/export-helper.yml']
+    paths: ['server/Export.ps1', 'server/Set-SourceConnection.ps1', 'server/Diagnose-Export.ps1', 'server/tests/*powershell.ps1', 'server/tests/diagnostic-classifier.test.cjs', '.github/workflows/export-helper.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -23,3 +23,5 @@ jobs:
           .\server\tests\export-powershell.ps1
           .\server\tests\diagnose-powershell.ps1
           .\server\tests\connection-powershell.ps1
+      - name: Safe diagnostic classification
+        run: node --test server/tests/diagnostic-classifier.test.cjs

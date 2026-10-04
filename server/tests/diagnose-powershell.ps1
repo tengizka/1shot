@@ -11,6 +11,8 @@ try {
     $initial = (Get-FileHash (Join-Path $folder 'private\transfer.env')).Hash
     function global:docker {
         Write-Output 'Invalid URL: postgresql://test:SYNTHETIC_SECRET@example.invalid/db'
+        Write-Output 'ONESHOT_DIAG START AUTH_DETAILS'
+        Write-Output 'ONESHOT_DIAG CONNECT POOLER_TENANT_OR_USER_NOT_FOUND'
         Write-Output 'ONESHOT_DIAG CONFIG OK'
         Write-Output 'ONESHOT_DIAG CERTIFICATE OK'
         Write-Output 'ONESHOT_DIAG CONNECT TLS_ERROR'
@@ -19,7 +21,7 @@ try {
         $global:LASTEXITCODE = 1
     }
     $result = (& (Join-Path $folder 'Diagnose-Export.ps1') *>&1 | Out-String)
-    if ($result.Contains('SYNTHETIC_SECRET') -or $result.Contains('postgresql://') -or -not $result.Contains('ONESHOT_DIAG CONNECT TLS_ERROR') -or -not $result.Contains('ONESHOT_DIAG CERTIFICATE OK')) { throw 'Diagnostic redaction failed' }
+    if ($result.Contains('SYNTHETIC_SECRET') -or $result.Contains('postgresql://') -or -not $result.Contains('ONESHOT_DIAG CONNECT TLS_ERROR') -or -not $result.Contains('ONESHOT_DIAG CERTIFICATE OK') -or -not $result.Contains('ONESHOT_DIAG CONNECT POOLER_TENANT_OR_USER_NOT_FOUND')) { throw 'Diagnostic redaction failed' }
     if ((Get-FileHash (Join-Path $folder 'private\transfer.env')).Hash -ne $initial) { throw 'Connection file changed' }
     if (@(Get-ChildItem (Join-Path $folder 'private') -Filter 'diagnostic-*').Count) { throw 'Temporary script was not cleaned up' }
     Write-Host 'Diagnostic allowlist, secret redaction and cleanup PASS'
