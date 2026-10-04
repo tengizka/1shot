@@ -49,8 +49,20 @@ try {
  report(stage,'OK');
  stage='DRIVER';
  const {default:postgres}=await import('npm:postgres@3.4.7');report(stage,'OK');
+ stage='CERTIFICATE';
+ let ca;
+ try{ca=await Deno.readTextFile('/transfer/supabase-ca.crt');}
+ catch(e){if(e instanceof Deno.errors.NotFound){report(stage,'MISSING');Deno.exit(1)}throw e;}
+ const {X509Certificate}=await import('node:crypto');
+ try{
+  if(!ca.includes('-----BEGIN CERTIFICATE-----')||ca.includes('PRIVATE KEY'))throw Error('invalid_certificate');
+  new X509Certificate(ca);
+ }catch{report(stage,'INVALID');Deno.exit(1)}
+ report(stage,'OK');
  stage='CONNECT';
- sql=postgres(raw,{max:1,connect_timeout:8,onnotice:()=>{},connection:{statement_timeout:10000}});
+ // Explicit CA trust, chain verification and hostname verification. Never use
+ // rejectUnauthorized:false or disable verification to make an export work.
+ sql=postgres(raw,{max:1,connect_timeout:8,onnotice:()=>{},ssl:{ca,rejectUnauthorized:true,servername:uri.hostname},connection:{statement_timeout:10000}});
  await sql.begin(async tx=>{
   await tx.unsafe('set transaction isolation level repeatable read, read only');
   await tx.unsafe('select 1');report('CONNECT','OK');
@@ -73,7 +85,7 @@ finally{if(sql)try{await sql.end({timeout:2})}catch{report('CLOSE','FAILED')}cle
         $code = $LASTEXITCODE
     } finally { $ErrorActionPreference = 'Stop' }
     $found = $false
-    $stages = @('START','CONFIG','FILES','WRITE','DRIVER','CONNECT','READINESS','TABLES','CLOSE','DONE')
+    $stages = @('START','CONFIG','FILES','WRITE','DRIVER','CERTIFICATE','CONNECT','READINESS','TABLES','CLOSE','DONE')
     $results = @('OK','MISSING','INVALID','FAILED','TIMEOUT','AUTH_REJECTED','PERMISSION_DENIED','SCHEMA_MISSING','TOO_MANY_CONNECTIONS','QUERY_TIMEOUT','TLS_ERROR','NETWORK_ERROR','EXPORT_PRESENT','EXPORT_ABSENT','CHECKSUM_PRESENT','CHECKSUM_ABSENT','DESK_ACTIVE','PENDING_OPERATIONS')
     foreach ($entry in $output) {
         $line = [string]$entry

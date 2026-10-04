@@ -131,3 +131,8 @@ docker compose exec -T db psql -U oneshot_owner -d oneshot_restore_check -c "sel
 ## Проверки разработки
 
 `deno check server/main.ts server/tools/transfer.ts`; `deno test -A server/tests/ tests/*.test.ts`; Python tests; workflow `Test local server` собирает реальные контейнеры PostgreSQL/API и проверяет изоляцию портов, lease, запись и сохранность после перезапуска. Тесты не подключаются к реальным ПК клуба. Живые данные и права API ещё требуют приёмки на месте.
+
+
+### Диагностика TLS перед экспортом
+
+Обновлённый `Diagnose-Export.ps1` читает PEM-сертификат `server/private/supabase-ca.crt`, скачанный из настроек базы Supabase. Он явно передаёт CA драйверу PostgreSQL с `rejectUnauthorized: true` и именем сервера для проверки. Контейнер пересобирать не нужно: диагностический код временно монтируется вместе с папкой private. `CERTIFICATE OK` подтверждает чтение/формат сертификата; только `CONNECT OK` подтверждает успешное соединение. Диагностика ничего не импортирует и не изменяет базу. Старый Export.ps1 автоматически этот сертификат ещё не использует — после успешной диагностики нужно обновить путь экспорта, не запускать старую команду вслепую.
