@@ -6,6 +6,7 @@ $names = @('PGHOST','PGPORT','PGDATABASE','PGUSER','PGPASSWORD','PGSSLMODE','PGS
 foreach ($name in $names) { $previous[$name] = [Environment]::GetEnvironmentVariable($name,'Process') }
 $sqlFile = $null; $partFile = $null
 try {
+    Write-Host 'ONESHOT_EXPORT VERSION NATIVE_DETAILS'
     $directory = Join-Path $PSScriptRoot 'private'
     $file = Join-Path $directory 'club-export.json'
     if ((Test-Path $file) -or (Test-Path ($file + '.sha256'))) {
@@ -40,7 +41,9 @@ try {
     $sqlFile = Join-Path $directory $sqlName
     $partFile = Join-Path $directory $partName
     $query = @'
+\warn ONESHOT_PHASE CONNECTED
 BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY;
+\warn ONESHOT_PHASE SNAPSHOT_STARTED
 DO $$
 BEGIN
  IF EXISTS(SELECT 1 FROM public.club_worker WHERE lease_until>now()) THEN
@@ -51,6 +54,7 @@ BEGIN
   RAISE EXCEPTION 'ONESHOT_PENDING_OPERATIONS';
  END IF;
 END $$;
+\warn ONESHOT_PHASE GUARDS_PASSED
 SELECT jsonb_build_object('format','1shot-local-v1','exported_at',now(),'tables',jsonb_build_object(
  'profiles',coalesce((SELECT jsonb_agg(to_jsonb(r)) FROM public.profiles r),'[]'::jsonb),
  'hosts_cache',coalesce((SELECT jsonb_agg(to_jsonb(r)) FROM public.hosts_cache r),'[]'::jsonb),
@@ -62,7 +66,9 @@ SELECT jsonb_build_object('format','1shot-local-v1','exported_at',now(),'tables'
  'club_commands',coalesce((SELECT jsonb_agg(to_jsonb(r)) FROM public.club_commands r),'[]'::jsonb),
  'club_auth_requests',coalesce((SELECT jsonb_agg(to_jsonb(r)||jsonb_build_object('cipher',null)) FROM public.club_auth_requests r),'[]'::jsonb)
 ));
+\warn ONESHOT_PHASE DATA_READ
 COMMIT;
+\warn ONESHOT_PHASE SNAPSHOT_FINISHED
 '@
     [IO.File]::WriteAllText($sqlFile,$query,(New-Object Text.UTF8Encoding($false)))
     Write-Host 'Exporting through native PostgreSQL with strict SSL. Please wait...'
@@ -74,6 +80,10 @@ COMMIT;
         $code = $LASTEXITCODE
     } finally { $ErrorActionPreference = 'Stop' }
     $text = ($output | ForEach-Object { [string]$_ }) -join "`n"
+    foreach ($entry in $output) {
+        $phase = ([string]$entry).Trim()
+        if ($phase -cmatch '^ONESHOT_PHASE (CONNECTED|SNAPSHOT_STARTED|GUARDS_PASSED|DATA_READ|SNAPSHOT_FINISHED)$') { Write-Host $phase }
+    }
     $result = 'FAILED'
     if ($code -eq 0) { $result = 'OK' }
     elseif ($text -match 'ONESHOT_DESK_ACTIVE') { $result = 'DESK_ACTIVE' }
@@ -88,8 +98,30 @@ COMMIT;
     elseif ($text -match 'timeout|timed out') { $result = 'TIMEOUT' }
     elseif ($text -match 'could not translate host name|network is unreachable|connection refused|server closed the connection|connection reset') { $result = 'NETWORK_ERROR' }
     elseif ($text -match 'No such image|image.*not found|Cannot connect to the Docker daemon|error during connect|docker.*not recognized') { $result = 'DOCKER_UNAVAILABLE' }
+    elseif ($text -match 'SSL.*closed unexpectedly|SSL SYSCALL|unexpected EOF|EOF detected') { $result = 'TLS_CONNECTION_INTERRUPTED' }
     elseif ($text -match 'SSL|TLS') { $result = 'TLS_ERROR' }
-    if ($result -ne 'OK') { Write-Host ('ONESHOT_EXPORT DATABASE ' + $result); exit 1 }
+    if ($result -ne 'OK') {
+        Write-Host ('ONESHOT_EXPORT DATABASE ' + $result)
+        # Show only native error headings, not SQL context, records or raw logs.
+        # Redact credentials BEFORE truncation so a partial secret cannot escape.
+        $printed = 0
+        foreach ($nativeLine in ($text -split "[\r\n]+")) {
+            if ($printed -ge 4) { break }
+            $safe = $nativeLine.Trim()
+            if ($safe -notmatch '^(psql:|(?:ERROR|FATAL|PANIC):|SSL error:|SSL SYSCALL error:)') { continue }
+            foreach ($sensitive in @($line,$env:PGPASSWORD,[Uri]::EscapeDataString($env:PGPASSWORD),$env:PGUSER)) {
+                if (-not [string]::IsNullOrEmpty($sensitive)) {
+                    $safe = [regex]::Replace($safe,[regex]::Escape($sensitive),'[REDACTED]',[Text.RegularExpressions.RegexOptions]::IgnoreCase)
+                }
+            }
+            $safe = [regex]::Replace($safe,'[a-zA-Z][a-zA-Z0-9+.-]*://[^\s]+','[CONNECTION_REDACTED]')
+            $safe = [regex]::Replace($safe,'[\x00-\x1f\x7f]',' ')
+            if ($safe.Length -gt 500) { $safe = $safe.Substring(0,500) + '...' }
+            Write-Host ('ONESHOT_EXPORT DETAIL ' + $safe)
+            $printed++
+        }
+        exit 1
+    }
     $bundle = [IO.File]::ReadAllText($partFile) | ConvertFrom-Json
     $tables = @('profiles','hosts_cache','reservations','club_settings','club_bookings','club_events','club_accounts','club_commands','club_auth_requests')
     if ($bundle.format -ne '1shot-local-v1' -or @($bundle.tables.PSObject.Properties).Count -ne $tables.Count) { throw 'Invalid export structure' }

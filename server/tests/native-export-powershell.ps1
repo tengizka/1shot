@@ -16,14 +16,20 @@ try {
     function global:docker {
         if ($env:PGPASSWORD -cne $global:fixturePassword -or $env:PGSSLMODE -ne 'verify-full' -or ($args -join ' ').Contains($global:fixturePassword)) { throw 'Unsafe options' }
         Write-Output ('Hidden: ' + $global:fixturePassword)
-        if ($global:nativeFail) { Write-Output 'ONESHOT_PENDING_OPERATIONS'; $global:LASTEXITCODE=1; return }
+        if ($global:nativeFail) {
+            Write-Output 'ONESHOT_PHASE CONNECTED'
+            Write-Output 'ONESHOT_PENDING_OPERATIONS'
+            Write-Output ('psql: error: mock failure ' + $global:fixturePassword + ' ' + [Uri]::EscapeDataString($global:fixturePassword) + ' postgresql://user:OTHER_FAKE_SECRET@example.invalid/db')
+            Write-Output 'CONTEXT: hidden customer data'
+            $global:LASTEXITCODE=1; return
+        }
         $out = $args[[Array]::IndexOf($args,'-o')+1]
         $path = Join-Path (Join-Path (Get-Location) 'private') ([IO.Path]::GetFileName($out))
         [IO.File]::WriteAllText($path,'{"format":"1shot-local-v1","tables":{"profiles":[{"telegram_id":123}],"hosts_cache":[],"reservations":[],"club_settings":[{"id":true}],"club_bookings":[],"club_events":[],"club_accounts":[],"club_commands":[],"club_auth_requests":[]}}')
         $global:LASTEXITCODE=0
     }
     $result = (& (Join-Path $folder 'Export-Native.ps1') *>&1 | Out-String)
-    if ($result.Contains($global:fixturePassword) -or -not $result.Contains('PENDING_OPERATIONS') -or (Test-Path (Join-Path $folder 'private\club-export.json'))) { throw 'Failure must not publish export' }
+    if ($result.Contains($global:fixturePassword) -or $result.Contains('OTHER_FAKE_SECRET') -or $result.Contains([Uri]::EscapeDataString($global:fixturePassword)) -or $result.Contains('hidden customer data') -or -not $result.Contains('ONESHOT_EXPORT DETAIL psql: error: mock failure [REDACTED]') -or -not $result.Contains('ONESHOT_PHASE CONNECTED') -or -not $result.Contains('PENDING_OPERATIONS') -or (Test-Path (Join-Path $folder 'private\club-export.json'))) { throw 'Failure must not publish export' }
     $global:nativeFail=$false
     $result = (& (Join-Path $folder 'Export-Native.ps1') *>&1 | Out-String)
     if ($result.Contains($global:fixturePassword) -or -not $result.Contains('Checksum verified') -or -not $result.Contains('Profiles exported: 1')) { throw 'Success validation failed' }
