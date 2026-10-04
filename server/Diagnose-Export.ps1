@@ -13,7 +13,7 @@ try {
     $script = @'
 let stage='START',sql;
 const report=(a,b)=>console.log('ONESHOT_DIAG '+a+' '+b);
-report('START','AUTH_DETAILS');
+report('START','TLS_DETAILS');
 const timer=setTimeout(()=>{report(stage,'TIMEOUT');Deno.exit(1)},45000);
 function classify(e){
  const chain=[];for(let n=0;e&&n<4;n++,e=e.cause)chain.push(e);
@@ -29,7 +29,16 @@ function classify(e){
  if(codes.includes('42P01')||codes.includes('42703'))return 'SCHEMA_MISSING';
  if(codes.includes('53300'))return 'TOO_MANY_CONNECTIONS';
  if(codes.includes('57014'))return 'QUERY_TIMEOUT';
- if(/certificate|self.signed|issuer|cert_|tls|ssl/.test(text))return 'TLS_ERROR';
+ const tlsCodes=codes.join(' ').toLowerCase();
+ const detail=text+' '+tlsCodes;
+ if(/cert_has_expired|certificate.{0,30}expired|expired.{0,30}certificate|certexpired/.test(detail))return 'TLS_CERT_EXPIRED';
+ if(/cert_not_yet_valid|not yet valid|notvalidyet/.test(detail))return 'TLS_CERT_NOT_YET_VALID';
+ if(/cert_altname_invalid|hostname mismatch|hostnamemismatch|notvalidforname|not valid for name|does not match|doesn't match/.test(detail))return 'TLS_HOSTNAME_MISMATCH';
+ if(/unknownissuer|unknown issuer|unable_to_get_issuer|unable_to_verify_leaf|self_signed_cert|depth_zero_self_signed|self.signed|unable to get.{0,30}issuer|unable to verify.{0,30}certificate/.test(detail))return 'TLS_UNTRUSTED_ISSUER';
+ if(/econnreset|connectionreset|connection reset|unexpected eof|unexpected end of file|disconnected before.*tls|connection closed.*tls|tls.*connection closed/.test(detail))return 'TLS_CONNECTION_CLOSED';
+ if(/certificate_required|bad_certificate|bad certificate|certificate revoked|cert_revoked/.test(detail))return 'TLS_CERT_REJECTED';
+ if(/wrong_version_number|protocol_version|unsupported protocol|unsupportedprotocol|no protocols available/.test(detail))return 'TLS_PROTOCOL_ERROR';
+ if(/certificate|self.signed|issuer|cert_|tls|ssl/.test(detail))return 'TLS_ERROR';
  if(/password authentication/.test(text))return 'AUTH_REJECTED';
  if(/timeout|timed out/.test(text))return 'TIMEOUT';
  if(/econnrefused|econnreset|enotfound|ehostunreach|enetunreach|connection refused|connection closed|network|dns/.test(text+' '+codes.join(' ').toLowerCase()))return 'NETWORK_ERROR';
@@ -62,7 +71,9 @@ try {
  const {X509Certificate}=await import('node:crypto');
  try{
   if(!ca.includes('-----BEGIN CERTIFICATE-----')||ca.includes('PRIVATE KEY'))throw Error('invalid_certificate');
-  new X509Certificate(ca);
+  const certificate=new X509Certificate(ca);
+  const now=Date.now(),from=Date.parse(certificate.validFrom),to=Date.parse(certificate.validTo);
+  report('CERTIFICATE_TIME',now<from?'NOT_YET_VALID':now>to?'EXPIRED':'CURRENT');
  }catch{report(stage,'INVALID');Deno.exit(1)}
  report(stage,'OK');
  stage='CONNECT';
@@ -91,8 +102,8 @@ finally{if(sql)try{await sql.end({timeout:2})}catch{report('CLOSE','FAILED')}cle
         $code = $LASTEXITCODE
     } finally { $ErrorActionPreference = 'Stop' }
     $found = $false
-    $stages = @('START','CONFIG','FILES','WRITE','DRIVER','CERTIFICATE','CONNECT','READINESS','TABLES','CLOSE','DONE')
-    $results = @('OK','MISSING','INVALID','FAILED','TIMEOUT','AUTH_REJECTED','AUTH_DETAILS','POOLER_TENANT_OR_USER_NOT_FOUND','PASSWORD_AUTH_FAILED','AUTH_PROTOCOL_ERROR','INVALID_PASSWORD_RESPONSE','AUTHORIZATION_REJECTED','PERMISSION_DENIED','SCHEMA_MISSING','TOO_MANY_CONNECTIONS','QUERY_TIMEOUT','TLS_ERROR','NETWORK_ERROR','EXPORT_PRESENT','EXPORT_ABSENT','CHECKSUM_PRESENT','CHECKSUM_ABSENT','DESK_ACTIVE','PENDING_OPERATIONS')
+    $stages = @('START','CONFIG','FILES','WRITE','DRIVER','CERTIFICATE','CERTIFICATE_TIME','CONNECT','READINESS','TABLES','CLOSE','DONE')
+    $results = @('OK','MISSING','INVALID','FAILED','TIMEOUT','AUTH_REJECTED','AUTH_DETAILS','TLS_DETAILS','CURRENT','EXPIRED','NOT_YET_VALID','POOLER_TENANT_OR_USER_NOT_FOUND','PASSWORD_AUTH_FAILED','AUTH_PROTOCOL_ERROR','INVALID_PASSWORD_RESPONSE','AUTHORIZATION_REJECTED','PERMISSION_DENIED','SCHEMA_MISSING','TOO_MANY_CONNECTIONS','QUERY_TIMEOUT','TLS_ERROR','TLS_CERT_EXPIRED','TLS_CERT_NOT_YET_VALID','TLS_HOSTNAME_MISMATCH','TLS_UNTRUSTED_ISSUER','TLS_CONNECTION_CLOSED','TLS_CERT_REJECTED','TLS_PROTOCOL_ERROR','NETWORK_ERROR','EXPORT_PRESENT','EXPORT_ABSENT','CHECKSUM_PRESENT','CHECKSUM_ABSENT','DESK_ACTIVE','PENDING_OPERATIONS')
     foreach ($entry in $output) {
         $line = [string]$entry
         if ($line -cmatch '^ONESHOT_DIAG ([A-Z_]+) ([A-Z_]+)$' -and $stages -ccontains $Matches[1] -and $results -ccontains $Matches[2]) {
