@@ -29,7 +29,10 @@ Deno.test('native psql export SQL is read-only, import-compatible and guards unf
  try{
   await source.exec("insert into profiles(telegram_id,gizmo_user_id,username) values(123,7,'test');insert into club_auth_requests(id,telegram_id,cipher,status) values(gen_random_uuid(),123,'must-not-export','done')");
   const results=await source.exec(query);
-  const bundle=results.flatMap(r=>r.rows).find((r:any)=>r.jsonb_build_object)?.jsonb_build_object as any;
+  const lines=results.flatMap(r=>r.rows).map((r:any)=>r.line);
+  const bundle=JSON.parse(lines.shift()!) as any;bundle.tables={};let table='';
+  for(const line of lines){if(line==='ONESHOT_END')break;if(line.startsWith('ONESHOT_TABLE ')){table=line.slice(14);bundle.tables[table]=[];}else bundle.tables[table].push(JSON.parse(line));}
+  assert(!query.includes('jsonb_agg'));
   assert(bundle?.format==='1shot-local-v1'&&bundle.tables.profiles.length===1&&bundle.tables.club_auth_requests[0].cipher===null);
   await target.exec('begin');await importBundle(run(target),bundle);await target.exec('commit');
   assert((await target.query<any>('select count(*) n from profiles')).rows[0].n===1);
