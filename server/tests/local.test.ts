@@ -18,10 +18,18 @@ Deno.test('standalone DB and HTTP: leases, anonymous bookings, login, privacy, a
    const r=await (staff?priv:pub)(new Request('http://test/api/'+endpoint,{method:'POST',headers:{'content-type':'application/json',...(staff?{'x-agent-secret':options.secret}:{}),...extra},body:JSON.stringify(body)}));
    return {status:r.status,data:await r.json()};
   }
+  let availability=await call('club-bookings',{action:'capabilities'});
+  assert(availability.status===200&&!availability.data.desk.online&&availability.data.desk.valid_for_ms===0,'no worker means offline');
   const worker=crypto.randomUUID(),other=crypto.randomUUID();
   const host={host_id:'101',zone:'100',status:'free',gizmo_host_id:50,updated_at:new Date().toISOString()};
   let response=await call('club-agent',{action:'snapshot',eco:1,worker_id:worker,hosts:[host]},true);
   assert(response.status===200&&response.data.eco_version===1,JSON.stringify(response));
+  availability=await call('club-bookings',{action:'capabilities'});
+  assert(availability.data.desk.online&&availability.data.desk.valid_for_ms>0&&availability.data.desk.valid_for_ms<=30000,'bounded online lease');
+  assert(Object.keys(availability.data.desk).sort().join(',')==='online,valid_for_ms','no worker IDs');
+  await pg.exec("reset role; update club_worker set lease_until=now()-interval '1 second'; set role service_role");
+  assert(!(await call('club-bookings',{action:'capabilities'})).data.desk.online,'expired lease');
+  await call('club-agent',{action:'snapshot',eco:1,worker_id:worker},true);
   assert((await call('club-agent',{action:'snapshot',eco:1,worker_id:other},true)).status!==200,'lease conflict');
   assert((await call('club-agent',{action:'snapshot',eco:1,worker_id:worker},false,{'x-agent-secret':options.secret})).status===404,'public cannot reach agent even with secret');
   assert((await call('club-auth',{action:'claim',worker_id:worker},false,{'x-agent-secret':options.secret})).status===403);
@@ -39,7 +47,7 @@ Deno.test('standalone DB and HTTP: leases, anonymous bookings, login, privacy, a
   assert((await call('club-desk',{...args,request_id:crypto.randomUUID()},true)).status===409,'overlap');
   const token=Deno.env.get('TELEGRAM_BOT_TOKEN')!;
   function signed(user:number){const p=new URLSearchParams({auth_date:String(Math.floor(Date.now()/1000)),user:JSON.stringify({id:user,first_name:'Test'})});const check=[...p.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>k+'='+v).join('\n');const key=createHmac('sha256','WebAppData').update(token).digest();p.set('hash',createHmac('sha256',key).update(check).digest('hex'));return p.toString();}
-  const state=await call('club-bookings',{action:'state',initData:signed(100)});assert(state.status===200,JSON.stringify(state));assert(state.data.bookings.length===0,'manual reservation stays private');
+  const state=await call('club-bookings',{action:'state',initData:signed(100)});assert(state.status===200,JSON.stringify(state));assert(state.data.bookings.length===0,'manual reservation stays private');assert(state.data.desk.online,'bundled heartbeat');
   response=await call('club-auth',{action:'login',username:'guest',password:'test-pass',initData:signed(100)});assert(response.status===200,JSON.stringify(response));
   const claim=await call('club-auth',{action:'claim',worker_id:worker},true);assert(claim.data.requests.length===1&&claim.data.requests[0].cipher,'setof RPC');
   assert((await call('club-auth',{action:'finish',worker_id:worker,id:response.data.request_id,status:'done',gizmo_user_id:7},true)).data.ok);

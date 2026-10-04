@@ -1,4 +1,12 @@
 import {cors,json,db,verify,codeHash,publicFields} from '../_shared/club.ts';
+// Public bounded lifetime only; no worker identifiers or credentials.
+async function deskStatus(client: ReturnType<typeof db>) {
+ const {data,error}=await client.from('club_worker').select('lease_until,protocol').eq('id',true).limit(1);
+ if(error)throw error;
+ const remaining=Date.parse(data?.[0]?.lease_until||'')-Date.now();
+ const validFor=data?.[0]?.protocol>=2&&Number.isFinite(remaining)?Math.max(0,Math.min(30000,remaining)):0;
+ return {online:validFor>0,valid_for_ms:validFor};
+}
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response(null,{headers:cors});
  if(req.method!=='POST')return json({error:'method_not_allowed'},405);
@@ -6,13 +14,13 @@ Deno.serve(async req=>{
   const b=await req.json();const client=db();
   if(b.action==='capabilities'){
    const {data,error}=await client.from('club_settings').select('*').eq('id',true).single();
-   if(error)throw error;return json({enabled:!!data.enabled,timezone:'Europe/Moscow',protocol:data.flow_version||1,poll_bundle:1});
+   if(error)throw error;return json({enabled:!!data.enabled,timezone:'Europe/Moscow',protocol:data.flow_version||1,poll_bundle:1,desk:await deskStatus(client)});
   }
   let user:number;try{user=verify(b.initData,Deno.env.get('TELEGRAM_BOT_TOKEN')||'');}catch{return json({error:'Откройте приложение заново через Telegram'},403);}
   if(b.action==='state'){
    const {data,error}=await client.rpc('club_client_state',{p_user:user});if(error)throw error;
    const telegram=JSON.parse(new URLSearchParams(b.initData).get('user')||'{}');
-   return json({...data,telegram:{first_name:telegram.first_name,last_name:telegram.last_name,photo_url:typeof telegram.photo_url==='string'&&telegram.photo_url.startsWith('https://')?telegram.photo_url:null}});
+   return json({...data,desk:await deskStatus(client),telegram:{first_name:telegram.first_name,last_name:telegram.last_name,photo_url:typeof telegram.photo_url==='string'&&telegram.photo_url.startsWith('https://')?telegram.photo_url:null}});
   }
   if(b.action==='list'){
    // Never let recent history push an old active/attention booking out of the list.
