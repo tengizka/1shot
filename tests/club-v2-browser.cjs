@@ -33,17 +33,20 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   const logout=requests.find(b=>b.action==='command'&&b.kind==='logout');assert.equal(logout.payload.session_key,'session-1');assert.ok(!('gizmo_user_id' in logout));
   await page.locator('#club-close').click();await page.locator('#nav-profile').click();await page.waitForSelector('.prof-ava img');
   assert.equal(await page.locator('#prof-name').textContent(),'Андрей');assert.match(await page.locator('#prof-balance').textContent(),/321/);assert.equal(await page.locator('#account-birthday').inputValue(),'2000-01-02');assert.equal(await page.locator('#account-birthday').getAttribute('readonly'),'');assert.equal(await page.locator('.profile-booking').count(),0);assert.equal(await page.locator('#ov-profile #club-my-bookings').count(),0);
+  await page.locator('#account-toggle').click();
   await page.locator('#edit-account [name=username]').fill('new_guest');await page.locator('#edit-account .btn-main').click();await page.waitForFunction(()=>document.querySelector('#account-result').textContent.includes('Запрос отправлен'));
   const edit=requests.find(b=>b.kind==='profile_edit');assert.equal(edit.payload.username,'new_guest');assert.ok(!('birthDate' in edit.payload));
   await page.locator('#request-password').click();assert.ok(requests.some(b=>b.kind==='password_request'));
   rows.push({id:'scheduled-own',ends_at:new Date(Date.now()+1800000).toISOString(),host_id:'21',status:'holding',mode:'scheduled',protocol:2,starts_at:new Date().toISOString(),hold_until:new Date(Date.now()+1800000).toISOString()});
   for(const status of ['done','rejected']){
-   passwordRequest={kind:'password_request',status,message:status==='done'?'Услуга предоставлена: пароль проверен в Gizmo':'Закрыта без выполнения'};await page.waitForFunction(s=>document.querySelector('#password-result')?.dataset.status===s,status);await page.evaluate(()=>navTo('hall'));await page.waitForSelector('#my-session-banner:not([hidden])');
+   passwordRequest={kind:'password_request',status,message:status==='done'?'Услуга предоставлена: пароль проверен в Gizmo':'Закрыта без выполнения'};await page.waitForFunction(s=>document.querySelector('#password-result')?.dataset.status===s,status);await page.evaluate(()=>navTo('hall'));await page.waitForSelector('#session-screen:not([hidden])');
    assert.equal(await page.locator('#club-booking[open]').count(),0,'session must not force a popup');
-   await page.locator('#my-session-banner').click();await page.waitForSelector('.current-session');assert.match(await page.locator('.current-session').innerText(),/ПК 11/);await page.locator('#club-close').click();
+   await page.locator('#session-screen button').click();await page.waitForSelector('.current-session');assert.match(await page.locator('.current-session').innerText(),/ПК 11/);await page.locator('#club-close').click();
    await page.locator('#nav-profile').click();await page.waitForFunction(s=>document.querySelector('#password-result')?.dataset.status===s,status);assert.match(await page.locator('#password-result').innerText(),status==='done'?/Услуга предоставлена/:/без выполнения/);
    assert.equal(await page.locator('#club-my-bookings').count(),0);assert.doesNotMatch(await page.locator('#ov-profile').innerText(),/gizmo/i);await page.evaluate(()=>navTo('hall'));
   }
+  assert.equal(await page.locator('#hall-area').isVisible(),false);assert.equal(await page.locator('#session-screen').isVisible(),true);
+  session=null;await page.evaluate(()=>dispatchEvent(new Event('club:resume')));await page.waitForFunction(()=>!document.getElementById('app').classList.contains('session-mode'));
   assert.equal(await page.locator('[data-hid="21"] .map-monitor').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(105, 165, 255)');await page.locator('[data-hid="21"]').click();assert.match(await page.locator('#club-mine').innerText(),/ПК 21/);assert.equal(await page.locator('#club-mine .current-session').count(),0,'other PC must not show current session');assert.equal(await page.getByRole('button',{name:'Отменить бронь',exact:true}).count(),1);await page.locator('#club-close').click();
   await page.evaluate(()=>{hostsData={};renderHall()});assert.equal(await page.locator('[data-hid="21"]').isDisabled(),false);await page.locator('[data-hid="21"]').click();assert.equal(await page.getByRole('button',{name:'Отменить бронь',exact:true}).count(),1);
   assert.deepEqual(errors,[]);

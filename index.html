@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>1SHOT · Карта клуба</title>
-<script src="hall-map.js?v=1.6.0"></script>
+<script src="hall-map.js?v=20261008-ui"></script>
 <link rel="preload" href="assets/fonts/unbounded/unbounded-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/unbounded/unbounded-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/unbounded.css">
@@ -316,8 +316,8 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
 #free-count{display:block!important;font-size:9px;letter-spacing:0;color:#fff;text-align:right}
 @media(prefers-reduced-motion:reduce){.logo-fragment{opacity:1;transform:none;filter:none}}
 </style>
-<link rel="stylesheet" href="club-booking.css?v=1.6.0">
-<link rel="stylesheet" href="hall.css?v=1.6.0">
+<link rel="stylesheet" href="club-booking.css?v=20261008-ui">
+<link rel="stylesheet" href="hall.css?v=20261008-ui">
 </head>
 <body>
 <canvas id="matrix-rain" aria-hidden="true"></canvas>
@@ -379,7 +379,6 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
 
 <!-- APP -->
 <div id="app" class="screen">
-  <div class="live-dot" id="live-dot" style="display:none"></div>
 
   <!-- Header -->
   <div class="app-header">
@@ -392,7 +391,7 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
     </div>
   </div>
 
-  <div class="hall-heading"><h1>Выбери свой ПК</h1><span id="free-count">Свободно — / 30</span></div>
+  <div class="hall-heading"><h1>Выбери свой ПК</h1><span class="free-indicator"><i class="live-dot" id="live-dot" style="display:none" aria-hidden="true"></i><span id="free-count">Свободно: —</span></span></div>
   <div class="zone-tabs-wrap"><div class="zone-tabs" id="zone-tabs">
     <button class="ztab active" data-zone="vip" aria-pressed="true" onclick="switchZone('vip',this)">VIP</button>
     <button class="ztab" data-zone="standard" aria-pressed="false" onclick="switchZone('standard',this)">STANDARD</button>
@@ -401,7 +400,7 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
     <div class="leg-item"><div class="leg-dot free"></div>Свободен</div>
     <div class="leg-item"><div class="leg-dot busy"></div>Занят</div>
     <div class="leg-item"><svg class="legend-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Бронь</div>
-    <div class="leg-item"><svg class="legend-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3a6 6 0 0 0-7 8L2 16a3 3 0 0 0 4 4l5-5a6 6 0 0 0 8-7l-4 4-3-3 4-4Z"/></svg>Ремонт</div>
+    <div class="leg-item"><svg class="legend-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3a6 6 0 0 0-7 8L2 16a3 3 0 0 0 4 4l5-5a6 6 0 0 0 8-7l-4 4-3-3 4-4Z"/></svg><span class="sr-repair">Ремонт</span></div>
     <div class="refresh-txt" id="refresh-time">Получаем статусы компьютеров…</div>
   </div>
   <div class="hall-area" id="hall-area">
@@ -460,7 +459,7 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
     </div>
   </div>
-  <div class="ov-body"><p class="rate-intro"><strong>Твой темп. Твоё время.</strong><br>Игровое время оплачивается в клубе. Здесь — только бронирование места.</p><article class="rate-card"><span class="rate-badge">ОСНОВНОЙ ЗАЛ</span><div class="rate-eyebrow">ВРЕМЯ ИГРАТЬ</div><h2 class="rate-title">STANDARD</h2><div class="rate-start">189 ₽ <small>/ 1 час</small></div><div class="rate-packages"><div class="rate-package"><span>3 ч</span><b>499 ₽</b></div><div class="rate-package"><span>5 ч</span><b>699 ₽</b></div><div class="rate-package"><span>12 ч</span><b>1 390 ₽</b></div></div><div class="rate-special"><div>Утро <span>08:00–13:00</span></div><b>399 ₽</b></div><div class="rate-special"><div>Ночь <span>22:00–08:00</span></div><b>899 ₽</b></div></article><article class="rate-card vip-rate"><span class="rate-badge">ПРЕМИУМ</span><div class="rate-eyebrow">ВРЕМЯ ИГРАТЬ</div><h2 class="rate-title">VIP</h2><div class="rate-start">229 ₽ <small>/ 1 час</small></div><div class="rate-packages"><div class="rate-package"><span>3 ч</span><b>599 ₽</b></div><div class="rate-package"><span>5 ч</span><b>799 ₽</b></div><div class="rate-package"><span>12 ч</span><b>1 590 ₽</b></div></div><div class="rate-special"><div>Утро <span>08:00–13:00</span></div><b>499 ₽</b></div><div class="rate-special"><div>Ночь <span>22:00–08:00</span></div><b>999 ₽</b></div></article><article class="rate-card ps5-rate"><div class="rate-eyebrow">КОНСОЛЬ</div><h2 class="rate-title">PS5</h2><div class="rate-start">299 ₽ <small>/ 1 час</small></div><p>Бронь по телефону</p></article><p class="tr-note">Цены из текущего прайса приложения.<br>Актуальные условия уточняйте у администратора.</p><a class="call-club" href="tel:+74955837811" onclick="openClubContact(event)">Позвонить в клуб <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14"/></svg></span></a></div>
+  <div class="ov-body"><p class="rate-intro"><strong>Твой темп. Твоё время.</strong><br>Игровое время оплачивается в клубе. Здесь — только бронирование места.</p><article class="rate-card"><span class="rate-badge">ОСНОВНОЙ ЗАЛ</span><div class="rate-eyebrow">ВРЕМЯ ИГРАТЬ</div><h2 class="rate-title">STANDARD</h2><div class="rate-start">189 ₽ <small>/ 1 час</small></div><div class="rate-packages"><div class="rate-package"><span>3 ч</span><b>499 ₽</b></div><div class="rate-package"><span>5 ч</span><b>699 ₽</b></div><div class="rate-package"><span>12 ч</span><b>1 390 ₽</b></div></div><div class="rate-special"><div>Утро <span>08:00–13:00</span></div><b>399 ₽</b></div><div class="rate-special"><div>Ночь <span>22:00–08:00</span></div><b>899 ₽</b></div></article><article class="rate-card vip-rate"><span class="rate-badge">ПРЕМИУМ</span><div class="rate-eyebrow">ВРЕМЯ ИГРАТЬ</div><h2 class="rate-title">VIP</h2><div class="rate-start">229 ₽ <small>/ 1 час</small></div><div class="rate-packages"><div class="rate-package"><span>3 ч</span><b>599 ₽</b></div><div class="rate-package"><span>5 ч</span><b>799 ₽</b></div><div class="rate-package"><span>12 ч</span><b>1 599 ₽</b></div></div><div class="rate-special"><div>Утро <span>08:00–13:00</span></div><b>499 ₽</b></div><div class="rate-special"><div>Ночь <span>22:00–08:00</span></div><b>999 ₽</b></div></article><article class="rate-card ps5-rate"><div class="rate-eyebrow">КОНСОЛЬ</div><h2 class="rate-title">PS5</h2><div class="rate-start">299 ₽ <small>/ 1 час</small></div><p>Бронь по телефону</p></article><p class="tr-note">Цены из текущего прайса приложения.<br>Актуальные условия уточняйте у администратора.</p><a class="call-club" href="tel:+74955837811" onclick="openClubContact(event)">Позвонить в клуб <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14"/></svg></span></a></div>
 </div>
 
 <!-- PROFILE OVERLAY -->
@@ -486,17 +485,6 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
       <div class="bal-lbl">Баланс</div>
       <div class="bal-val" id="prof-balance">— ₽</div>
       <div class="bal-sub" id="balance-note">Баланс клуба пока не подключён</div>
-    </div>
-
-    <div class="info-card">
-      <div class="info-row">
-        <div class="info-key">Telegram ID</div>
-        <div class="info-val" id="prof-tgid">—</div>
-      </div>
-      <div class="info-row">
-        <div class="info-key">ID аккаунта</div>
-        <div class="info-val" id="prof-gid">—</div>
-      </div>
     </div>
 
     <button class="btn-danger" onclick="doLogout()">Выйти из аккаунта</button>
@@ -725,8 +713,6 @@ function fillProfile() {
   document.getElementById('ui-currency').hidden = formatted === null;
   document.getElementById('prof-name').textContent = name;
   document.getElementById('prof-account').textContent = `@${profile.username}`;
-  document.getElementById('prof-tgid').textContent = telegram_id || '—';
-  document.getElementById('prof-gid').textContent = profile.gizmo_user_id || '—';
   document.getElementById('prof-balance').textContent = formatted === null ? 'Нет данных' : `${formatted} ₽`;
   document.getElementById('balance-note').textContent = formatted === null
     ? 'Сервер пока не передаёт баланс клуба. Уточните сумму у администратора.'
@@ -790,13 +776,15 @@ function renderHall() {
   const map = document.getElementById('floor-map');
   const fresh = HALL_LAYOUT.filter(pc=>pc.id!=='1' && liveHostStatus(hostsData[pc.id])!=='unknown');
   const free = fresh.filter(pc=>liveHostStatus(hostsData[pc.id])==='free').length;
-  document.getElementById('free-count').textContent = `Свободно ${fresh.length ? free : '—'} / 30`;
+  document.getElementById('free-count').textContent = `Свободно: ${fresh.length ? free : '—'}`;
   const seats = getZoneSeats(activeZone);
   const zonePages=getZonePages(activeZone);
   const pages = zonePages.length;
   seatPage = Math.max(0, Math.min(seatPage, pages - 1));
   const renderKey=activeZone+':'+seatPage+':'+seats.map(pc=>pc.id+liveHostStatus(hostsData[pc.id])+!!window.ownBookingIds?.has(pc.id)+!!window.instantHostIds?.has(pc.id)).join('|');
   if(map.dataset.renderKey===renderKey&&map.children.length)return;map.dataset.renderKey=renderKey;
+  const viewport=document.getElementById('seat-viewport'),pageKey=activeZone+':'+seatPage;
+  const scroll=map.dataset.page===pageKey?viewport.scrollTop:0;map.dataset.page=pageKey;
   const focusedId = map.contains(document.activeElement) ? document.activeElement.dataset.hid : null;
   map.replaceChildren();
   const groups = new Map();
@@ -805,21 +793,22 @@ function renderHall() {
     const button = document.createElement('button');
     button.type = 'button'; button.className = `map-pc ${status}`;
     if(window.ownBookingIds?.has(pc.id))button.classList.add('my-booking');
+    button.style.gridRow=pc.row;button.style.gridColumn=pc.column;
     button.dataset.hid = pc.id;button.dataset.zoneLabel=pc.group==='vip'?`Ряд ${pc.zone}`:`Зона ${pc.zone}`;
     button.disabled = !['free','busy','reserved'].includes(status)&&!window.ownBookingIds?.has(pc.id);
     button.setAttribute('aria-label', `ПК ${pc.id}: ${HOST_LABELS[status]}`);
-    button.innerHTML = `<span class="map-monitor">${statusIcon(status)}</span><span class="seat-prefix">ПК</span><span class="map-number">${pc.id}</span><span class="seat-status">${HOST_LABELS[status]}</span>`;
+    button.innerHTML = `<span class="map-monitor">${statusIcon(status)}</span><span class="seat-prefix">ПК</span><span class="map-number">${pc.id}</span><span class="seat-status">${status==='broken'?'':HOST_LABELS[status]}</span>`;
     button.onclick = () => {const current=liveHostStatus(hostsData[pc.id]);if(window.openOwnBooking?.(pc.id))return;if(current==='busy')return window.showOccupied();if(current!=='free')return toast('Этот ПК недоступен','inf');openBooking(pc.id, pc.zone, pc.group === 'vip')};
     if (!groups.has(pc.zone)) {
       const section=document.createElement('section'); section.className='seat-zone';
       const title=document.createElement('div'); title.className='seat-zone-title';title.textContent=activeZone==='vip'?`Ряд ${pc.zone}`:`Зона ${pc.zone}`;
-      const grid=document.createElement('div');grid.className='seat-zone-grid';
+      const grid=document.createElement('div');grid.className='seat-zone-grid';const layout=getPhysicalZones(activeZone).find(z=>z.zone===pc.zone);grid.style.setProperty('--seat-columns',layout.columns);grid.style.setProperty('--seat-rows',layout.rows.length);section.style.setProperty('--seat-weight',layout.rows.length);
       section.append(title,grid);map.append(section);groups.set(pc.zone,grid);
     }
     groups.get(pc.zone).append(button);
     if (focusedId === pc.id && !button.disabled) button.focus({preventScroll:true});
   });
-  groups.forEach(grid=>{grid.style.setProperty('--seat-columns',grid.children.length>5?Math.ceil(grid.children.length/2):grid.children.length);grid.style.setProperty('--seat-rows',Math.ceil(grid.children.length/5));grid.parentElement.style.setProperty('--seat-weight',Math.ceil(grid.children.length/5))});
+  viewport.scrollTop=scroll;
   map.style.setProperty('--zone-count', groups.size);
   document.getElementById('map-filter-label').textContent = activeZone.toUpperCase();
   document.getElementById('seat-count').textContent = `${seats.length} компьютеров`;
@@ -1001,11 +990,12 @@ function clearProfile() {
   try { localStorage.removeItem('1shot_v2_profile'); } catch(e){}
 }
 </script>
-<script src="hall-swipe.js?v=20260925-7"></script>
+<script src="hall-swipe.js?v=20261008-ui"></script>
 <script src="experience.js?v=1.6.0"></script>
 <script src="arrival-time.js?v=1.6.0"></script>
 <link rel="stylesheet" href="desk-availability.css?v=1">
 <script src="desk-availability.js?v=1"></script>
-<script src="club-booking.js?v=desk-availability-1"></script>
+<script src="profile-feedback.js?v=20261008"></script>
+<script src="club-booking.js?v=20261008-ui"></script>
 <link rel="stylesheet" href="polish.css?v=1.6.0"><script src="polish.js?v=1.6.0"></script></body>
 </html>

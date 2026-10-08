@@ -23,7 +23,7 @@ const fs=require('node:fs'),assert=require('node:assert/strict');
     if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*'}});
     const action=route.request().postDataJSON().action;
     if(action==='account'&&sessionVisible)return route.fulfill({contentType:'application/json',body:JSON.stringify({account:{updated_at:new Date().toISOString(),data:{username:'Test',session:{host_id:'11',key:'test-session'}}},commands:[]})});
-    return route.fulfill({status:action==='capabilities'?200:503,contentType:'application/json',body:action==='capabilities'?'{"enabled":true,"protocol":2}':'{"error":"test offline"}'});
+    return route.fulfill({status:action==='capabilities'?200:503,contentType:'application/json',body:action==='capabilities'?'{"enabled":true,"protocol":2,"desk":{"online":true,"valid_for_ms":30000}}':'{"error":"test offline"}'});
    }
    return route.abort();
   });
@@ -31,6 +31,7 @@ const fs=require('node:fs'),assert=require('node:assert/strict');
   await page.waitForFunction(()=>window.clubV2);
   async function check(){
    await page.waitForFunction(()=>!document.getElementById('seat-viewport').classList.contains('is-moving'));
+   if(await page.locator('#session-screen').isVisible()){assert.equal(await page.locator('#hall-area').isVisible(),false);assert.ok(await page.locator('#session-screen').evaluate(e=>e.scrollWidth<=e.clientWidth+1));return}
    const report=await page.evaluate(()=>{
     const rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,width:r.width,height:r.height}};
     return {containers:['app','hall-area','floor-shell','floor-map'].map(id=>{const e=document.getElementById(id)||document.querySelector('.'+id);return {id,h:e.scrollHeight,ch:e.clientHeight,w:e.scrollWidth,cw:e.clientWidth}}),map:rect(document.getElementById('floor-map')),pagination:rect(document.querySelector('.seat-pagination')),cards:[...document.querySelectorAll('.map-pc')].map(e=>({id:e.dataset.hid,...rect(e),number:rect(e.querySelector('.map-number'))})),phone:{color:getComputedStyle(document.querySelector('.ps5-phone-card')).color,decoration:getComputedStyle(document.querySelector('.ps5-phone-card')).textDecorationLine}};
@@ -40,15 +41,16 @@ const fs=require('node:fs'),assert=require('node:assert/strict');
    for(const c of report.cards){
     assert.ok(c.width>=44&&c.height>=44,JSON.stringify(c));
     assert.ok(c.y>=report.map.y-1&&c.bottom<=report.map.bottom+1,JSON.stringify(c));
-    assert.ok(c.bottom<=report.pagination.y,JSON.stringify(c));
+
     assert.ok(c.number.y>=c.y&&c.number.bottom<=c.bottom&&c.number.right<=c.right,JSON.stringify(c));
     for(const b of report.cards)if(b.id!==c.id)assert.ok(c.right<=b.x+.5||b.right<=c.x+.5||c.bottom<=b.y+.5||b.bottom<=c.y+.5,`overlap ${c.id}/${b.id}`);
    }
+   for(const id of report.cards.map(c=>c.id)){const card=page.locator(`[data-hid="${id}"]`);await card.evaluate(e=>e.scrollIntoView({block:'nearest'}));assert.ok(await card.evaluate(e=>{const r=e.getBoundingClientRect(),v=document.getElementById('seat-viewport').getBoundingClientRect();return r.top>=v.top-1&&r.bottom<=v.bottom+1}),'seat reachable '+id)}
    assert.equal(report.phone.color,'rgb(255, 255, 255)');assert.equal(report.phone.decoration,'none');
   }
   for(const active of [false,true]){
    sessionVisible=active;await page.reload();await page.waitForSelector('#splash',{state:'hidden'});await page.waitForFunction(()=>window.clubV2);
-   if(active)await page.waitForSelector('#my-session-banner:not([hidden])');
+   if(active)await page.waitForSelector('#session-screen:not([hidden])');
   for(const online of [false,true]){
    live=online;await page.evaluate(()=>fetchHosts());
    for(const [width,height] of [[423,725],[423,756],[390,700],[375,681],[320,568],[844,390],[390,844],[390,950]]){

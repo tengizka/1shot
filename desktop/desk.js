@@ -67,10 +67,10 @@ function hall(s){
  if(!map.children.length){
   for(const group of ['vip','standard']){
    const section=document.createElement('section');section.className='desk-zone';const heading=document.createElement('h3');heading.textContent=group==='vip'?'VIP · РЯДЫ 10 / 20':'STANDARD · ЗОНЫ 100 / 200 / 300 / 400';section.append(heading);
-   const grid=document.createElement('div');grid.className='desk-zone-grid';
-   for(const pc of getZoneSeats(group)){
-    const btn=document.createElement('button');btn.dataset.hostId=pc.id;
-    const number=document.createElement('b');number.textContent=pc.id;const state=document.createElement('span');btn.append(number,state);btn.onclick=()=>selectHost(pc.id);grid.append(btn);
+   const grid=document.createElement('div');grid.className='desk-zone-grid physical-grid '+group;
+   for(const pc of getZoneSeats(group)){const layouts=getPhysicalZones(group),zi=layouts.findIndex(z=>z.zone===pc.zone);const row=pc.row+layouts.slice(0,zi).reduce((n,z)=>n+z.rows.length+1,0);
+    const btn=document.createElement('button');btn.style.gridRow=row;btn.style.gridColumn=pc.column;btn.dataset.hostId=pc.id;
+    const number=document.createElement('b');number.textContent=pc.id;const state=document.createElement('span');btn.append(number,state);const phone=document.createElement('i');phone.className='miniapp-booking';phone.hidden=true;phone.setAttribute('aria-hidden','true');phone.innerHTML='<svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 18h4"/></svg>';btn.append(phone);btn.onclick=()=>selectHost(pc.id);grid.append(btn);
    }
    section.append(grid);map.append(section);
   }
@@ -79,9 +79,14 @@ function hall(s){
  for(const btn of map.querySelectorAll('[data-host-id]')){
   const id=btn.dataset.hostId,connecting=s.rows.some(b=>b.instant&&b.host_id===id&&['requested','holding','checkin_pending'].includes(b.status));
   const status=connecting?'connecting':fresh?(hosts.get(id)?.status||'unknown'):'unknown';
+  const reservation=s.rows.find(b=>b.host_id===id&&!b.instant&&!b.admin_created&&['requested','waiting','holding','attention','checkin_pending','cancel_requested'].includes(b.status));
+  const phone=btn.querySelector('.miniapp-booking');if(phone.hidden===!!reservation)phone.hidden=!reservation;
+  const title='ПК '+id+': '+HOST_LABELS[status]+(reservation?' · Бронь из мини-приложения · '+(reservation.username||reservation.guest_name||'Гость'):'');
+  if(btn.title!==title){btn.title=title;btn.setAttribute('aria-label',title)}
   if(btn.dataset.status===status)continue;
   btn.dataset.status=status;btn.className='desk-pc '+status;const state=btn.querySelector('span');
   if(status==='reserved')state.innerHTML='<svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Бронь';
+  else if(status==='broken')state.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3a6 6 0 0 0-7 8L2 16a3 3 0 0 0 4 4l5-5a6 6 0 0 0 8-7l-4 4-3-3 4-4Z"/></svg>';
   else setDeskText(state,HOST_LABELS[status]);
  }
 }
@@ -95,7 +100,7 @@ async function refresh(){
   setDeskText($('error'),[s.error,s.sync_error,s.password_sync_error,!s.protocol_ready?'Сервис аккаунтов пока недоступен. Проверьте сообщение об ошибке выше.':''].filter(Boolean).join('\n'));
   setDeskText($('count'),s.rows.filter(b=>!b.instant||b.status==='attention').length);$('alert').hidden=!s.alerts;setDeskText($('alert-text'),s.alerts+' непрочитанных уведомлений');setDeskText($('mute'),s.muted?'Включить звук':'Тишина на 5 минут');
   const bookingKey=JSON.stringify(s.rows)+selectedHost;if(refresh.bookingKey!==bookingKey){bookings(s);refresh.bookingKey=bookingKey}
-  const hallKey=JSON.stringify(s.hosts)+gizmoOk+JSON.stringify(s.rows.filter(b=>b.instant).map(b=>[b.host_id,b.status]));if(refresh.hallKey!==hallKey){hall(s);refresh.hallKey=hallKey}
+  const hallKey=JSON.stringify(s.hosts)+gizmoOk+JSON.stringify(s.rows.map(b=>[b.host_id,b.status,b.instant,b.admin_created,b.username,b.guest_name]));if(refresh.hallKey!==hallKey){hall(s);refresh.hallKey=hallKey}
   const requests=s.password_requests||[];setDeskText($('requests-count'),requests.length);
   const resetKey=JSON.stringify(requests);if(refresh.resetKey!==resetKey){renderResetRequests(requests);refresh.resetKey=resetKey}
   window.renderGuestPasswords?.(s);

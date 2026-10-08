@@ -24,10 +24,9 @@ function liveHostStatus(host, now = Date.now()) {
 function isPhoneOnlyHost(hostId, zone) {
   return String(hostId).trim() === '1' || String(hostId).toLowerCase() === 'ps5' || String(zone).toLowerCase() === 'ps5';
 }
-function getZoneSeats(group) {
-  return HALL_LAYOUT.filter(pc => pc.group === group && !isPhoneOnlyHost(pc.id, pc.zone))
-    .sort((a,b) => Number(a.id)-Number(b.id));
-}
+const HALL_ROWS=[['10','vip',[[11,12,13,14,15]]],['20','vip',[[21,22,23,24,25]]],['100','standard',[[104,101],[105,102],[106,103]]],['200','standard',[[204,201],[205,202],[206,203],[207,null],[208,null]]],['300','standard',[[304,303],[302,301]]],['400','standard',[[402,401]]]];
+function getPhysicalZones(group){return HALL_ROWS.filter(z=>z[1]===group).map(([zone,group,rows])=>({zone,group,rows,columns:rows[0].length,seats:rows.flatMap((row,r)=>row.flatMap((id,c)=>id===null?[]:[{...HALL_LAYOUT.find(p=>p.id===String(id)),row:r+1,column:c+1}]))}))}
+function getZoneSeats(group){return getPhysicalZones(group).flatMap(z=>z.seats)}
 
 // Keep whole physical rows/zones together; never split zone 200 between pages.
 function getZonePages(group) {

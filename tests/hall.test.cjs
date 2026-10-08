@@ -43,3 +43,8 @@ test("whole physical zones fit four pages without splits",()=>{
  assert.equal(new Set(pages.flat().map(p=>p.id)).size,30);
  const zones=new Map();pages.forEach((page,i)=>page.forEach(pc=>{if(zones.has(pc.zone))assert.equal(zones.get(pc.zone),i);else zones.set(pc.zone,i)}));
 });
+
+test('physical rows and empty cells are explicit',()=>{
+ assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(getPhysicalZones("standard").map(z=>z.rows))',context)),[[[104,101],[105,102],[106,103]],[[204,201],[205,202],[206,203],[207,null],[208,null]],[[304,303],[302,301]],[[402,401]]]);
+ assert.equal(vm.runInContext('getZoneSeats("standard").find(p=>p.id==="208").column',context),1);
+});

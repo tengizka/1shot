@@ -12,7 +12,7 @@
  function cancel(){const pointer=drag?.id;drag=null;if(pointer!==undefined)releasePointer(pointer);clearMotion()}
  function animateChange(update,direction,offset=0){
   cancel();
-  if(reduced.matches||!map.getBoundingClientRect().width){update();return}
+  if(reduced.matches||viewport.scrollTop>0||viewport.scrollHeight>viewport.clientHeight+1||!map.getBoundingClientRect().width){update();return}
   const width=viewport.clientWidth;
   ghost=map.cloneNode(true);ghost.removeAttribute('id');ghost.classList.add('hall-page-ghost');
   ghost.setAttribute('aria-hidden','true');ghost.inert=true;
@@ -42,9 +42,10 @@
  });
  viewport.addEventListener('pointermove',e=>{
   if(!drag||e.pointerId!==drag.id)return;
+  if(drag.vertical){suppressUntil=performance.now()+600;return}
   const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
   if(!drag.horizontal){
-   if(Math.abs(dy)>12&&Math.abs(dy)>Math.abs(dx)){drag=null;return}
+   if(Math.abs(dy)>12&&Math.abs(dy)>Math.abs(dx)){drag.vertical=true;suppressUntil=performance.now()+600;return}
    if(Math.abs(dx)<10||Math.abs(dx)<Math.abs(dy)*1.25)return;
    drag.horizontal=true;viewport.setPointerCapture(e.pointerId);viewport.classList.add('is-dragging');
   }
@@ -59,6 +60,7 @@
  function end(e,cancelled=false){
   if(!drag||drag.id!==e.pointerId)return;
   const current=drag;drag=null;releasePointer(e.pointerId);viewport.classList.remove('is-dragging');
+  if(current.vertical){suppressUntil=performance.now()+600;return}
   if(!current.horizontal)return;
   suppressUntil=performance.now()+600;
   const distance=Math.abs(current.dx),speed=distance/Math.max(1,performance.now()-current.started);

@@ -70,3 +70,16 @@
 @media(max-height:470px){.floor-caption{display:none}.zone-tabs{padding-top:3px;padding-bottom:3px}.floor-shell{padding-top:5px;padding-bottom:4px}.seat-pagination{margin-top:4px}.hall-area{gap:4px}}
 /* Own bookings stay blue, including the monitor glow and swipe preview. */
 .floor-map :is(.map-pc,.seat-preview).my-booking{background:linear-gradient(155deg,#142d4c,#090f1b 85%);border-color:#69a5ff!important;box-shadow:inset 0 0 15px #5599ff22,0 0 10px #5599ff22}.floor-map :is(.map-pc,.seat-preview).my-booking .map-monitor{background:#69a5ff;border-color:#69a5ff;color:white;box-shadow:0 0 12px #5599ff88,inset 0 1px 6px #ffffff60}.floor-map :is(.map-pc,.seat-preview).my-booking .map-monitor:after{border-color:#a8cdff}
+/* Native vertical scroll, explicit physical cells; pagination stays outside. */
+.seat-viewport{display:block;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-width:none;touch-action:pan-y}
+.seat-viewport::-webkit-scrollbar{display:none}
+.seat-viewport>.floor-map{min-height:100%;height:auto;flex:none}
+.floor-map .seat-zone{flex:var(--seat-weight,1) 0 auto;background:#080808}
+.floor-map .seat-zone-grid{grid-template-rows:repeat(var(--seat-rows),minmax(84px,1fr));flex:1 0 auto;gap:9px}
+.floor-map .seat-zone-grid :is(.map-pc,.seat-preview){min-height:84px;padding:12px 4px;gap:8px}
+.floor-map :is(.map-pc,.seat-preview).reserved{background:#13090b;border-color:#c95563!important;box-shadow:none}
+.floor-map :is(.map-pc,.seat-preview).reserved .map-monitor{background:#0a0607;border-color:#db6170;box-shadow:none}
+.floor-map .reserved .map-symbol{stroke:#ff8996}
+.floor-map .broken .map-monitor{display:flex;background:#080808;border-color:#999;box-shadow:none}
+.floor-map .seat-status:empty{display:none}.floor-map .map-monitor{display:flex;width:26px;height:18px}
+.floor-map .map-number{font-size:clamp(18px,4.2vw,24px)}.floor-map .seat-status{display:block}

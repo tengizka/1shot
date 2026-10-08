@@ -112,7 +112,22 @@ window.clubV2=false;
  const sessionBanner=document.createElement('button');sessionBanner.id='my-session-banner';sessionBanner.className='my-session-banner';sessionBanner.type='button';sessionBanner.hidden=true;sessionBanner.innerHTML='<span><strong>Моя сессия</strong><small></small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>';
  document.querySelector('.app-header').insertAdjacentElement('afterend',sessionBanner);
  sessionBanner.onclick=()=>{state.host=null;showMine();$('club-pc').textContent='МОЯ СЕССИЯ'};
- function renderSessionBanner(){const current=state.account?.session;sessionBanner.hidden=!current;document.getElementById('app').classList.toggle('has-session',!!current);if(current){sessionBanner.querySelector('small').textContent='ПК '+current.host_id+(accountFresh()?' · управление и завершение':' · данные обновляются');}}
+ const sessionScreen=document.createElement('section');sessionScreen.id='session-screen';sessionScreen.hidden=true;
+ sessionScreen.innerHTML='<p class="session-eyebrow">ТВОЯ ИГРА</p><h1>Сессия активна</h1><div class="session-host"></div><p class="session-start"></p><dl><div><dt>Баланс</dt><dd class="session-balance"></dd></div><div><dt>Осталось времени</dt><dd>Нет данных</dd></div></dl><button type="button" class="btn-main">Управление сессией</button><p class="session-freshness" role="status"></p>';
+ sessionBanner.after(sessionScreen);sessionScreen.querySelector('button').onclick=()=>sessionBanner.click();
+ function renderSessionBanner(){
+  const current=state.account?.session,fresh=accountFresh();sessionBanner.hidden=!current;sessionScreen.hidden=!current;
+  document.getElementById('app').classList.toggle('has-session',!!current);document.getElementById('app').classList.toggle('session-mode',!!current);
+  if(current){
+   sessionBanner.querySelector('small').textContent='ПК '+current.host_id+(fresh?' · управление и завершение':' · данные обновляются');
+   const set=(selector,value)=>{const node=sessionScreen.querySelector(selector);if(node.textContent!==value)node.textContent=value};
+   set('h1',fresh?'Сессия активна':'Проверяем сессию');set('.session-host','ПК '+current.host_id);
+   set('.session-start',current.last_login?'Начало · '+fmt(current.last_login)+' МСК':'Время начала не получено');
+   set('.session-balance',fresh&&Number.isFinite(state.account.balance)?state.account.balance.toLocaleString('ru-RU')+' ₽':'Нет данных');
+   set('.session-freshness',fresh?'':'Показана последняя полученная сессия. Ждём связь с клубом.');
+  }
+ }
+
  function renderSession(box){
   const current=state.account.session;const card=document.createElement('section');card.className='club-reservation current-session';
   const title=document.createElement('h2');title.textContent=(accountFresh()?'Вы играете · ПК ':'Последняя сессия · ПК ')+current.host_id;card.append(title);
@@ -122,15 +137,19 @@ window.clubV2=false;
   exit.onclick=async()=>{if(!confirm('Выйти из аккаунта на ПК '+current.host_id+'? Сохраните игру перед выходом.'))return;exit.disabled=true;try{await command('logout',{session_key:current.key});$('club-error').textContent='Команда отправлена. Ждём подтверждение клуба.'}catch(e){$('club-error').textContent=clubText(e.message)}finally{exit.disabled=false}};
   card.append(exit);box.append(card);
  }
- let accountSetup=false,accountPending=false;
+ let accountSetup=false,accountPending=false,accountFeedback,passwordFeedback;
  function accountFresh(){return !!state.accountTime&&Date.now()-Date.parse(state.accountTime)<45000}
  function setupAccount(){
   if(accountSetup)return;accountSetup=true;
   const box=document.createElement('section');box.className='account-tools';
-  box.innerHTML='<h3>Игровая статистика</h3><div id="profile-stats" class="profile-stat-grid"></div><p id="stats-period" class="club-note"></p><h3>Данные аккаунта</h3><form id="edit-account"><label>Никнейм<input name="username" minlength="3" maxlength="30" autocomplete="username" required></label><label>Имя<input name="firstName" maxlength="45"></label><label>Фамилия<input name="lastName" maxlength="45"></label><label>Email<input name="email" type="email" maxlength="254"></label><label>Телефон<input name="mobilePhone" maxlength="20"></label><label>Дата рождения · только просмотр<input id="account-birthday" readonly></label><button class="btn-main">Сохранить изменения</button></form><button id="request-password" class="btn-main">Сменить / восстановить пароль через администратора</button><p id="password-result" role="status"></p><p id="account-result" role="status"></p>';
+  box.innerHTML='<h3>Игровая статистика</h3><div id="profile-stats" class="profile-stat-grid"></div><p id="stats-period" class="club-note"></p><button type="button" id="account-toggle" aria-expanded="false" aria-controls="account-fields">Данные аккаунта<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div id="account-fields" inert><div><form id="edit-account"><label>Никнейм<input name="username" minlength="3" maxlength="30" autocomplete="username" required></label><label>Имя<input name="firstName" maxlength="45"></label><label>Фамилия<input name="lastName" maxlength="45"></label><label>Email<input name="email" type="email" maxlength="254"></label><label>Телефон<input name="mobilePhone" maxlength="20"></label><label>Дата рождения<input id="account-birthday" readonly></label><button class="btn-main">Сохранить изменения</button></form></div></div><button id="request-password" class="btn-main">Сменить / восстановить пароль через администратора</button><p id="password-result" role="status"></p><p id="account-result" role="status"></p>';
   document.querySelector('#mini-build').before(box);document.querySelector('#mini-build').before(document.querySelector('#ov-profile .btn-danger'));
-  $('edit-account').onsubmit=async e=>{e.preventDefault();if(!confirm('Сохранить данные аккаунта в клубе? Новый никнейм будет использоваться для входа на ПК.'))return;const btn=e.target.querySelector('button');btn.disabled=true;try{const requested=await command('profile_edit',Object.fromEntries(new FormData(e.target)));e.target.dataset.pendingId=requested.id;$('account-result').textContent='Запрос отправлен в клуб'}catch(error){$('account-result').textContent=clubText(error.message)}finally{btn.disabled=false}};
-  $('request-password').onclick=async()=>{if(!confirm('Запросить смену пароля у администратора? В клубе потребуется подтвердить личность.'))return;try{await command('password_request',{});$('password-result').textContent='Администратор получил запрос. Обратитесь к нему в клубе.'}catch(error){$('account-result').textContent=clubText(error.message)}};
+  const owner=()=>String(profile?.telegram_id||'')+':'+String(profile?.gizmo_user_id||'');
+  accountFeedback=new ProfileFeedback($('account-result'),owner);passwordFeedback=new ProfileFeedback($('password-result'),owner);
+  $('account-toggle').onclick=()=>{const open=$('account-toggle').getAttribute('aria-expanded')!=='true';$('account-toggle').setAttribute('aria-expanded',String(open));$('account-fields').classList.toggle('expanded',open);$('account-fields').inert=!open};
+  $('edit-account').addEventListener('input',()=>{const form=$('edit-account');form.dataset.dirty='1';form.dataset.revision=String(Number(form.dataset.revision||0)+1)});
+  $('edit-account').onsubmit=async e=>{e.preventDefault();if(!confirm('Сохранить данные аккаунта в клубе? Новый никнейм будет использоваться для входа на ПК.'))return;const btn=e.target.querySelector('button'),revision=e.target.dataset.revision||'0';btn.disabled=true;try{const requested=await command('profile_edit',Object.fromEntries(new FormData(e.target)));e.target.dataset.pendingId=requested.id;e.target.dataset.sentRevision=revision;accountFeedback.show(null,'Запрос отправлен в клуб')}catch(error){accountFeedback.show(null,clubText(error.message))}finally{btn.disabled=false}};
+  $('request-password').onclick=async()=>{if(!confirm('Запросить смену пароля у администратора? В клубе потребуется подтвердить личность.'))return;try{await command('password_request',{});passwordFeedback.show(null,'Администратор получил запрос. Обратитесь к нему в клубе.')}catch(error){accountFeedback.show(null,clubText(error.message))}};
   refreshAccount();
  }
  async function command(kind,payload){return call('command',{kind,payload,request_id:crypto.randomUUID()})}
@@ -151,10 +170,13 @@ window.clubV2=false;
    const photo=res.telegram?.photo_url,avatar=document.querySelector('.prof-ava');
    if(photo&&avatar&&avatar.dataset.photo!==photo){const img=document.createElement('img');img.src=photo;img.alt='Аватар Telegram';img.referrerPolicy='no-referrer';img.onerror=()=>{avatar.textContent=(profile.first_name||profile.username||'?')[0].toUpperCase()};avatar.replaceChildren(img);avatar.dataset.photo=photo}
    else if(avatar&&!photo)avatar.textContent=(profile.first_name||profile.username||'?')[0].toUpperCase();
-   const passwordRequest=res.password_request||res.commands?.find(c=>c.kind==='password_request');if($('password-result')){$('password-result').textContent=passwordRequest?(clubText(passwordRequest.message)||({awaiting_admin:'Заявка ожидает администратора',done:'Услуга предоставлена',rejected:'Заявка закрыта без выполнения'}[passwordRequest.status]||'Заявка обрабатывается')):'';$('password-result').dataset.status=passwordRequest?.status||'';}
+   const passwordRequest=res.password_request||res.commands?.find(c=>c.kind==='password_request');
+   passwordFeedback?.show(passwordRequest,passwordRequest?(clubText(passwordRequest.message)||({awaiting_admin:'Заявка ожидает администратора',done:'Услуга предоставлена',rejected:'Заявка закрыта без выполнения'}[passwordRequest.status]||'Заявка обрабатывается')):'');
    renderSessionBanner();
-   const latest=res.commands?.find(c=>!['logout','password_request'].includes(c.kind));if($('account-result'))$('account-result').textContent=!latest||latest.status==='done'?'':clubText(latest.message)||({queued:'Запрос ожидает обработки',running:'Выполняется',awaiting_admin:'Ожидает администратора',done:'Выполнено',attention:'Нужна проверка администратора'}[latest.status]||latest.status);
-   if(latest?.kind==='profile_edit'&&latest.status==='done'&&latest.id===$('edit-account')?.dataset.pendingId){delete $('edit-account').dataset.dirty;delete $('edit-account').dataset.pendingId;}
+   const form=$('edit-account'),pendingId=form?.dataset.pendingId;
+   const latest=pendingId?res.commands?.find(c=>c.id===pendingId):res.commands?.find(c=>c.kind==='profile_edit');
+   if(latest||!pendingId)accountFeedback?.show(latest,latest?(clubText(latest.message)||({queued:'Запрос ожидает обработки',running:'Выполняется',done:'Изменения сохранены',attention:'Нужна проверка администратора'}[latest.status]||'Запрос обрабатывается')):'');
+   if(latest?.status==='done'&&latest.id===pendingId){if((form.dataset.revision||'0')===form.dataset.sentRevision)delete form.dataset.dirty;delete form.dataset.pendingId;}
    if(sheet.open&&!$('club-mine').hidden&&!state.busy)mine();
   }catch{if(profile){profile.balance=null;fillProfile()}renderSessionBanner()}
   finally{accountPending=false}

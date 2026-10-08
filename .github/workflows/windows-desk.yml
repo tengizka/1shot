@@ -2,7 +2,7 @@ name: Build Windows Desk
 on:
   push:
     branches: [arena/01a0d663-1shot]
-    paths: ['desktop/**', 'tests/test_*.py', 'tests/*browser.cjs', 'tests/*powershell.ps1', 'release/registration/**', '.github/workflows/windows-desk.yml']
+    paths: ['index.html', 'hall*.js', 'hall.css', 'club-booking.*', 'profile-feedback.js', 'tests/hall*', 'desktop/**', 'tests/test_*.py', 'tests/*browser.cjs', 'tests/*powershell.ps1', 'release/registration/**', '.github/workflows/windows-desk.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -28,6 +28,11 @@ jobs:
         env:
           LD_LIBRARY_PATH: /tmp/chromium-libs/lib
         run: |
+          node --test tests/hall.test.cjs
+          node tests/hall-layout.cjs
+          node tests/hall-swipe.cjs
+          node tests/profile-feedback-browser.cjs
+          node tests/club-v2-browser.cjs
           node tests/guest-passwords-browser.cjs
           node tests/registration-approval-browser.cjs
           node tests/desk-stability-browser.cjs
