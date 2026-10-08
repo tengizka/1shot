@@ -25,8 +25,8 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   assert.deepEqual(errors,[]);
   const desk=await context.newPage();await desk.setViewportSize({width:1100,height:800});desk.on('pageerror',e=>errors.push(e.message));desk.on('dialog',d=>d.accept());
   await desk.addInitScript(()=>{
-   window.approvals=[];window.row={id:'request-1',status:'awaiting_admin',public_data:{username:'<img src=x onerror=alert(1)>',first_name:'Test',mobile_phone:'+79991234567'}};
-   window.pywebview={api:{snapshot:async()=>({online:true,protocol_ready:true,registration_ready:true,registrations:[row],last_sync:Date.now()/1000,rows:[],hosts:[],password_requests:[],alerts:0}),approve_registration:async(...args)=>{approvals.push(args);return {status:'attention',gizmo_user_id:7}}}};
+   window.approvals=[];window.reconciliations=[];window.row={id:'request-1',status:'awaiting_admin',public_data:{username:'<img src=x onerror=alert(1)>',first_name:'Test',mobile_phone:'+79991234567'}};
+   window.pywebview={api:{snapshot:async()=>({online:true,protocol_ready:true,registration_ready:true,registrations:[row],last_sync:Date.now()/1000,rows:[],hosts:[],password_requests:[],alerts:0}),approve_registration:async(...args)=>{approvals.push(args);return {status:'attention',gizmo_user_id:7}},review_registration:async()=>({proof_id:'fresh-proof',gizmo_user_id:7,username:'guest',first_name:'Test'}),reconcile_registration:async(...args)=>{reconciliations.push(args);row.status='done';return {ok:true}}}};
    document.addEventListener('DOMContentLoaded',()=>dispatchEvent(new Event('pywebviewready')));
   });
   await desk.route('**/*',r=>{const u=new URL(r.request().url()),file='desktop/'+(u.pathname==='/'?'index.html':u.pathname.slice(1));if(u.host==='desk.test'&&fs.existsSync(file))return r.fulfill({contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.woff2')?'font/woff2':'text/html',body:fs.readFileSync(file)});return r.abort()});
@@ -34,6 +34,11 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   const create=desk.getByRole('button',{name:'Подтвердить и создать'});assert.equal(await create.isDisabled(),true);assert.equal(await desk.locator('.registration-list img').count(),0);
   await desk.locator('.registration-list input').check();await create.click();assert.equal(await create.isDisabled(),true);assert.deepEqual(await desk.evaluate(()=>approvals),[['request-1',true]]);
   await desk.evaluate(()=>refresh());assert.equal(await create.isDisabled(),true);assert.deepEqual(errors,[]);
+  await desk.evaluate(async()=>{row.status='attention';await refresh()});
+  const finish=desk.getByRole('button',{name:'Завершить сверку',exact:true});assert.equal(await finish.isDisabled(),true);
+  await desk.getByRole('button',{name:'Проверить вход гостя',exact:true}).click();assert.equal(await finish.isDisabled(),true);
+  await desk.locator('.registration-list input').check();await finish.click();assert.deepEqual(await desk.evaluate(()=>reconciliations),[['request-1','fresh-proof',7,true]]);
+  assert.equal(await desk.locator('.registration-list input[type=password]').count(),0);assert.equal(await desk.evaluate(()=>approvals.length),1);assert.deepEqual(errors,[]);
   console.log('Registration browser PASS: staged one-character submission, reload/shared polling, verified profile, staff confirmation, escaped fields and no repeat approval.');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});

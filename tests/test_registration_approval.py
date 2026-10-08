@@ -69,6 +69,13 @@ class ApprovalTests(unittest.TestCase):
   self.row['cipher']=self.row['cipher'][:-4]+'AAAA';self.assertEqual(self.api.approve(self.id,True)['status'],'attention');self.assertEqual(self.gizmo.writes,[])
  def test_crash_intent_refuses_repeat(self):
   self.store.set('registration:'+self.id,{'phase':'intent','status':'attention'});self.api.approve(self.id,True);self.assertEqual(self.cloud.claimed,0);self.assertEqual(self.gizmo.writes,[])
+ def test_owner_conflict_stops_automatic_reporting(self):
+  from desktop.services import ApiError
+  self.store.set('registration:'+self.id,{'phase':'outcome','status':'done','gizmo_user_id':7,'synced':False})
+  attempts=[]
+  def desk(*args,**kwargs):attempts.append(1);raise ApiError('owner conflict',status=409)
+  self.cloud.desk=desk;self.api.flush();self.api.flush()
+  self.assertEqual(len(attempts),1);self.assertTrue(self.store.get('registration:'+self.id)['conflict']);self.assertEqual(self.gizmo.writes,[])
  def test_guest_group_is_resolved_not_assumed(self):
   data=dict(self.payload,birth_date='2010-01-01');self.assertEqual(registration_params(data,self.gizmo,date(2026,10,8))['UserGroupId'],15)
  def test_profile_mismatch_never_sets_password_or_links(self):
@@ -87,4 +94,32 @@ class ApprovalTests(unittest.TestCase):
   self.api.guard=lambda:(_ for _ in ()).throw(RuntimeError('expired'))
   with self.assertRaises(RuntimeError):self.api.approve(self.id,True)
   self.assertEqual(self.cloud.claimed,0);self.assertEqual(self.gizmo.writes,[])
+class ReconciliationTests(unittest.TestCase):
+ tearDown=ApprovalTests.tearDown
+ def setUp(self):
+  ApprovalTests.setUp(self);self.proof=str(uuid.uuid4())
+  self.row.update(status='attention',public_data={k:v for k,v in self.payload.items() if k not in ('action','password')})
+  self.gizmo.member={k[0].lower()+k[1:]:v for k,v in registration_params(self.payload,self.gizmo).items()}
+  original=self.cloud.desk
+  def desk(action,**data):
+   if action=='registration_review':return {'request':self.row,'proof':{'id':self.proof,'gizmo_user_id':7}}
+   if action=='registration_reconcile':self.cloud.finished.append(data);return {'ok':True}
+   return original(action,**data)
+  self.cloud.desk=desk
+ def test_reconcile_never_creates_or_changes_password(self):
+  checked=self.api.review(self.id);self.assertEqual(checked['gizmo_user_id'],7)
+  self.assertTrue(self.api.reconcile(self.id,self.proof,7,True)['ok'])
+  self.api.reconcile(self.id,self.proof,7,True);self.assertEqual(len(self.cloud.finished),1);self.assertEqual(self.gizmo.writes,[])
+ def test_known_uid_mismatch_blocks(self):
+  self.store.set('registration:'+self.id,{'phase':'created','gizmo_user_id':8})
+  with self.assertRaises(ValueError):self.api.review(self.id)
+  self.assertEqual(self.gizmo.writes,[])
+ def test_requires_separate_confirmation(self):
+  self.assertIn('error',self.api.reconcile(self.id,self.proof,7));self.assertEqual(self.cloud.finished,[])
+ def test_changed_proof_requires_new_review(self):
+  self.assertIn('error',self.api.reconcile(self.id,str(uuid.uuid4()),7,True));self.assertEqual(self.cloud.finished,[])
+ def test_mismatched_profile_blocks_reconciliation(self):
+  self.gizmo.member['userGroupId']=99
+  with self.assertRaises(ValueError):self.api.reconcile(self.id,self.proof,7,True)
+  self.assertEqual(self.cloud.finished,[])
 if __name__=='__main__':unittest.main()

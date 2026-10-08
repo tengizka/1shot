@@ -7,6 +7,7 @@ if ($LASTEXITCODE -ne 0) { throw "Dependency installation failed" }
 if ($LASTEXITCODE -ne 0) { throw "Metadata generation failed" }
 & .\.venv\Scripts\python.exe -m PyInstaller --noconfirm --clean --windowed --name "1SHOT-Desk" --paths . --icon desktop/assets/app.ico --version-file desktop/version-info.txt --add-data "desktop/assets;desktop/assets" --add-data "desktop/brand.js;desktop" --add-data "desktop/index.html;desktop" --add-data "desktop/desk.js;desktop" --add-data "desktop/admin-tools.js;desktop" --add-data "desktop/registrations.js;desktop" --add-data "desktop/desk.css;desktop" --add-data "desktop/polish.css;desktop" --add-data "desktop/polish.js;desktop" --add-data "assets/fonts;assets/fonts" --collect-all webview --exclude-module webview.platforms.winforms --exclude-module webview.platforms.edgechromium --exclude-module clr --exclude-module pythonnet desktop\launcher.py
 if ($LASTEXITCODE -ne 0) { throw "Build failed" }
+@{format='1shot-desk-tools-v1';backup_mode=1;sha256=(Get-FileHash -Algorithm SHA256 'dist/1SHOT-Desk/1SHOT-Desk.exe').Hash.ToLowerInvariant()} | ConvertTo-Json | Set-Content -Encoding UTF8 'dist/1SHOT-Desk/backup-capabilities.json'
 $report = Join-Path (Get-Location) "dist\smoke-result.json"
 $proc = Start-Process -FilePath "dist\1SHOT-Desk\1SHOT-Desk.exe" -ArgumentList @("--smoke-test", "`"$report`"") -PassThru
 if (-not $proc.WaitForExit(90000)) { Stop-Process -Id $proc.Id -Force; throw "UI smoke test timed out" }

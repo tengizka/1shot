@@ -4,7 +4,10 @@ import os
 import uuid
 import requests
 
-class ApiError(RuntimeError): pass
+class ApiError(RuntimeError):
+    def __init__(self,message,status=None):
+        super().__init__(message)
+        self.status=status
 
 def unwrap(response, name):
     if not response.ok: raise ApiError(f'{name}: HTTP {response.status_code}')
@@ -66,7 +69,7 @@ class Cloud:
                 message=r.json().get('error')
                 if isinstance(message,str):detail=': '+message[:180]
             except (ValueError,AttributeError):pass
-            raise ApiError(f'{self.label} {path}: HTTP {r.status_code}'+detail)
+            raise ApiError(f'{self.label} {path}: HTTP {r.status_code}'+detail,status=r.status_code)
         return r.json()
     def snapshot(self,cursor):
         updates=list(self.account_updates.values())[:10]

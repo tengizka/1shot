@@ -7,6 +7,12 @@ Deno.serve(async req=>{
   const b=await req.json(),client=db();
   const {data:worker,error}=await client.from('club_worker').select('*').eq('worker_id',b.worker_id).gt('lease_until',new Date().toISOString()).single();
   if(error||!worker)return json({error:'lease_expired'},409);
+  if(b.action==='registration_review'||b.action==='registration_reconcile'){
+   const args:Record<string,unknown>={p_worker:b.worker_id,p_id:b.id};
+   if(b.action==='registration_reconcile')Object.assign(args,{p_proof:b.proof_id,p_uid:b.gizmo_user_id,p_confirmed:b.confirmed===true});
+   const {data,error}=await client.rpc('club_'+b.action,args);if(error)throw error;
+   return b.action==='registration_review'?json(data):json({ok:data===true});
+  }
   if(['registration_claim','registration_reject','registration_finish'].includes(b.action)){
    const args:Record<string,unknown>={p_worker:b.worker_id,p_id:b.id};
    if(b.action==='registration_finish'){args.p_status=b.status;args.p_uid=b.gizmo_user_id??null;}

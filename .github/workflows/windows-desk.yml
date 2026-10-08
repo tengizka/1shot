@@ -2,7 +2,7 @@ name: Build Windows Desk
 on:
   push:
     branches: [arena/01a0d663-1shot]
-    paths: ['desktop/**', 'tests/test_*.py', 'tests/*browser.cjs', 'release/registration/**', '.github/workflows/windows-desk.yml']
+    paths: ['desktop/**', 'tests/test_*.py', 'tests/*browser.cjs', 'tests/*powershell.ps1', 'release/registration/**', '.github/workflows/windows-desk.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -65,6 +65,11 @@ jobs:
           ./release/registration/Stage-Frontend.ps1 -OutputDirectory $target
           if ((Get-Content index.html -Raw).Contains('registration-wait.js')) { throw 'Production frontend must remain unchanged during staging' }
           if (-not (Get-Content (Join-Path $target 'index.html') -Raw).Contains('registration-wait.js')) { throw 'Staged frontend missing approval UI' }
+      - name: Verify SQLite backup and read-only upgrade preflight
+        shell: pwsh
+        run: |
+          python -m unittest discover -s tests -p test_upgrade_backup.py
+          ./tests/registration-upgrade-powershell.ps1
       - name: Test branding assets
         run: python -m unittest discover -s tests -p test_desktop_branding.py
       - name: Generate release identity
@@ -85,6 +90,11 @@ jobs:
           Get-Content $report
           $result = Get-Content $report -Raw | ConvertFrom-Json
           if (-not $result.ok) { throw "Packaged UI failed: $($result.error)" }
+      - name: Verify packaged headless backup mode
+        shell: pwsh
+        run: |
+          @{format='1shot-desk-tools-v1';backup_mode=1;sha256=(Get-FileHash -Algorithm SHA256 'dist/1SHOT-Desk/1SHOT-Desk.exe').Hash.ToLowerInvariant()} | ConvertTo-Json | Set-Content -Encoding UTF8 'dist/1SHOT-Desk/backup-capabilities.json'
+          ./tests/registration-upgrade-powershell.ps1 -BackupExecutable (Resolve-Path 'dist/1SHOT-Desk/1SHOT-Desk.exe').Path
       - name: Include setup instructions (no credentials)
         shell: pwsh
         run: |

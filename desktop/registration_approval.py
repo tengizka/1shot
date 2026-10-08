@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from urllib.parse import quote
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from .registration import registration_params
+from .services import ApiError
 
 
 def phone_key(value):
@@ -21,6 +22,7 @@ class RegistrationApproval:
         self.cloud,self.gizmo,self.store,self.guard=cloud,gizmo,store,guard
 
     def report(self,id,record):
+        if record.get('phase')=='reconciled':return {'ok':True,'status':'done','synced':True,'gizmo_user_id':record['gizmo_user_id']}
         if record.get('phase')!='outcome':
             return {'ok':False,'status':'attention','error':'Операция прервалась. Нужна ручная сверка; повторное создание заблокировано'}
         if not record.get('synced'):
@@ -30,6 +32,10 @@ class RegistrationApproval:
                 record['synced']=result.get('ok') is True
                 record['conflict']=not record['synced']
                 self.store.set('registration:'+id,record)
+            except ApiError as error:
+                if error.status in (403,409):
+                    record['conflict']=True
+                    self.store.set('registration:'+id,record)
             except Exception:pass  # Retry reporting only; never repeat a Gizmo write.
         return {'ok':record['status']=='done','status':record['status'],'synced':bool(record.get('synced')),'gizmo_user_id':record.get('gizmo_user_id')}
 
@@ -84,3 +90,39 @@ class RegistrationApproval:
         if confirmed is not True:return {'error':'Подтвердите отклонение анкеты'}
         self.guard()
         return self.cloud.desk('registration_reject',id=str(uuid.UUID(id)),confirmed=True)
+
+    def review(self,id):
+        """Read-only inspection. Password proof comes from the guest's own fresh login."""
+        id=str(uuid.UUID(id));self.guard()
+        result=self.cloud.desk('registration_review',id=id)
+        row,proof=result['request'],result.get('proof')
+        if row.get('id')!=id or row.get('status')!='attention':raise ValueError('Заявка изменилась')
+        if not proof:raise ValueError('Попросите гостя заново войти с телефона: нужен успешный вход после появления ошибки, не старше 10 минут')
+        uid=proof.get('gizmo_user_id')
+        if type(uid) is not int or uid<=0:raise ValueError('Не подтверждён аккаунт')
+        local=self.store.get('registration:'+id,{})
+        for known in (row.get('gizmo_user_id'),local.get('gizmo_user_id')):
+            if known is not None and known!=uid:raise ValueError('Вход выполнен не в созданный аккаунт. Нужна ручная проверка')
+        params=registration_params(dict(row['public_data'],password='x'),self.gizmo)
+        actual=self.gizmo.user(uid)
+        if actual.get('isDeleted') or actual.get('isDisabled'):raise ValueError('Аккаунт удалён или отключён')
+        if any(actual.get(k[0].lower()+k[1:])!=params[k] for k in ('Username','UserGroupId','FirstName','LastName','Sex')) or str(actual.get('birthDate',''))[:10]!=params['BirthDate'][:10] or phone_key(actual.get('mobilePhone'))!=phone_key(params['MobilePhone']):
+            raise ValueError('Профиль, группа или данные не совпадают с анкетой. Ничего не изменено')
+        return {'proof_id':proof['id'],'gizmo_user_id':uid,'username':actual['username'],'first_name':actual.get('firstName'),'last_name':actual.get('lastName'),'mobile_phone':actual.get('mobilePhone')}
+
+    def reconcile(self,id,proof_id,uid,confirmed=False):
+        if confirmed is not True:return {'error':'Подтвердите очную сверку конкретного аккаунта'}
+        id=str(uuid.UUID(id));proof_id=str(uuid.UUID(proof_id))
+        if type(uid) is not int or uid<=0:return {'error':'Некорректный аккаунт'}
+        previous=self.store.get('registration:'+id,{})
+        if previous.get('phase')=='reconciled':return self.report(id,previous)
+        # An ambiguous SQL response is retried with the exact persisted proof, not a new operation.
+        if not (previous.get('phase')=='reconciling' and previous.get('proof_id')==proof_id and previous.get('gizmo_user_id')==uid):
+            checked=self.review(id)
+            if checked['proof_id']!=proof_id or checked['gizmo_user_id']!=uid:return {'error':'Вход гостя изменился. Повторите просмотр'}
+            self.store.set('registration:'+id,{'phase':'reconciling','status':'attention','proof_id':proof_id,'gizmo_user_id':uid})
+        self.guard()
+        result=self.cloud.desk('registration_reconcile',id=id,proof_id=proof_id,gizmo_user_id=uid,confirmed=True)
+        if result.get('ok') is True:
+            self.store.set('registration:'+id,{'phase':'reconciled','status':'done','gizmo_user_id':uid})
+        return result

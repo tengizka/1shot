@@ -50,6 +50,20 @@ class App:
                 self.renew_account_lease()
                 return self.registration.approve(id,confirmed)
         except Exception:return {'error':'Нет подтверждения результата. Не повторяйте создание; проверьте состояние анкеты'}
+    def review_registration(self,id):
+        try:
+            with self.operations:
+                self.renew_account_lease()
+                return self.registration.review(id)
+        except ValueError as error:return {'error':str(error)}
+        except Exception:return {'error':'Сверка недоступна. Проверьте связь; аккаунт не менялся'}
+    def reconcile_registration(self,id,proof_id,uid,confirmed=False):
+        try:
+            with self.operations:
+                self.renew_account_lease()
+                return self.registration.reconcile(id,proof_id,uid,confirmed)
+        except ValueError as error:return {'error':str(error)}
+        except Exception:return {'error':'Нет подтверждения завершения сверки. Повтор допускает только проверку того же результата, без создания аккаунта'}
     def reject_registration(self,id,confirmed=False):
         try:
             with self.operations:
