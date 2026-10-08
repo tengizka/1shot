@@ -36,7 +36,24 @@ function makeBookingCard(){
   else setDeskText(detailStatus,r?.error||'Нет связи с Gizmo');
  });
  add('codeLabel','small');setDeskText(fields.codeLabel,'Код старой брони');add('code','strong','code');add('message','p','dim');add('id','small');
- const actions=add('actions','div','actions');const copy=document.createElement('button');copy.type='button';copy.textContent='Копировать номер брони';actions.append(copy);
+ const actions=add('actions','div','actions');
+ const seat=document.createElement('button');seat.type='button';seat.className='btn-seat';seat.textContent='Гость пришёл / Посадить за ПК';actions.append(seat);
+ seat.onclick=async()=>{
+  const b=card.booking;
+  if(b.gizmo_user_id&&b.gizmo_user_id>0){
+   if(!confirm('Посадить гостя за ПК '+b.host_id+'? Убедитесь в присутствии гостя.'))return;
+   setDeskText(copyStatus,'Выполняем посадку за ПК…');
+   const res=await invoke('seat_guest',b.id,b.host_id,b.gizmo_user_id);
+   if(res?.ok)setDeskText(copyStatus,'Гость посажен за ПК '+b.host_id);
+   else setDeskText(copyStatus,res?.error||'Ошибка посадки');
+  }else{
+   selectHost(b.host_id);panel('accounts');
+   $('account-query').focus();
+   setDeskText(copyStatus,'Бронь без аккаунта. Выберите аккаунт гостя для посадки за ПК '+b.host_id);
+  }
+ };
+ fields.seat=seat;
+ const copy=document.createElement('button');copy.type='button';copy.textContent='Копировать номер брони';actions.append(copy);
  const copyStatus=add('copyStatus','p','note');copyStatus.setAttribute('role','status');copy.onclick=()=>copyDeskText(card.booking.id,copyStatus);
  const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Отменить бронь';actions.append(cancel);
  cancel.onclick=async()=>{const b=card.booking;if(!confirm('Отменить бронь ПК '+b.host_id+'? Сессия игрока не будет завершена.'))return;cancel.disabled=true;try{const r=await invoke('cancel_booking',b.id);if(r?.error)setDeskText($('error'),r.error)}finally{cancel.disabled=false}};
@@ -48,6 +65,7 @@ function makeBookingCard(){
   setDeskText(fields.time,clubArrivalLabel(b.starts_at)+' → '+(b.duration_kind==='open'?'Как пойдёт':clubArrivalLabel(b.ends_at)));
   if(!details.dataset.loaded)guestInfo([[b.first_name,b.last_name].filter(Boolean).join(' '),b.username,b.mobile_phone,b.gizmo_user_id,b.telegram_id]);
   fields.codeLabel.hidden=fields.code.hidden=!b.code;setDeskText(fields.code,b.code);setDeskText(fields.message,b.message||'Без прерывания активных сессий');setDeskText(fields.id,'Бронь '+b.id);
+  fields.seat.hidden=!['holding','requested','waiting','checkin_pending'].includes(b.status);
   cancel.hidden=!['requested','waiting','holding','attention','checkin_pending','release_requested','in_session'].includes(b.status);
  };
  return card;
@@ -93,7 +111,7 @@ function hall(s){
 async function refresh(){
  if(document.hidden||inFlight||!window.pywebview?.api)return;inFlight=true;
  try{
-  const s=await window.pywebview.api.snapshot();current=s;window.renderReminders?.(s);window.updateAdminActions?.();window.renderRegistrations?.(s);
+  const s=await window.pywebview.api.snapshot();current=s;window.renderReminders?.(s);window.renderRotaSnapshot?.(s);window.updateAdminActions?.();window.renderRegistrations?.(s);
   setDeskText($('connection'),(s.backend_label||'Сервер').toUpperCase()+(s.online?' · НА СВЯЗИ':' · НЕТ СВЯЗИ'));$('connection').className=s.online?'online':'offline';
   const gizmoOk=!!s.last_sync&&Date.now()/1000-s.last_sync<30;
   setDeskText($('gizmo-connection'),gizmoOk?'GIZMO · НА СВЯЗИ':'GIZMO · НЕТ СВЯЗИ');$('gizmo-connection').className=gizmoOk?'online':'offline';
@@ -136,7 +154,7 @@ $('find-user').onsubmit=async e=>{e.preventDefault();foundAccount=null;selectedR
 $('account-search').oninput=()=>{foundAccount=null;selectedResetRequest=null;$('new-password').value='';$('reset-user').hidden=true;$('account-result').textContent=''};
 $('reset-user').onsubmit=async e=>{e.preventDefault();if(!foundAccount||!$('identity-checked').checked)return;if(!confirm('Сменить пароль аккаунта '+foundAccount.username+'?'))return;const btn=e.target.querySelector('button');btn.disabled=true;const password=$('new-password').value;$('new-password').value='';const result=selectedResetRequest?await invoke('reset_password_request',selectedResetRequest,foundAccount.username,password,true):await invoke('reset_password',foundAccount.id,foundAccount.username,password);$('account-message').textContent=result?.ok?(result.synced===false?'Пароль изменён и проверен. Заявка ожидает синхронизации — повторять смену не нужно.':'Пароль изменён и проверен. Услуга предоставлена. Сообщите пароль гостю лично.'):result?.error||'Результат неизвестен. Проверьте аккаунт';if(result?.ok){foundAccount=null;selectedResetRequest=null;$('reset-user').hidden=true}btn.disabled=false;};
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
-window.addEventListener('pywebviewready',()=>{refresh();setInterval(refresh,2000)});
+window.addEventListener('pywebviewready',()=>{refresh();window.initClubManagement?.();setInterval(refresh,2000)});
 // Original logo assembled in flight; no club API requests are made for the splash.
 for(let i=0;i<9;i++){const piece=document.createElementNS('http://www.w3.org/2000/svg','svg');piece.setAttribute('viewBox','0 0 522 138');piece.style.cssText=`--delay:${i*.06}s;--x:${(i%2?1:-1)*(90+i*14)}px;--y:${(i%3?1:-1)*80}px;--r:${i%2?30:-30}deg`;piece.innerHTML=`<defs><clipPath id="piece-${i}"><rect x="${i*58}" width="58" height="138"/></clipPath></defs><image href="assets/logo.svg" width="522" height="138" clip-path="url(#piece-${i})"/>`;$('assembly').append(piece)}
 setTimeout(()=>$('desk-splash').remove(),3200);

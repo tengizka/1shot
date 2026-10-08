@@ -19,7 +19,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
     if(b.action==='list')result={bookings:rows};
     if(b.action==='account')result={account:{data:{username:'guest',firstName:'Андрей',lastName:'Тест',birthDate:'2000-01-02',balance:321.5,session},updated_at:new Date().toISOString()},commands:[],password_request:passwordRequest,telegram:{first_name:'Андрей',photo_url:'https://club.test/avatar.svg'}};
     if(b.action==='create_v2'){const now=new Date().toISOString();rows.push({id:'b'+rows.length,host_id:b.host_id,mode:b.mode==='instant'?'arrival':b.mode,protocol:2,instant:b.mode==='instant',for_friend:b.for_friend,duration_kind:b.duration_kind,starts_at:now,ends_at:new Date(Date.now()+3600000).toISOString(),hold_until:new Date(Date.now()+3600000).toISOString(),status:b.mode==='instant'?'in_session':'holding'});if(b.mode==='instant')session={key:'session-1',host_id:b.host_id,last_login:now};result={booking_id:rows.at(-1).id}}
-    if(b.action==='release')rows.find(x=>x.id===b.id).status='completed';
+    if(b.action==='release')rows.find(x=>x.id===b.id).status='completed';if(b.action==='command'&&b.kind==='lock')result={id:'cmd-lock-1'};
     return route.fulfill({contentType:'application/json',body:JSON.stringify(result)});
    }
    return route.abort();
@@ -41,7 +41,11 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   for(const status of ['done','rejected']){
    passwordRequest={kind:'password_request',status,message:status==='done'?'Услуга предоставлена: пароль проверен в Gizmo':'Закрыта без выполнения'};await page.waitForFunction(s=>document.querySelector('#password-result')?.dataset.status===s,status);await page.evaluate(()=>navTo('hall'));await page.waitForSelector('#session-screen:not([hidden])');
    assert.equal(await page.locator('#club-booking[open]').count(),0,'session must not force a popup');
-   await page.locator('#session-screen button').click();await page.waitForSelector('.current-session');assert.match(await page.locator('.current-session').innerText(),/ПК 11/);await page.locator('#club-close').click();
+   await page.locator('#btn-lock-own-pc').click();
+   await page.waitForFunction(()=>document.querySelector('#session-feedback')?.textContent.includes('заблокирован'));
+   const lockCmd=requests.find(b=>b.action==='command'&&b.kind==='lock');
+   assert.equal(lockCmd.payload.session_key,'session-1');
+   await page.locator('#btn-session-manage').click();await page.waitForSelector('.current-session');assert.match(await page.locator('.current-session').innerText(),/ПК 11/);await page.locator('#club-close').click();
    await page.locator('#nav-profile').click();await page.waitForFunction(s=>document.querySelector('#password-result')?.dataset.status===s,status);assert.match(await page.locator('#password-result').innerText(),status==='done'?/Услуга предоставлена/:/без выполнения/);
    assert.equal(await page.locator('#club-my-bookings').count(),0);assert.doesNotMatch(await page.locator('#ov-profile').innerText(),/gizmo/i);await page.evaluate(()=>navTo('hall'));
   }

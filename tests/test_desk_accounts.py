@@ -25,6 +25,20 @@ class AccountsTests(unittest.TestCase):
  def tearDown(self):self.temp.cleanup()
  def test_real_balance_and_session(self):
   data=self.api.read(7);self.assertEqual(data['balance'],123.45);self.assertEqual(data['session']['host_id'],'101')
+ def test_lock_only_expected_session(self):
+  payload=session_record(self.gizmo.active[0])
+  res=self.api.execute({'kind':'lock','gizmo_user_id':7,'payload':payload})
+  self.assertEqual(res,'Экран ПК заблокирован')
+  self.assertTrue(any(w[0].startswith('hosts/') and w[0].endswith('/lock/true') for w in self.gizmo.writes))
+ def test_lock_changed_session_refused(self):
+  payload=session_record(self.gizmo.active[0])
+  self.gizmo.active[0]['lastLogin']='2026-09-25T11:00:00Z'
+  with self.assertRaises(UnsafeOperation):self.api.execute({'kind':'lock','gizmo_user_id':7,'payload':payload})
+ def test_lock_ended_session_handled(self):
+  payload=session_record(self.gizmo.active[0])
+  self.gizmo.active=[]
+  res=self.api.execute({'kind':'lock','gizmo_user_id':7,'payload':payload})
+  self.assertEqual(res,'Сессия уже завершена')
  def test_logout_only_expected_session(self):
   payload=session_record(self.gizmo.active[0]);self.api.execute({'kind':'logout','gizmo_user_id':7,'payload':payload});self.assertEqual(len(self.gizmo.writes),1)
  def test_new_session_not_logged_out(self):

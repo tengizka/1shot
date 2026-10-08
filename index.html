@@ -351,6 +351,11 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
     </div>
     <button type="submit" class="btn-main" id="btn-login">Войти</button>
     <div class="auth-err" id="err-login"></div>
+    <div class="demo-auth-box">
+      <div class="demo-divider"><span>или</span></div>
+      <button type="button" class="btn-demo" id="btn-demo-mode" onclick="startDemoMode()">Демо-режим без входа</button>
+      <p class="auth-hint">Ознакомительный режим: просмотр схемы зала без клубного пароля</p>
+    </div>
     <p class="auth-hint">Используй номер телефона или никнейм и пароль от своего аккаунта в клубе 1SHOT</p>
   </form>
 
@@ -798,7 +803,7 @@ function renderHall() {
     button.disabled = !['free','busy','reserved'].includes(status)&&!window.ownBookingIds?.has(pc.id);
     button.setAttribute('aria-label', `ПК ${pc.id}: ${HOST_LABELS[status]}`);
     button.innerHTML = `<span class="map-monitor">${statusIcon(status)}</span><span class="seat-prefix">ПК</span><span class="map-number">${pc.id}</span><span class="seat-status">${status==='broken'?'':HOST_LABELS[status]}</span>`;
-    button.onclick = () => {const current=liveHostStatus(hostsData[pc.id]);if(window.openOwnBooking?.(pc.id))return;if(current==='busy')return window.showOccupied();if(current!=='free')return toast('Этот ПК недоступен','inf');openBooking(pc.id, pc.zone, pc.group === 'vip')};
+    button.onclick = () => {const current=liveHostStatus(hostsData[pc.id]);if(window.openOwnBooking?.(pc.id))return;if(current==='busy')return window.showOccupied(pc.id);if(current!=='free')return toast('Этот ПК недоступен','inf');openBooking(pc.id, pc.zone, pc.group === 'vip')};
     if (!groups.has(pc.zone)) {
       const section=document.createElement('section'); section.className='seat-zone';
       const title=document.createElement('div'); title.className='seat-zone-title';title.textContent=activeZone==='vip'?`Ряд ${pc.zone}`:`Зона ${pc.zone}`;
@@ -997,5 +1002,159 @@ function clearProfile() {
 <script src="desk-availability.js?v=1"></script>
 <script src="profile-feedback.js?v=20261008"></script>
 <script src="club-booking.js?v=20261008-ui"></script>
-<link rel="stylesheet" href="polish.css?v=1.6.0"><script src="polish.js?v=1.6.0"></script></body>
+<link rel="stylesheet" href="polish.css?v=1.6.0"><script src="polish.js?v=1.6.0"></script>
+<div id="tutorial-overlay" class="tutorial-overlay" hidden>
+  <div class="tutorial-modal">
+    <div class="tutorial-slides">
+      <div class="tutorial-slide active" data-slide="1">
+        <div class="tutorial-icon">🗺️</div>
+        <h3>Интерактивная карта</h3>
+        <p>Выбирай нужный ПК на реальной схеме зала в один клик. Следи за свободными местами клуба.</p>
+      </div>
+      <div class="tutorial-slide" data-slide="2">
+        <div class="tutorial-icon">⚡</div>
+        <h3>Удобная бронь</h3>
+        <p>Бронируй компьютер прямо с телефона: на сейчас или ко времени с шагом 5 минут.</p>
+      </div>
+      <div class="tutorial-slide" data-slide="3">
+        <div class="tutorial-icon">🔒</div>
+        <h3>Управление сессией</h3>
+        <p>Блокируй экран ПК прямо со смартфона, когда отходишь, без завершения игры.</p>
+      </div>
+    </div>
+    <div class="tutorial-dots">
+      <span class="dot active"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+    </div>
+    <div class="tutorial-actions">
+      <button type="button" class="btn-tutorial-skip" onclick="closeTutorial()">Пропустить</button>
+      <button type="button" class="btn-main btn-tutorial-next" id="btn-tutorial-next" onclick="nextTutorialSlide()">Далее</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+let currentTutorialSlide = 1;
+window.closeTutorial = function() {
+  const overlay = document.getElementById('tutorial-overlay');
+  if (overlay) overlay.hidden = true;
+  localStorage.setItem('1shot_tutorial_seen', '1');
+};
+window.nextTutorialSlide = function() {
+  currentTutorialSlide++;
+  if (currentTutorialSlide > 3) {
+    closeTutorial();
+    return;
+  }
+  document.querySelectorAll('.tutorial-slide').forEach(s => s.classList.toggle('active', s.dataset.slide === String(currentTutorialSlide)));
+  document.querySelectorAll('.tutorial-dots .dot').forEach((d, i) => d.classList.toggle('active', i === currentTutorialSlide - 1));
+  const nextBtn = document.getElementById('btn-tutorial-next');
+  if (nextBtn && currentTutorialSlide === 3) nextBtn.textContent = 'Начать';
+};
+window.checkTutorial = function() {
+  if (localStorage.getItem('1shot_tutorial_seen') || localStorage.getItem('1shot_v2_profile')) return;
+  const overlay = document.getElementById('tutorial-overlay');
+  if (overlay) overlay.hidden = false;
+};
+window.startDemoMode = function() {
+  localStorage.setItem('1shot_v2_profile', JSON.stringify({
+    telegram_id: 88888888,
+    username: 'demo_user',
+    first_name: 'Демо',
+    last_name: 'Режим',
+    is_demo: true
+  }));
+  document.getElementById('auth').classList.remove('active');
+  document.getElementById('app').classList.add('active');
+  navTo('hall');
+  toast('Демо-режим активирован: схема клуба доступна для ознакомления', 'ok');
+};
+window.showOccupied = function(hostId) {
+  if (!confirm(`ПК ${hostId} сейчас занят. Встать в очередь и забронировать как освободится?`)) return;
+  const queueData = { host_id: String(hostId), requested_at: Date.now(), free_since: null };
+  localStorage.setItem('1shot_queue', JSON.stringify(queueData));
+  window.currentQueue = queueData;
+  renderQueueBanner();
+  toast(`Вы встали в очередь на ПК ${hostId}. Сообщим, когда освободится.`, 'ok');
+};
+window.cancelQueue = function() {
+  localStorage.removeItem('1shot_queue');
+  window.currentQueue = null;
+  renderQueueBanner();
+  toast('Очередь отменена', 'inf');
+};
+function renderQueueBanner() {
+  let banner = document.getElementById('queue-banner');
+  if (!window.currentQueue) {
+    try { window.currentQueue = JSON.parse(localStorage.getItem('1shot_queue')); } catch {}
+  }
+  if (!window.currentQueue) {
+    if (banner) banner.remove();
+    return;
+  }
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'queue-banner';
+    banner.className = 'queue-banner';
+    document.querySelector('.app-header')?.after(banner);
+  }
+  banner.innerHTML = `<span>Очередь: ПК <b>${window.currentQueue.host_id}</b> · сообщим через 3 мин после освобождения</span><button type="button" class="btn-cancel-queue" onclick="cancelQueue()">Отменить</button>`;
+}
+function checkQueueStatus(hosts) {
+  if (!window.currentQueue) return;
+  const h = (hosts||[]).find?.(x => String(x.host_id) === String(window.currentQueue.host_id));
+  if (!h) return;
+  const status = liveHostStatus(h);
+  if (status === 'free') {
+    if (!window.currentQueue.free_since) {
+      window.currentQueue.free_since = Date.now();
+      localStorage.setItem('1shot_queue', JSON.stringify(window.currentQueue));
+    } else if (Date.now() - window.currentQueue.free_since >= 180000) {
+      const q = window.currentQueue;
+      cancelQueue();
+      openBooking(q.host_id, '100', false);
+      toast(`ПК ${q.host_id} свободен более 3 минут! Завершите бронирование.`, 'ok');
+    }
+  } else {
+    window.currentQueue.free_since = null;
+    localStorage.setItem('1shot_queue', JSON.stringify(window.currentQueue));
+  }
+}
+window.updateDutyBadge = function(rota) {
+  const badge = document.getElementById('duty-badge');
+  const nameEl = document.getElementById('duty-name');
+  if (!badge || !nameEl) return;
+  if (!rota || typeof rota !== 'object') { badge.hidden = true; return; }
+  const now = new Date();
+  const msk = new Date(now.getTime() + (now.getTimezoneOffset() + 180) * 60000);
+  const hour = msk.getHours();
+  let dateKey, shift;
+  if (hour >= 9 && hour < 21) {
+    dateKey = `${msk.getFullYear()}-${String(msk.getMonth()+1).padStart(2,'0')}-${String(msk.getDate()).padStart(2,'0')}`;
+    shift = 'day';
+  } else if (hour >= 21) {
+    dateKey = `${msk.getFullYear()}-${String(msk.getMonth()+1).padStart(2,'0')}-${String(msk.getDate()).padStart(2,'0')}`;
+    shift = 'night';
+  } else {
+    const yest = new Date(msk.getTime() - 86400000);
+    dateKey = `${yest.getFullYear()}-${String(yest.getMonth()+1).padStart(2,'0')}-${String(yest.getDate()).padStart(2,'0')}`;
+    shift = 'night';
+  }
+  const day = rota[dateKey];
+  const name = day ? (day[shift] || '').trim() : '';
+  if (name) {
+    nameEl.textContent = `Админ: ${name}`;
+    badge.hidden = false;
+  } else {
+    badge.hidden = true;
+  }
+};
+document.addEventListener('DOMContentLoaded', () => {
+  renderQueueBanner();
+});
+</script>
+
+</body>
 </html>

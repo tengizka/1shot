@@ -25,3 +25,16 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 .free-indicator{display:flex;align-items:center;gap:8px}.free-indicator .live-dot{position:static;width:6px;height:6px;box-shadow:none;background:#ddd}
 .sr-repair{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
 @media(prefers-reduced-motion:reduce){.free-indicator .live-dot{animation:none}}
+
+/* Active session dedicated actions & feedback */
+.session-actions{display:flex;flex-direction:column;gap:10px;margin:20px 0 10px;width:100%;box-sizing:border-box}
+.session-actions button{width:100%;box-sizing:border-box}
+.session-actions button{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 10px;font:11px Unbounded,sans-serif;font-weight:700;border-radius:10px;cursor:pointer;transition:transform .1s,opacity .15s}
+.session-actions button:active{transform:scale(.97)}
+.btn-lock-pc{background:#fff;color:#000;border:none}
+.btn-logout-pc{background:#e62e3d!important;color:#fff!important;border:none!important;box-shadow:0 0 18px rgba(230,46,61,.35)}
+.btn-manage{display:block;width:100%;background:transparent;border:1px solid #333;color:#888;padding:11px;border-radius:10px;font:10px Unbounded,sans-serif;cursor:pointer;margin-top:10px}
+.btn-manage:hover{border-color:#555;color:#bbb}
+.session-feedback{font-size:11px;color:#8ab4f8;line-height:1.7;margin-top:14px;min-height:18px}
+.schedule-date-header{font-size:11px;color:#888;margin-bottom:6px;display:flex;gap:6px}
+.schedule-date-value{color:#fff;font-weight:600}

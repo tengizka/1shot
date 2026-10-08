@@ -23,3 +23,22 @@ input,textarea,[contenteditable=true]{-webkit-user-select:text;user-select:text}
 .desk-pc{position:relative}.miniapp-booking{position:absolute;right:6px;top:6px;width:12px;height:14px}.miniapp-booking svg{width:100%;height:100%;fill:none;stroke:#ddd;stroke-width:1.7}
 #notice-cards{display:flex;gap:10px;flex-wrap:wrap}.notice-card{display:grid;gap:8px;padding:14px;border:1px solid #444;border-radius:10px;background:#101010}.notice-card strong{font-size:10px}.notice-card small{font-size:9px;color:#aaa}#alert{background:#0c0c0c}
 .reminder-settings{margin-top:20px}.reminder-settings fieldset{border:1px solid #444;border-radius:12px;padding:16px;margin:16px 0;min-width:0}.reminder-settings legend{font-size:11px;color:#aaa}.reminder-settings label{display:grid;gap:8px;margin-bottom:12px}.reminder-settings .check{display:flex}.reminder-settings input:not([type=checkbox]),.reminder-settings select{width:100%;box-sizing:border-box}#reminder-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}#reminder-history{margin-top:20px}.notice-card strong{overflow-wrap:anywhere}
+
+/* Royal Club Management & Rota */
+.btn-royal{background:linear-gradient(135deg,#241804,#111);border:1.5px solid #d4af37;color:#ffd700;font-weight:700;padding:12px 18px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:10px;box-shadow:0 0 16px rgba(212,175,55,.2);margin:16px 0;transition:all .15s}
+.btn-royal:hover{background:#d4af37;color:#000;box-shadow:0 0 22px rgba(212,175,55,.4)}
+.club-rota-panel{background:#0e0e0e;border:1px solid #333;border-radius:12px;padding:20px;margin:16px 0}
+.rota-month-selector{display:flex;align-items:center;gap:16px;margin-bottom:16px;font-weight:700}
+.rota-month-selector button{background:#222;border:1px solid #444;color:#fff;padding:6px 14px;border-radius:6px;cursor:pointer}
+.rota-days-container{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;max-height:420px;overflow-y:auto;padding-right:6px}
+.rota-day-row{display:flex;align-items:center;gap:12px;background:#161616;padding:8px 12px;border-radius:8px;border:1px solid #222}
+.rota-day-num{font-weight:700;font-size:14px;min-width:34px;color:#ccc}
+.rota-day-num small{display:block;font-size:10px;color:#888;font-weight:400}
+.rota-shifts{display:flex;gap:8px;flex:1}
+.rota-shifts label{display:flex;flex-direction:column;gap:3px;flex:1;font-size:10px;color:#888}
+.rota-input{background:#222;border:1px solid #444;border-radius:6px;color:#fff;padding:6px 8px;font-size:11px}
+.rota-input:focus{border-color:#d4af37;outline:none}
+.btn-seat{background:#fff;color:#000;font-weight:700;padding:8px 14px;border-radius:8px;border:none;cursor:pointer;transition:background .15s}
+.btn-seat:hover{background:#ddd}
+.rota-import-box summary{cursor:pointer;color:#888;font-size:12px;margin:12px 0 6px}
+.rota-import-box textarea{width:100%;height:80px;background:#111;border:1px solid #333;color:#fff;border-radius:6px;padding:8px;font-family:monospace;font-size:11px}

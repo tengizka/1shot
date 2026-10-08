@@ -5,7 +5,7 @@ window.clubV2=false;
  const statusNames={requested:'Ждём подтверждение клуба',waiting:'ПК пока занят · клуб уведомлён',holding:'Ваш ПК ждёт вас',checkin_pending:'Выполняем вход…',in_session:'Вы вошли · приятной игры',attention:'Бронь требует проверки',cancel_requested:'Снимаем бронь',cancelled:'Отменена',expired:'Время ожидания истекло',completed:'Завершена'};
  const terminal=new Set(['cancelled','expired','completed']);
  const sheet=document.createElement('dialog');sheet.id='club-booking';sheet.className='club-booking-dialog';
- sheet.innerHTML=`<div class="club-sheet-head"><span id="club-pc">БРОНЬ</span><button type="button" id="club-close" aria-label="Закрыть"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div><div id="club-create"><h2>Когда ждать тебя?</h2><div class="club-segments" id="club-modes"><button data-mode="instant" id="instant-mode" hidden>Войти сейчас</button><button data-mode="arrival">В течение часа</button><button data-mode="scheduled">Ко времени</button></div><div id="club-schedule" hidden><p class="club-note">Время клуба · Москва</p><p id="club-start" class="arrival-time"></p><div class="club-wheels"><div class="club-wheel" id="club-hours" role="listbox" tabindex="0" aria-label="Часы"></div><b>:</b><div class="club-wheel" id="club-minutes" role="listbox" tabindex="0" aria-label="Минуты"></div></div></div><p id="club-rules" class="club-note"></p><button id="club-submit" class="btn-main">Забронировать</button></div><div id="club-mine" hidden></div><p id="club-error" role="alert"></p><a class="club-help" href="tel:+74955837811">Если нужна помощь: +7 (495) 583-78-11</a>`;
+ sheet.innerHTML=`<div class="club-sheet-head"><span id="club-pc">БРОНЬ</span><button type="button" id="club-close" aria-label="Закрыть"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div><div id="club-create"><h2>Когда ждать тебя?</h2><div class="club-segments" id="club-modes"><button data-mode="instant" id="instant-mode" hidden>Войти сейчас</button><button data-mode="arrival">В течение часа</button><button data-mode="scheduled">В течение</button></div><div id="club-schedule" hidden><div class="schedule-date-header"><span class="schedule-date-label">Дата (МСК):</span> <span id="schedule-date-value"></span></div><p id="club-start" class="arrival-time"></p><div class="club-wheels"><div class="club-wheel" id="club-hours" role="listbox" tabindex="0" aria-label="Часы"></div><b>:</b><div class="club-wheel" id="club-minutes" role="listbox" tabindex="0" aria-label="Минуты"></div></div></div><p id="club-rules" class="club-note">Максимум ожидания 30 минут</p><button id="club-submit" class="btn-main">Забронировать</button></div><div id="club-mine" hidden></div><p id="club-error" role="alert"></p><a class="club-help" href="tel:+74955837811">Если нужна помощь: +7 (495) 583-78-11</a>`;
  document.body.append(sheet);
  const $=id=>document.getElementById(id);
  const time=a=>a.map(n=>String(n).padStart(2,'0')).join(':');
@@ -41,17 +41,26 @@ window.clubV2=false;
  const finishDrag=e=>{if(!drag||e.pointerId!==drag.id)return;const dy=e.clientY-drag.y,dx=e.clientX-drag.x,elapsed=performance.now()-drag.t;sheet.style.transform='';if(e.type==='pointerup'&&dy>100&&dy>Math.abs(dx)*1.5&&elapsed>100&&elapsed<1800)close();drag=null};
  handle.addEventListener('pointerup',finishDrag);handle.addEventListener('pointercancel',finishDrag);
  $('club-close').onclick=close;sheet.addEventListener('cancel',e=>{if(state.busy)e.preventDefault()});
- function wheels(){['hours','minutes'].forEach((name,i)=>{const el=$('club-'+name);el.dataset.setting='true';el.scrollTop=state.start[i]/(i?5:1)*44;el.querySelectorAll('[role=option]').forEach((opt,n)=>opt.setAttribute('aria-selected',String(n*(i?5:1)===state.start[i])));setTimeout(()=>delete el.dataset.setting,100)})}
+ function wheels(){['hours','minutes'].forEach(name=>{
+  const el=$('club-'+name);
+  if(el){el.addEventListener('pointerdown',e=>e.stopPropagation());el.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});}
+ });
+ ['hours','minutes'].forEach((name,i)=>{const el=$('club-'+name);el.dataset.setting='true';el.scrollTop=state.start[i]/(i?5:1)*44;el.querySelectorAll('[role=option]').forEach((opt,n)=>opt.setAttribute('aria-selected',String(n*(i?5:1)===state.start[i])));setTimeout(()=>delete el.dataset.setting,100)})}
  function render(){
   $('club-pc').textContent='ПК '+state.host+' · БРОНЬ';$('club-error').textContent='';
   $('club-schedule').hidden=state.mode!=='scheduled';
   $('club-submit').textContent=state.mode==='instant'?'Войти в свой аккаунт':'Забронировать';
   document.querySelectorAll('[data-mode]').forEach(e=>e.setAttribute('aria-pressed',String(e.dataset.mode===state.mode)));
-  $('club-start').textContent=clubArrivalLabel(state.arrival||nextClubArrival(...state.start))+' · ждём 30 минут';
-  $('club-rules').textContent=state.mode==='arrival'?'Ждём вас в течение часа.':'';
-  $('club-rules').hidden=state.mode!=='arrival';
+  $('club-start').textContent=clubArrivalLabel(state.arrival||nextClubArrival(...state.start));
+  if($('schedule-date-value'))$('schedule-date-value').textContent=new Date(Date.now()+3*3600000).toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+  $('club-rules').textContent='Максимум ожидания 30 минут';
+  $('club-rules').hidden=false;
  }
  document.querySelectorAll('[data-mode]').forEach(e=>e.onclick=()=>{state.mode=e.dataset.mode;state.arrival=nextClubArrival(...state.start);if(state.mode==='instant')state.forFriend=false;state.request=null;render();wheels()});
+ ['hours','minutes'].forEach(name=>{
+  const el=$('club-'+name);
+  if(el){el.addEventListener('pointerdown',e=>e.stopPropagation());el.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});}
+ });
  ['hours','minutes'].forEach((name,i)=>{
   const el=$('club-'+name),count=i?12:24;let timer;
   for(let n=0;n<count;n++){const opt=document.createElement('button');opt.type='button';opt.tabIndex=-1;opt.setAttribute('role','option');opt.textContent=String(n*(i?5:1)).padStart(2,'0');opt.onclick=()=>el.scrollTo({top:n*44,behavior:'smooth'});el.append(opt)}
@@ -113,8 +122,27 @@ window.clubV2=false;
  document.querySelector('.app-header').insertAdjacentElement('afterend',sessionBanner);
  sessionBanner.onclick=()=>{state.host=null;showMine();$('club-pc').textContent='МОЯ СЕССИЯ'};
  const sessionScreen=document.createElement('section');sessionScreen.id='session-screen';sessionScreen.hidden=true;
- sessionScreen.innerHTML='<p class="session-eyebrow">ТВОЯ ИГРА</p><h1>Сессия активна</h1><div class="session-host"></div><p class="session-start"></p><dl><div><dt>Баланс</dt><dd class="session-balance"></dd></div><div><dt>Осталось времени</dt><dd>Нет данных</dd></div></dl><button type="button" class="btn-main">Управление сессией</button><p class="session-freshness" role="status"></p>';
- sessionBanner.after(sessionScreen);sessionScreen.querySelector('button').onclick=()=>sessionBanner.click();
+ sessionScreen.innerHTML=`<div class="session-screen-content"><p class="session-eyebrow">1SHOT CLUB · ТВОЯ ИГРА</p><h1>Сессия активна</h1><div class="session-host"></div><p class="session-start"></p><dl><div><dt>Баланс клуба</dt><dd class="session-balance"></dd></div><div><dt>Осталось времени</dt><dd class="session-time">Нет данных</dd></div></dl><div class="session-actions"><button type="button" class="btn-main btn-lock-pc" id="btn-lock-own-pc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Заблокировать экран</button><button type="button" class="btn-danger btn-logout-pc" id="btn-logout-own-pc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Завершить сеанс</button></div><button type="button" class="btn-manage" id="btn-session-manage">Управление сессией</button><p class="session-feedback" id="session-feedback" role="status"></p><p class="session-freshness" role="status"></p></div>`;
+ sessionBanner.after(sessionScreen);
+ sessionScreen.querySelector('#btn-session-manage').onclick=()=>sessionBanner.click();
+ sessionScreen.querySelector('#btn-lock-own-pc').onclick=async()=>{
+  const current=state.account?.session;if(!current||!accountFresh())return;
+  if(!confirm('Заблокировать экран ПК '+current.host_id+'? Сессия и игры не завершатся; для разблокировки введите ваш пароль на ПК.'))return;
+  const btn=sessionScreen.querySelector('#btn-lock-own-pc'),fb=sessionScreen.querySelector('#session-feedback');
+  btn.disabled=true;fb.textContent='Блокируем экран ПК…';
+  try{await command('lock',{session_key:current.key});fb.textContent='Экран ПК заблокирован. Для продолжения введите пароль на ПК.'}
+  catch(e){fb.textContent=clubText(e.message)}
+  finally{btn.disabled=false}
+ };
+ sessionScreen.querySelector('#btn-logout-own-pc').onclick=async()=>{
+  const current=state.account?.session;if(!current||!accountFresh())return;
+  if(!confirm('Завершить сеанс на ПК '+current.host_id+'? Сохраните игру перед выходом.'))return;
+  const btn=sessionScreen.querySelector('#btn-logout-own-pc'),fb=sessionScreen.querySelector('#session-feedback');
+  btn.disabled=true;fb.textContent='Отправляем команду выхода…';
+  try{await command('logout',{session_key:current.key});fb.textContent='Команда выхода отправлена. Ждём подтверждение клуба.';await refresh()}
+  catch(e){fb.textContent=clubText(e.message)}
+  finally{btn.disabled=false}
+ };
  function renderSessionBanner(){
   const current=state.account?.session,fresh=accountFresh();sessionBanner.hidden=!current;sessionScreen.hidden=!current;
   document.getElementById('app').classList.toggle('has-session',!!current);document.getElementById('app').classList.toggle('session-mode',!!current);

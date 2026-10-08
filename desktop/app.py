@@ -185,9 +185,62 @@ class App:
                 self.renew_account_lease()
                 return self.guest_passwords.resolve(id,proof_id,uid,confirmed,privileged)
         except Exception:return {'error':'Нет подтверждения сверки. Пароль повторно не устанавливался'}
+    def seat_guest(self, booking_id, host_id, user_id=None):
+        try:
+            with self.operations:
+                if user_id:
+                    self.accounts.login(int(user_id), int(host_id))
+                return {'ok': True}
+        except Exception as e:
+            return {'error': str(e)}
+
+    @staticmethod
+    def current_duty_admin(rota):
+        if not isinstance(rota, dict):
+            return None
+        from datetime import datetime, timezone, timedelta
+        msk = datetime.now(timezone.utc) + timedelta(hours=3)
+        hour = msk.hour
+        if 9 <= hour < 21:
+            date_key = msk.strftime('%Y-%m-%d')
+            shift = 'day'
+        elif hour >= 21:
+            date_key = msk.strftime('%Y-%m-%d')
+            shift = 'night'
+        else:
+            yest = msk - timedelta(days=1)
+            date_key = yest.strftime('%Y-%m-%d')
+            shift = 'night'
+        entry = rota.get(date_key)
+        if isinstance(entry, dict):
+            name = entry.get(shift)
+            return str(name).strip() if name else None
+        return None
+
+    def get_rota(self):
+        with self.lock:
+            rota = self.store.get('rota.config', {})
+            return {'ok': True, 'rota': rota, 'duty_admin': self.current_duty_admin(rota)}
+
+    def save_rota(self, rota, publish=False):
+        try:
+            if not isinstance(rota, dict):
+                raise ValueError('Некорректный формат расписания')
+            with self.lock:
+                self.store.set('rota.config', rota)
+                duty = self.current_duty_admin(rota)
+                if publish and hasattr(self, 'cloud') and self.cloud:
+                    try:
+                        self.cloud.desk('publish_rota', rota=rota)
+                    except Exception:
+                        pass
+                return {'ok': True, 'rota': rota, 'duty_admin': duty}
+        except Exception as e:
+            return {'error': str(e)}
+
     def snapshot(self):
         with self.lock:
-            return {'reminders':self.reminders.snapshot() if self.reminders else None,'reminder_error':self.reminder_error,'password_grants':self.password_grants,'password_ready':self.password_ready and self.online,'registrations':self.registrations,'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':self.error,'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'notifications':list(self.store.get('alerts',{}).values())[-5:],'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
+            return {'reminders':self.reminders.snapshot() if self.reminders else None,'reminder_error':self.reminder_error,'password_grants':self.password_grants,'password_ready':self.password_ready and self.online,'registrations':self.registrations,'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':self.error,'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'notifications':list(self.store.get('alerts',{}).values())[-5:],'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'rota':self.store.get('rota.config',{}),'duty_admin':self.current_duty_admin(self.store.get('rota.config',{})),'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
     def acknowledge(self):
         with self.lock:self.store.set('alerts',{})
         self.sound.stop()

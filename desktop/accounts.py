@@ -69,6 +69,15 @@ class Accounts:
             if any(s.get('userId')==uid for s in self.gizmo.sessions()):
                 raise UnsafeOperation('Gizmo ещё не подтвердил выход. Команду автоматически не повторяем')
             return 'Выход подтверждён Gizmo'
+        if kind=='lock':
+            active=[s for s in self.gizmo.sessions() if s.get('userId')==uid]
+            if not active:return 'Сессия уже завершена'
+            if len(active)!=1 or not payload.get('key') or session_record(active[0])['key']!=payload['key']:
+                raise UnsafeOperation('Сессия изменилась; чужой вход не блокируем')
+            host_id=active[0].get('hostId')
+            if not host_id:raise UnsafeOperation('Не удалось определить ПК для блокировки')
+            self.guard();self.gizmo.request('POST',f'hosts/{int(host_id)}/lock/true')
+            return 'Экран ПК заблокирован'
         if kind=='profile_edit':
             user=self.guest(uid)
             if any(s.get('userId')==uid for s in self.gizmo.sessions()):raise UnsafeOperation('Сначала завершите игровую сессию')
