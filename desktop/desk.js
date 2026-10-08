@@ -7,50 +7,96 @@ function panel(name){document.querySelectorAll('[id^=panel-]').forEach(e=>e.hidd
 document.querySelectorAll('[data-panel]').forEach(e=>e.onclick=()=>panel(e.dataset.panel));
 async function invoke(method,...args){try{const result=await window.pywebview.api[method](...args);if(!['booking_guest','find_account','search_accounts','select_account'].includes(method))await refresh();return result}catch{$('error').textContent='Не удалось выполнить команду. Проверьте связь с агентом';return null}}
 function selectHost(id){selectedHost=id;panel('bookings');if(current){bookings(current);refresh.bookingKey=JSON.stringify(current.rows)+selectedHost}}
+// Keep stable nodes: polling must not collapse details, steal focus or reset selection.
+function setDeskText(node,value){const text=String(value??'');if(node.textContent!==text)node.textContent=text}
+function reconcileDeskChildren(parent,nodes){
+ const wanted=new Set(nodes);for(const child of [...parent.children])if(!wanted.has(child))child.remove();
+ nodes.forEach((node,i)=>{if(parent.children[i]!==node)parent.insertBefore(node,parent.children[i]||null)});
+}
+async function copyDeskText(value,status){
+ try{await navigator.clipboard.writeText(String(value));setDeskText(status,'Скопировано')}
+ catch{setDeskText(status,'Не удалось скопировать. Выделите текст и нажмите Ctrl+C')}
+}
+function makeBookingCard(){
+ const card=document.createElement('article'),fields={};
+ const add=(key,tag,cl)=>{const node=document.createElement(tag);if(cl)node.className=cl;fields[key]=node;card.append(node);return node};
+ add('tag','span','tag');add('host','h2');add('guest','p');add('status','p');add('time','p');
+ const details=add('details','details','guest-details'),heading=document.createElement('summary');heading.textContent='Информация о госте';details.append(heading);
+ const info=document.createElement('div');details.append(info);
+ const detailRows=['Имя','Никнейм','Телефон','Gizmo ID','Telegram ID'].map(label=>{const p=document.createElement('p');info.append(p);return {p,label}});
+ const phone=document.createElement('button');phone.type='button';phone.textContent='Копировать телефон';details.append(phone);
+ const detailStatus=document.createElement('p');detailStatus.setAttribute('role','status');details.append(detailStatus);
+ function guestInfo(values){values.forEach((value,i)=>setDeskText(detailRows[i].p,detailRows[i].label+': '+(value||'Нет данных')));card.phone=values[2]||'';phone.disabled=!card.phone}
+ phone.onclick=()=>copyDeskText(card.phone,detailStatus);
+ details.addEventListener('toggle',async()=>{
+  if(!details.open||details.dataset.loaded||details.dataset.loading)return;
+  details.dataset.loading='1';const identity=card.identity;const r=await invoke('booking_guest',card.booking.id);delete details.dataset.loading;
+  if(!card.isConnected||identity!==card.identity)return;
+  if(r?.user){details.dataset.loaded='1';guestInfo([[r.user.firstName,r.user.lastName].filter(Boolean).join(' '),r.user.username,r.user.mobilePhone||r.user.phone,r.gizmo_user_id,r.telegram_id]);setDeskText(detailStatus,'')}
+  else setDeskText(detailStatus,r?.error||'Нет связи с Gizmo');
+ });
+ add('codeLabel','small');setDeskText(fields.codeLabel,'Код старой брони');add('code','strong','code');add('message','p','dim');add('id','small');
+ const actions=add('actions','div','actions');const copy=document.createElement('button');copy.type='button';copy.textContent='Копировать номер брони';actions.append(copy);
+ const copyStatus=add('copyStatus','p','note');copyStatus.setAttribute('role','status');copy.onclick=()=>copyDeskText(card.booking.id,copyStatus);
+ const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Отменить бронь';actions.append(cancel);
+ cancel.onclick=async()=>{const b=card.booking;if(!confirm('Отменить бронь ПК '+b.host_id+'? Сессия игрока не будет завершена.'))return;cancel.disabled=true;try{const r=await invoke('cancel_booking',b.id);if(r?.error)setDeskText($('error'),r.error)}finally{cancel.disabled=false}};
+ card.update=b=>{
+  card.booking=b;card.dataset.bookingId=b.id;const cl='card '+b.status;if(card.className!==cl)card.className=cl;
+  const identity=JSON.stringify([b.gizmo_user_id,b.telegram_id]);if(identity!==card.identity){card.identity=identity;delete details.dataset.loaded;setDeskText(detailStatus,'')}
+  setDeskText(fields.tag,b.instant?'ВХОД СЕЙЧАС':b.mode==='arrival'?'В ТЕЧЕНИЕ ЧАСА':'КО ВРЕМЕНИ');setDeskText(fields.host,'ПК '+b.host_id);
+  setDeskText(fields.guest,(b.guest_name||b.username||'Гость')+(b.for_friend?' · для друга':''));setDeskText(fields.status,labels[b.status]||b.status);
+  setDeskText(fields.time,clubArrivalLabel(b.starts_at)+' → '+(b.duration_kind==='open'?'Как пойдёт':clubArrivalLabel(b.ends_at)));
+  if(!details.dataset.loaded)guestInfo([[b.first_name,b.last_name].filter(Boolean).join(' '),b.username,b.mobile_phone,b.gizmo_user_id,b.telegram_id]);
+  fields.codeLabel.hidden=fields.code.hidden=!b.code;setDeskText(fields.code,b.code);setDeskText(fields.message,b.message||'Без прерывания активных сессий');setDeskText(fields.id,'Бронь '+b.id);
+  cancel.hidden=!['requested','waiting','holding','attention','checkin_pending','release_requested','in_session'].includes(b.status);
+ };
+ return card;
+}
 function bookings(s){
- const grid=$('grid');grid.replaceChildren();$('booking-title').textContent=selectedHost?'Брони ПК '+selectedHost:'Все брони';
+ const grid=$('grid');setDeskText($('booking-title'),selectedHost?'Брони ПК '+selectedHost:'Все брони');
  const filter=$('booking-filter').value,sort=$('booking-sort').value;
  const rows=s.rows.filter(b=>(!b.instant||b.status==='attention')&&(!selectedHost||b.host_id===selectedHost)&&(filter==='all'||b.status===filter||b.mode===filter)).sort((a,b)=>sort==='host'?Number(a.host_id)-Number(b.host_id):sort==='name'?String(a.username||'').localeCompare(String(b.username||'')):Date.parse(a.starts_at)-Date.parse(b.starts_at));
- for(const b of rows){
-  const card=document.createElement('article');card.className='card '+b.status;
-  const add=(tag,text,cl)=>{const e=document.createElement(tag);e.textContent=text;if(cl)e.className=cl;card.append(e);return e};
-  add('span',b.instant?'ВХОД СЕЙЧАС':b.mode==='arrival'?'В ТЕЧЕНИЕ ЧАСА':'КО ВРЕМЕНИ','tag');add('h2','ПК '+b.host_id);add('p',(b.guest_name||b.username)+(b.for_friend?' · для друга':''));add('p',labels[b.status]||b.status);add('p',clubArrivalLabel(b.starts_at)+' → '+(b.duration_kind==='open'?'Как пойдёт':clubArrivalLabel(b.ends_at)));
-  const details=document.createElement('details');details.className='guest-details';const heading=document.createElement('summary');heading.textContent='Информация о госте';details.append(heading);for(const [label,value] of [['Имя',[b.first_name,b.last_name].filter(Boolean).join(' ')],['Никнейм',b.username],['Телефон',b.mobile_phone],['Gizmo ID',b.gizmo_user_id],['Telegram ID',b.telegram_id]]){const p=document.createElement('p');p.textContent=label+': '+(value||'Нет данных');details.append(p)}details.addEventListener('toggle',async()=>{if(!details.open||details.dataset.loaded)return;details.dataset.loaded='1';const r=await invoke('booking_guest',b.id);if(!details.isConnected)return;if(r?.user){for(const p of [...details.querySelectorAll('p')])p.remove();for(const [label,value] of [['Имя',[r.user.firstName,r.user.lastName].filter(Boolean).join(' ')],['Никнейм',r.user.username],['Телефон',r.user.mobilePhone||r.user.phone],['Gizmo ID',r.gizmo_user_id],['Telegram ID',r.telegram_id]]){const p=document.createElement('p');p.textContent=label+': '+(value||'Нет данных');details.append(p)}}else{delete details.dataset.loaded;const p=document.createElement('p');p.textContent=r?.error||'Нет связи с Gizmo';details.append(p)}});card.append(details);
-  if(b.code){add('small','Код старой брони');add('strong',b.code,'code')}
-  add('p',b.message||'Без прерывания активных сессий','dim');add('small','Бронь '+b.id);
-  if(['requested','waiting','holding','attention','checkin_pending','release_requested','in_session'].includes(b.status)){
-   const btn=add('button','Отменить бронь');btn.onclick=async()=>{if(!confirm('Отменить бронь ПК '+b.host_id+'? Сессия игрока не будет завершена.'))return;btn.disabled=true;const r=await invoke('cancel_booking',b.id);if(r?.error)$('error').textContent=r.error;btn.disabled=false};
-  }
-  grid.append(card);
- }
- if(!grid.children.length){const empty=document.createElement('div');empty.className='empty';empty.textContent=selectedHost?'У этого ПК нет активных броней':'Активных броней пока нет';grid.append(empty)}
+ const existing=new Map([...grid.children].map(card=>[card.dataset.bookingId,card]));
+ const nodes=rows.map(b=>{const card=existing.get(String(b.id))||makeBookingCard();card.update(b);return card});
+ if(!nodes.length){const empty=grid.querySelector('.empty')||document.createElement('div');empty.className='empty';setDeskText(empty,selectedHost?'У этого ПК нет активных броней':'Активных броней пока нет');nodes.push(empty)}
+ reconcileDeskChildren(grid,nodes);
 }
 for(const id of ['booking-filter','booking-sort'])$(id).onchange=()=>{if(current)bookings(current)};
 function hall(s){
- const map=$('desk-map');map.replaceChildren();const fresh=s.last_sync&&Date.now()/1000-s.last_sync<30;
- const hosts=new Map((s.hosts||[]).map(h=>[h.host_id,h]));
- for(const group of ['vip','standard']){
-  const section=document.createElement('section');section.className='desk-zone';const heading=document.createElement('h3');heading.textContent=group==='vip'?'VIP · РЯДЫ 10 / 20':'STANDARD · ЗОНЫ 100 / 200 / 300 / 400';section.append(heading);
-  const grid=document.createElement('div');grid.className='desk-zone-grid';
-  for(const pc of getZoneSeats(group)){
-   const connecting=s.rows.some(b=>b.instant&&b.host_id===pc.id&&['requested','holding','checkin_pending'].includes(b.status));const status=connecting?'connecting':fresh?(hosts.get(pc.id)?.status||'unknown'):'unknown';const btn=document.createElement('button');btn.className='desk-pc '+status;
-   const number=document.createElement('b');number.textContent=pc.id;const state=document.createElement('span');state.textContent=HOST_LABELS[status];if(status==='reserved')state.innerHTML='<svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Бронь';btn.append(number,state);btn.onclick=()=>selectHost(pc.id);grid.append(btn);
+ const map=$('desk-map'),fresh=s.last_sync&&Date.now()/1000-s.last_sync<30;
+ if(!map.children.length){
+  for(const group of ['vip','standard']){
+   const section=document.createElement('section');section.className='desk-zone';const heading=document.createElement('h3');heading.textContent=group==='vip'?'VIP · РЯДЫ 10 / 20':'STANDARD · ЗОНЫ 100 / 200 / 300 / 400';section.append(heading);
+   const grid=document.createElement('div');grid.className='desk-zone-grid';
+   for(const pc of getZoneSeats(group)){
+    const btn=document.createElement('button');btn.dataset.hostId=pc.id;
+    const number=document.createElement('b');number.textContent=pc.id;const state=document.createElement('span');btn.append(number,state);btn.onclick=()=>selectHost(pc.id);grid.append(btn);
+   }
+   section.append(grid);map.append(section);
   }
-  section.append(grid);map.append(section);
+ }
+ const hosts=new Map((s.hosts||[]).map(h=>[h.host_id,h]));
+ for(const btn of map.querySelectorAll('[data-host-id]')){
+  const id=btn.dataset.hostId,connecting=s.rows.some(b=>b.instant&&b.host_id===id&&['requested','holding','checkin_pending'].includes(b.status));
+  const status=connecting?'connecting':fresh?(hosts.get(id)?.status||'unknown'):'unknown';
+  if(btn.dataset.status===status)continue;
+  btn.dataset.status=status;btn.className='desk-pc '+status;const state=btn.querySelector('span');
+  if(status==='reserved')state.innerHTML='<svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Бронь';
+  else setDeskText(state,HOST_LABELS[status]);
  }
 }
 async function refresh(){
  if(document.hidden||inFlight||!window.pywebview?.api)return;inFlight=true;
  try{
   const s=await window.pywebview.api.snapshot();current=s;window.updateAdminActions?.();
-  $('connection').textContent=(s.backend_label||'Сервер').toUpperCase()+(s.online?' · НА СВЯЗИ':' · НЕТ СВЯЗИ');$('connection').className=s.online?'online':'offline';
+  setDeskText($('connection'),(s.backend_label||'Сервер').toUpperCase()+(s.online?' · НА СВЯЗИ':' · НЕТ СВЯЗИ'));$('connection').className=s.online?'online':'offline';
   const gizmoOk=!!s.last_sync&&Date.now()/1000-s.last_sync<30;
-  $('gizmo-connection').textContent=gizmoOk?'GIZMO · НА СВЯЗИ':'GIZMO · НЕТ СВЯЗИ';$('gizmo-connection').className=gizmoOk?'online':'offline';
-  $('error').textContent=[s.error,s.sync_error,s.password_sync_error,!s.protocol_ready?'Сервис аккаунтов пока недоступен. Проверьте сообщение об ошибке выше.':''].filter(Boolean).join('\n');
-  $('count').textContent=s.rows.filter(b=>!b.instant||b.status==='attention').length;$('alert').hidden=!s.alerts;$('alert-text').textContent=s.alerts+' непрочитанных уведомлений';$('mute').textContent=s.muted?'Включить звук':'Тишина на 5 минут';
+  setDeskText($('gizmo-connection'),gizmoOk?'GIZMO · НА СВЯЗИ':'GIZMO · НЕТ СВЯЗИ');$('gizmo-connection').className=gizmoOk?'online':'offline';
+  setDeskText($('error'),[s.error,s.sync_error,s.password_sync_error,!s.protocol_ready?'Сервис аккаунтов пока недоступен. Проверьте сообщение об ошибке выше.':''].filter(Boolean).join('\n'));
+  setDeskText($('count'),s.rows.filter(b=>!b.instant||b.status==='attention').length);$('alert').hidden=!s.alerts;setDeskText($('alert-text'),s.alerts+' непрочитанных уведомлений');setDeskText($('mute'),s.muted?'Включить звук':'Тишина на 5 минут');
   const bookingKey=JSON.stringify(s.rows)+selectedHost;if(refresh.bookingKey!==bookingKey){bookings(s);refresh.bookingKey=bookingKey}
   const hallKey=JSON.stringify(s.hosts)+gizmoOk+JSON.stringify(s.rows.filter(b=>b.instant).map(b=>[b.host_id,b.status]));if(refresh.hallKey!==hallKey){hall(s);refresh.hallKey=hallKey}
-  const requests=s.password_requests||[];$('requests-count').textContent=requests.length;
+  const requests=s.password_requests||[];setDeskText($('requests-count'),requests.length);
   const resetKey=JSON.stringify(requests);if(refresh.resetKey!==resetKey){renderResetRequests(requests);refresh.resetKey=resetKey}
   if(!soundLoaded&&s.sound){soundLoaded=true;$('sound-preset').value=s.sound.preset;$('sound-volume').value=s.sound.volume;$('sound-repeat').value=s.sound.repeat;$('sound-enabled').checked=s.sound.enabled;$('volume-label').value=s.sound.volume+'%'}
  }catch{$('connection').textContent='ПАНЕЛЬ НЕДОСТУПНА'}finally{inFlight=false}
@@ -62,9 +108,10 @@ function chooseAccount(user,requestId=null){
  $('reset-user').scrollIntoView({behavior:'smooth',block:'nearest'});$('new-password').focus({preventScroll:true});
 }
 function renderResetRequests(requests){
- const box=$('password-requests');box.replaceChildren();
+ const box=$('password-requests'),existing=new Map([...$('password-requests').children].map(card=>[card.dataset.requestId,card])),nodes=[];
  for(const r of requests){
-  const card=document.createElement('section');card.className='reset-request';const title=document.createElement('p');title.textContent='Gizmo ID '+r.gizmo_user_id+' · Telegram '+r.telegram_id;card.append(title);
+  const previous=existing.get(String(r.id));if(previous){setDeskText(previous.firstChild,'Gizmo ID '+r.gizmo_user_id+' · Telegram '+r.telegram_id);nodes.push(previous);continue}
+  const card=document.createElement('section');card.className='reset-request';card.dataset.requestId=r.id;const title=document.createElement('p');title.textContent='Gizmo ID '+r.gizmo_user_id+' · Telegram '+r.telegram_id;card.append(title);
   const status=document.createElement('p');status.className='note';status.setAttribute('role','status');card.append(status);
   const actions=document.createElement('div');actions.className='request-actions';card.append(actions);
   const action=(label,callback)=>{const btn=document.createElement('button');btn.textContent=label;btn.onclick=async()=>{if(card.dataset.busy)return;card.dataset.busy='1';actions.querySelectorAll('button').forEach(e=>e.disabled=true);try{await callback(status)}finally{delete card.dataset.busy;actions.querySelectorAll('button').forEach(e=>e.disabled=false)}};actions.append(btn)};
@@ -72,9 +119,10 @@ function renderResetRequests(requests){
   for(const [outcome,label,question] of [['done','Услуга предоставлена','Подтверждаете, что услуга по этой заявке уже предоставлена? Пароль этой кнопкой не меняется.'],['rejected','Закрыть без выполнения','Закрыть заявку без смены пароля? Гость увидит, что услуга не выполнена.']]){
    action(label,async status=>{if(!confirm(question))return;const result=await invoke('resolve_password_request',r.id,outcome,true);status.textContent=result?.ok?(result.synced?'Заявка закрыта':'Результат сохранён. Ожидаем синхронизацию с мини-аппом.'):result?.error||'Нет связи';if(result?.ok&&selectedResetRequest===r.id){selectedResetRequest=null;foundAccount=null;$('new-password').value='';$('reset-user').hidden=true}});
   }
-  box.append(card);
+  nodes.push(card);
  }
- if(!requests.length)box.textContent='Ожидающих запросов нет';
+ if(!nodes.length){const empty=box.querySelector('.empty-requests')||document.createElement('p');empty.className='empty-requests';setDeskText(empty,'Ожидающих запросов нет');nodes.push(empty)}
+ reconcileDeskChildren(box,nodes);
 }
 $('sound-volume').oninput=e=>$('volume-label').value=e.target.value+'%';
 async function saveSound(test=false){const result=await invoke('sound_settings',{preset:$('sound-preset').value,volume:Number($('sound-volume').value),repeat:Number($('sound-repeat').value),enabled:$('sound-enabled').checked});$('sound-result').textContent=result?'Настройки сохранены':'Не удалось сохранить';if(test&&result)await invoke('test_sound')}

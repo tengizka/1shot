@@ -7,3 +7,12 @@ html,body{height:100%;overflow:hidden}body{display:flex;flex-direction:column}.w
 .request-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.request-actions button{font-size:9px;min-height:42px}.request-actions button:first-child{border-color:#75aee0;background:#142434}.reset-request{padding:14px 0;border-bottom:1px solid #333}.reset-request p{line-height:1.8;overflow-wrap:anywhere}
 .account-options{display:grid;gap:6px;max-height:260px;overflow:auto;scrollbar-width:thin}.account-options:empty{display:none}.account-option{text-align:left;display:grid;gap:8px;min-width:0}.account-option strong{font-size:11px}.account-option span{font-size:9px;line-height:1.8;overflow-wrap:anywhere;color:#aaa}#privileged-wrap,#login-privileged-wrap{color:#ffba82;border:1px solid #89592c;padding:12px;border-radius:8px}#admin-pc-dialog{width:min(760px,94vw);max-height:90vh;overflow:auto;background:#080808;color:#fff;border:1px solid #555;border-radius:16px;padding:24px;font:11px Unbounded,sans-serif}#admin-pc-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}.admin-host-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}.admin-host-grid .desk-pc{height:48px;min-height:44px!important}#admin-message{color:#ffadad;line-height:1.8}#add-booking{display:flex;align-items:center;justify-content:center;min-width:44px}#admin-pc-dialog form{margin-top:16px}#admin-close{font-size:20px}#login-selected{line-height:1.8;overflow-wrap:anywhere}
 #manual-start{color-scheme:dark}
+
+/* Ordinary Desk text is selectable; window dragging and controls stay usable. */
+body{-webkit-user-select:text;user-select:text}
+button,summary{-webkit-user-select:none;user-select:none}
+input,textarea,[contenteditable=true]{-webkit-user-select:text;user-select:text}
+.guest-details p,.card p,.card small,.card h2,.account-option strong,.account-option span{-webkit-user-select:text;user-select:text;cursor:text}
+::selection{background:#ddd;color:#000}
+.guest-details button{margin:4px 0;font-size:9px}
+.card>.actions{margin-top:12px}.card>.note:empty{display:none}

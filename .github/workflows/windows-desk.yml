@@ -2,11 +2,36 @@ name: Build Windows Desk
 on:
   push:
     branches: [arena/01a0d663-1shot]
-    paths: ['desktop/**', 'tests/test_*.py', '.github/workflows/windows-desk.yml']
+    paths: ['desktop/**', 'tests/test_*.py', 'tests/*browser.cjs', '.github/workflows/windows-desk.yml']
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
+  browser-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Prepare isolated browser fixtures
+        run: |
+          npm install --no-save --package-lock=false playwright-core@1.64.0 @sparticuz/chromium@153.0.0
+          python -m desktop.write_metadata
+          mkdir -p /tmp/chromium-libs
+          node -e "const fs=require('fs'),z=require('zlib');fs.writeFileSync('/tmp/chromium-libs.tar',z.brotliDecompressSync(fs.readFileSync('node_modules/@sparticuz/chromium/bin/al2023.tar.br')))"
+          tar -xf /tmp/chromium-libs.tar -C /tmp/chromium-libs
+      - name: Check polling stability and existing Desk actions
+        env:
+          LD_LIBRARY_PATH: /tmp/chromium-libs/lib
+        run: |
+          node tests/desk-stability-browser.cjs
+          node tests/desk-browser.cjs
+          node tests/admin-tools-browser.cjs
+          node tests/desk-availability-browser.cjs
   build:
     runs-on: windows-latest
     steps:
