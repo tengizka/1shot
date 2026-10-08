@@ -7,6 +7,7 @@ from pathlib import Path
 from .engine import Controller,Store
 from .accounts import Accounts
 from .registration_approval import RegistrationApproval
+from .guest_passwords import GuestPasswords
 from .polling import PollBudget
 from .sound import Sound
 from .services import Cloud,Gizmo,LegacyBridge
@@ -26,6 +27,8 @@ class App:
         self.bridge.guard=self.controller.guard
         self.accounts=Accounts(self.gizmo,self.cloud,self.store,self.controller.guard)
         self.registration=RegistrationApproval(self.cloud,self.gizmo,self.store,self.controller.guard)
+        self.guest_passwords=GuestPasswords(self.cloud,self.gizmo,self.store,self.controller.guard)
+        self.password_grants=[];self.password_ready=False
         self.registrations=[];self.registration_ready=False
         self.sound=Sound(HOME,self.store);self.host_rows=[];self.password_requests=[];self.protocol_ready=False;self.maximized=False
         self.cloud.host_source=lambda:self.host_rows if self.last_sync and time.time()-self.last_sync<15 else None
@@ -119,6 +122,8 @@ class App:
         except Exception as error:return {'error':str(error)}
     def resolve_password_request(self,id,outcome,confirmed=False):
         try:
+            if outcome=='done':return {'error':'Заявка завершится после самостоятельной установки и проверки пароля владельцем'}
+            if any(g.get('source_id')==id for g in getattr(self,'password_grants',[])):return {'error':'Для заявки уже выдано разрешение. Дождитесь результата владельца'}
             if outcome not in ('done','rejected') or confirmed is not True:return {'error':'Подтвердите результат заявки'}
             with self.operations:
                 self.renew_account_lease()
@@ -129,31 +134,32 @@ class App:
                     self.password_requests=[r for r in self.password_requests if r['id']!=id]
                 return {'ok':True,'synced':synced}
         except Exception as error:return {'error':str(error)}
-    def reset_password_request(self,id,username,password,confirmed=False,privileged_confirmed=False):
+    def reset_password_request(self,*args,**kwargs):
+        return {'error':'Новый пароль вводит только владелец в мини-приложении. Выдайте разрешение по заявке'}
+    def reset_password(self,*args,**kwargs):
+        return {'error':'Пароль администратора не принимается. Владелец задаёт пароль самостоятельно'}
+    def authorize_guest_password(self,source,id,uid,username,confirmed=False,privileged=False):
         try:
-            if confirmed is not True:return {'error':'Сначала подтвердите личность гостя'}
             with self.operations:
                 self.renew_account_lease()
-                request=self.cloud.desk('password_request',id=id)['request']
-                self.accounts.reset(int(request['gizmo_user_id']),username,password,request_id=id,admin=True,privileged_confirmed=privileged_confirmed)
-                synced=id not in self.store.get('password-outcomes',{})
-                if synced:self.password_requests=[r for r in self.password_requests if r['id']!=id]
-                return {'ok':True,'synced':synced}
-        except Exception as error:return {'error':str(error)}
-    def reset_password(self,id,username,password,confirmed=False,privileged_confirmed=False):
+                return self.guest_passwords.authorize(source,id,uid,username,confirmed,privileged)
+        except ValueError as error:return {'error':str(error)}
+        except Exception:return {'error':'Разрешение не подтверждено. Проверьте состояние заявки; пароль не менялся'}
+    def review_guest_password(self,id):
         try:
-            if confirmed is not True:return {'error':'Сначала подтвердите личность владельца'}
             with self.operations:
-                # Renew the same worker's lease without running arbitrary queued operations.
-                started=time.time();mono=time.monotonic()
-                self.cloud.snapshot(self.store.get('event_cursor',0))
-                self.controller.lease_until=started+25;self.controller.lease_mono=mono+25
-                self.accounts.reset(int(id),username,password,admin=True,privileged_confirmed=privileged_confirmed)
-                return {'ok':True}
-        except Exception as error:return {'error':str(error)}
+                self.renew_account_lease()
+                return self.guest_passwords.review(id)
+        except Exception:return {'error':'Нужен свежий успешный вход владельца после ошибки. Проверьте связь и конкретный аккаунт'}
+    def resolve_guest_password(self,id,proof_id,uid,confirmed=False,privileged=False):
+        try:
+            with self.operations:
+                self.renew_account_lease()
+                return self.guest_passwords.resolve(id,proof_id,uid,confirmed,privileged)
+        except Exception:return {'error':'Нет подтверждения сверки. Пароль повторно не устанавливался'}
     def snapshot(self):
         with self.lock:
-            return {'registrations':self.registrations,'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':self.error,'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
+            return {'password_grants':self.password_grants,'password_ready':self.password_ready and self.online,'registrations':self.registrations,'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':self.error,'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
     def acknowledge(self):
         with self.lock:self.store.set('alerts',{})
         self.sound.stop()
@@ -170,6 +176,9 @@ class App:
                     self.registration_ready='registrations' in snapshot.get('desk',{})
                     self.registrations=snapshot.get('desk',{}).get('registrations',[])
                     if self.registration_ready:self.registration.flush()
+                    self.password_ready='password_grants' in snapshot.get('desk',{})
+                    self.password_grants=snapshot.get('desk',{}).get('password_grants',[])
+                    if self.password_ready:self.guest_passwords.tick(self.password_grants)
                     if snapshot.get("auth_pending"):self.bridge.auth()
                     if os.getenv("LEGACY_AUTH_ENABLED","false").lower()=="true" and time.monotonic()-last_legacy>=60:
                         last_legacy=time.monotonic();self.bridge.legacy_auth()

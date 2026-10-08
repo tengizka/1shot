@@ -98,6 +98,7 @@ async function refresh(){
   const hallKey=JSON.stringify(s.hosts)+gizmoOk+JSON.stringify(s.rows.filter(b=>b.instant).map(b=>[b.host_id,b.status]));if(refresh.hallKey!==hallKey){hall(s);refresh.hallKey=hallKey}
   const requests=s.password_requests||[];setDeskText($('requests-count'),requests.length);
   const resetKey=JSON.stringify(requests);if(refresh.resetKey!==resetKey){renderResetRequests(requests);refresh.resetKey=resetKey}
+  window.renderGuestPasswords?.(s);
   if(!soundLoaded&&s.sound){soundLoaded=true;$('sound-preset').value=s.sound.preset;$('sound-volume').value=s.sound.volume;$('sound-repeat').value=s.sound.repeat;$('sound-enabled').checked=s.sound.enabled;$('volume-label').value=s.sound.volume+'%'}
  }catch{$('connection').textContent='ПАНЕЛЬ НЕДОСТУПНА'}finally{inFlight=false}
 }

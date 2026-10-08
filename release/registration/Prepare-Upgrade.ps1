@@ -63,10 +63,10 @@ try {
         if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ne $file.sha256) { throw 'BACKUP_HASH_MISMATCH' }
     }
     $stage = 'MIGRATION_PLAN'
-    $migrations = @(Get-ChildItem -LiteralPath (Join-Path $root 'supabase/migrations') -File | Where-Object { $_.Name -match '^2026100800(14|15)_' } | Sort-Object Name | ForEach-Object {
+    $migrations = @(Get-ChildItem -LiteralPath (Join-Path $root 'supabase/migrations') -File | Where-Object { $_.Name -match '^2026100800(14|15|16)_' } | Sort-Object Name | ForEach-Object {
         @{ name=$_.Name; sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
     })
-    if ($migrations.Count -ne 2) { throw 'MIGRATIONS_MISSING' }
+    if ($migrations.Count -ne 3) { throw 'MIGRATIONS_MISSING' }
     $cloud = $null
     if ($CheckSupabase) {
         $stage = 'CLOUD_READ_ONLY'
@@ -76,7 +76,7 @@ try {
         try { $token = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer) } finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer) }
         # Fixed read-only query; no supplied SQL, credentials, accounts or registration data in the result.
         $query = @'
-select to_regclass('public.club_registration_requests') is not null as has_014,
+select to_regclass('public.club_password_grants') is not null as has_016, to_regclass('public.club_registration_requests') is not null as has_014,
  exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='club_registration_reconcile') as has_015,
  exists(select 1 from public.club_worker where lease_until>now()) as worker_online,
  (select count(*) from public.club_auth_requests where status in ('pending','running') and created_at>now()-interval '3 minutes') as pending_auth;
@@ -86,7 +86,7 @@ select to_regclass('public.club_registration_requests') is not null as has_014,
         $cloud = $response[0]
         if ($cloud.worker_online -or [int]$cloud.pending_auth -gt 0) { throw 'CLOUD_OPERATIONS_ACTIVE' }
         # Presence is not a checksum-verified migration history. Never guess or rerun SQL.
-        if ($cloud.has_014 -or $cloud.has_015) { throw 'EXISTING_SCHEMA_NEEDS_VERIFIED_MIGRATION_HISTORY' }
+        if ($cloud.has_014 -or $cloud.has_015 -or $cloud.has_016) { throw 'EXISTING_SCHEMA_NEEDS_VERIFIED_MIGRATION_HISTORY' }
     }
     $plan = @{ format='1shot-registration-preflight-v1'; migrations=$migrations; cloud_checked=[bool]$CheckSupabase; legacy_stop_confirmed=[bool]$AllLegacyWorkersStopped; apply_allowed=$false; reason='Preflight only. Database backup, migration ledger and coordinated deployment are required before application.' }
     $plan | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $target 'upgrade-plan.json') -Encoding UTF8

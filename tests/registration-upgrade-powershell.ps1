@@ -14,7 +14,7 @@ try {
     if ($BackupExecutable) { $invokeArgs.BackupExecutable=$BackupExecutable }
     & (Join-Path $root 'release/registration/Prepare-Upgrade.ps1') @invokeArgs
     $plan=Get-Content -LiteralPath (Join-Path $backup 'upgrade-plan.json') -Raw | ConvertFrom-Json
-    if ($plan.apply_allowed -or $plan.cloud_checked -or $plan.migrations.Count -ne 2) { throw 'unsafe plan' }
+    if ($plan.apply_allowed -or $plan.cloud_checked -or $plan.migrations.Count -ne 3) { throw 'unsafe plan' }
     if ((Get-Content -LiteralPath (Join-Path $backup 'data/.env') -Raw) -ne 'SECRET=synthetic-fixture') { throw 'config not preserved' }
     if (@((Get-Acl -LiteralPath $backup).Access | Where-Object { $_.IsInherited }).Count -ne 0) { throw 'backup ACL inherits access' }
     $refused=$false

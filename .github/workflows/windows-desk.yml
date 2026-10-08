@@ -28,6 +28,7 @@ jobs:
         env:
           LD_LIBRARY_PATH: /tmp/chromium-libs/lib
         run: |
+          node tests/guest-passwords-browser.cjs
           node tests/registration-approval-browser.cjs
           node tests/desk-stability-browser.cjs
           node tests/desk-browser.cjs
@@ -58,6 +59,8 @@ jobs:
         run: python -m unittest discover -s tests -p test_registration.py
       - name: Test manual registration safety
         run: python -m unittest discover -s tests -p test_registration_approval.py
+      - name: Test guest-selected password grants
+        run: python -m unittest discover -s tests -p test_guest_passwords.py
       - name: Stage registration frontend without publishing it
         shell: pwsh
         run: |
@@ -75,7 +78,7 @@ jobs:
       - name: Generate release identity
         run: python -m desktop.write_metadata
       - name: Build portable app
-        run: python -m PyInstaller --noconfirm --clean --windowed --name 1SHOT-Desk --paths . --icon desktop/assets/app.ico --version-file desktop/version-info.txt --add-data "desktop/assets;desktop/assets" --add-data "desktop/brand.js;desktop" --add-data "desktop/index.html;desktop" --add-data "desktop/desk.js;desktop" --add-data "desktop/admin-tools.js;desktop" --add-data "desktop/registrations.js;desktop" --add-data "desktop/desk.css;desktop" --add-data "desktop/polish.css;desktop" --add-data "desktop/polish.js;desktop" --add-data "assets/fonts;assets/fonts" --collect-all webview --exclude-module webview.platforms.winforms --exclude-module webview.platforms.edgechromium --exclude-module clr --exclude-module pythonnet desktop/launcher.py
+        run: python -m PyInstaller --noconfirm --clean --windowed --name 1SHOT-Desk --paths . --icon desktop/assets/app.ico --version-file desktop/version-info.txt --add-data "desktop/assets;desktop/assets" --add-data "desktop/brand.js;desktop" --add-data "desktop/index.html;desktop" --add-data "desktop/desk.js;desktop" --add-data "desktop/admin-tools.js;desktop" --add-data "desktop/registrations.js;desktop" --add-data "desktop/guest-passwords.js;desktop" --add-data "desktop/desk.css;desktop" --add-data "desktop/polish.css;desktop" --add-data "desktop/polish.js;desktop" --add-data "assets/fonts;assets/fonts" --collect-all webview --exclude-module webview.platforms.winforms --exclude-module webview.platforms.edgechromium --exclude-module clr --exclude-module pythonnet desktop/launcher.py
       - name: Launch packaged Qt UI and verify JS bridge (no club connections)
         shell: pwsh
         run: |

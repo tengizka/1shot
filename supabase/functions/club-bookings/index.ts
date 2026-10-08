@@ -15,12 +15,16 @@ Deno.serve(async req=>{
   if(b.action==='capabilities'){
    const {data,error}=await client.from('club_settings').select('*').eq('id',true).single();
    if(error)throw error;
-   let registration=null;
+   let registration=null,password_grant=null;
    if(b.registration_pending===true){
     let user:number;try{user=verify(b.initData,Deno.env.get('TELEGRAM_BOT_TOKEN')||'')}catch{return json({error:'Откройте приложение заново через Telegram'},403)}
     const {data:r,error:e}=await client.rpc('club_registration_status',{p_user:user});if(e)throw e;registration=r;
    }
-   return json({registration,registration_approval:1,enabled:!!data.enabled,timezone:'Europe/Moscow',protocol:data.flow_version||1,poll_bundle:1,desk:await deskStatus(client)});
+   if(b.recovery_pending===true){
+    let user:number;try{user=verify(b.initData,Deno.env.get('TELEGRAM_BOT_TOKEN')||'')}catch{return json({error:'Откройте приложение заново через Telegram'},403)}
+    const {data:r,error:e}=await client.rpc('club_password_status',{p_user:user});if(e)throw e;password_grant=r;
+   }
+   return json({password_grant,registration,registration_approval:1,enabled:!!data.enabled,timezone:'Europe/Moscow',protocol:data.flow_version||1,poll_bundle:1,desk:await deskStatus(client)});
   }
   let user:number;try{user=verify(b.initData,Deno.env.get('TELEGRAM_BOT_TOKEN')||'');}catch{return json({error:'Откройте приложение заново через Telegram'},403);}
   if(b.action==='state'){

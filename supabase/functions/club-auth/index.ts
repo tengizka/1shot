@@ -17,6 +17,22 @@ Deno.serve(async req=>{
    const {error}=await client.from('club_auth_requests').update({status:b.status,gizmo_user_id:b.gizmo_user_id||null,cipher:null}).eq('id',b.id).eq('worker_id',b.worker_id).eq('status','running');if(error)throw error;return json({ok:true});
   }
   let user:number;try{user=verify(b.initData,Deno.env.get('TELEGRAM_BOT_TOKEN')||'')}catch{return json({error:'Откройте приложение заново через Telegram'},403)}
+  if(b.action==='password_help'){
+   const {data,error}=await client.rpc('club_command',{p_user:user,p_kind:'password_request',p_payload:{},p_request:b.request_id});if(error)throw error;
+   return json({request_id:data});
+  }
+  if(b.action==='password_submit'){
+   const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+   if(typeof b.grant_id!=='string'||!uuid.test(b.grant_id)||typeof b.request_id!=='string'||!uuid.test(b.request_id)||typeof b.password!=='string'||!b.password.trim()||Array.from(b.password).length>64)return json({error:'Проверьте разрешение и пароль'},400);
+   b.grant_id=b.grant_id.toLowerCase();b.request_id=b.request_id.toLowerCase();
+   const secret=Deno.env.get('AGENT_SECRET');if(!secret)throw Error('not_configured');
+   const iv=randomBytes(12),key=createHash('sha256').update('1shot-password-v1:'+secret).digest(),cipher=createCipheriv('aes-256-gcm',key,iv);
+   cipher.setAAD(new TextEncoder().encode(b.grant_id+':'+b.request_id));
+   const body=cipher.update(JSON.stringify({password:b.password}),'utf8'),tail=cipher.final();
+   const encoded=btoa(String.fromCharCode(...new Uint8Array([...iv,...body,...tail,...cipher.getAuthTag()])));
+   const {data,error}=await client.rpc('club_password_submit',{p_id:b.grant_id,p_user:user,p_request:b.request_id,p_cipher:encoded,p_length:Array.from(b.password).length});if(error)throw error;
+   return json({status:data});
+  }
   if(b.action==='register')return json({error:'Регистрация теперь только после очного подтверждения администратора'},409);
   if(b.action==='registration_status'){
    const {data,error}=await client.rpc('club_registration_status',{p_user:user});if(error)throw error;return json({registration:data});

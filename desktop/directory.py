@@ -22,7 +22,7 @@ class Directory:
         result={k:user.get(k) for k in FIELDS}
         name=groups.get(user.get('userGroupId'),'')
         result.update(group_name=name or 'Группа '+str(user.get('userGroupId','?')),
-                      requires_privileged_confirmation=name.strip().casefold() not in ('клиенты','18+'))
+                      requires_privileged_confirmation=name.strip().casefold() not in ('клиенты','18+') or sum(str(v).strip().casefold()==name.strip().casefold() for v in groups.values())!=1)
         return result
     def get(self,uid,fresh=False):
         user=self.gizmo.user(int(uid))

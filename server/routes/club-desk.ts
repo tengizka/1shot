@@ -8,6 +8,15 @@ export default async function handler(req: Request){
   const b=await req.json(),client=db();
   const {data:worker,error}=await client.from('club_worker').select('*').eq('worker_id',b.worker_id).gt('lease_until',new Date().toISOString()).single();
   if(error||!worker)return json({error:'lease_expired'},409);
+  if(['password_context','password_authorize','password_claim','password_finish','password_review','password_resolve'].includes(b.action)){
+   const args:Record<string,unknown>={p_worker:b.worker_id,p_id:b.id};
+   if(['password_context','password_authorize'].includes(b.action))args.p_source=b.source;
+   if(b.action==='password_authorize')Object.assign(args,{p_uid:b.gizmo_user_id,p_username:b.username,p_group:b.group_id,p_minimum:b.minimum_length,p_confirmed:b.confirmed===true,p_privileged:b.privileged===true});
+   if(b.action==='password_finish')args.p_status=b.status;
+   if(b.action==='password_resolve')Object.assign(args,{p_proof:b.proof_id,p_confirmed:b.confirmed===true});
+   const {data,error}=await client.rpc('club_'+b.action,args);if(error)throw error;
+   return ['password_finish','password_resolve'].includes(b.action)?json({ok:data===true}):json({data});
+  }
   if(b.action==='registration_review'||b.action==='registration_reconcile'){
    const args:Record<string,unknown>={p_worker:b.worker_id,p_id:b.id};
    if(b.action==='registration_reconcile')Object.assign(args,{p_proof:b.proof_id,p_uid:b.gizmo_user_id,p_confirmed:b.confirmed===true});
