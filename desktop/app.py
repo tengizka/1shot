@@ -10,6 +10,7 @@ from .registration_approval import RegistrationApproval
 from .guest_passwords import GuestPasswords
 from .polling import PollBudget
 from .sound import Sound
+from .notifications import NotificationGate
 from .services import Cloud,Gizmo,LegacyBridge
 from .version import VERSION, AUTHOR, APP_TITLE, APP_ID
 
@@ -33,8 +34,9 @@ class App:
         self.sound=Sound(HOME,self.store);self.host_rows=[];self.password_requests=[];self.protocol_ready=False;self.maximized=False
         self.cloud.host_source=lambda:self.host_rows if self.last_sync and time.time()-self.last_sync<15 else None
         self.online=False;self.error='Подключение…';self.sync_error='';self.last_sync=0
+        self.notifications=NotificationGate(self.store)
         self.rows=[];self.alerts={};self.notified_cursor=0;self.muted_until=0;self.window=None;self.tray=None;self.exiting=False
-    def alarm(self):self.sound.play()
+    def alarm(self,kind=None):self.sound.play(kind)
     def sound_settings(self,settings):return self.sound.configure(settings)
     def minimize(self):self.window.minimize()
     def maximize(self):
@@ -159,15 +161,17 @@ class App:
         except Exception:return {'error':'Нет подтверждения сверки. Пароль повторно не устанавливался'}
     def snapshot(self):
         with self.lock:
-            return {'password_grants':self.password_grants,'password_ready':self.password_ready and self.online,'registrations':self.registrations,'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':self.error,'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
+            return {'password_grants':self.password_grants,'password_ready':self.password_ready and self.online,'registrations':self.registrations,'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':self.error,'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'notifications':list(self.store.get('alerts',{}).values())[-5:],'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
     def acknowledge(self):
         with self.lock:self.store.set('alerts',{})
         self.sound.stop()
         return True
     def mute(self):self.muted_until=0 if time.time()<self.muted_until else time.time()+300;self.sound.stop();return True
-    def test_sound(self):self.alarm();return True
+    def test_sound(self,kind=None):
+        if kind not in (None,'created','waiting','attention'):return False
+        self.alarm(kind);return True
     def work(self):
-        last_alarm=0;last_legacy=0;budget=PollBudget()
+        last_legacy=0;budget=PollBudget()
         while not self.stop.is_set():
             started=time.monotonic();failed=False
             try:
@@ -196,14 +200,19 @@ class App:
             except Exception as error:
                 failed=True
                 with self.lock:self.online=False;self.protocol_ready=False;self.error=str(error)[:220]
-            # Only an actual new booking alert may trigger a tray popup.
-            cursor=max((int(k) for k in self.store.get('alerts',{}) if str(k).isdigit()),default=0)
-            if self.tray and self.store.get('alerts',{}) and cursor>self.notified_cursor:
-                try:self.tray.notify('Новая бронь или ситуация, требующая внимания. Откройте панель клуба.','1SHOT Desk')
-                except Exception:pass
-                self.notified_cursor=cursor
-            if self.store.get('alerts',{}) and time.time()>self.muted_until and time.time()-last_alarm>self.sound.settings['repeat'] and self.sound.settings['enabled']:
-                self.alarm();last_alarm=time.time()
+            # Persist delivery before effects: reconnect/restart cannot replay audio.
+            try:
+                notices=self.notifications.consume(self.store.get('alerts',{}))
+                if notices:
+                    if self.tray:
+                        try:self.tray.notify('Новое событие клуба. Подробности в панели.','1SHOT Desk')
+                        except Exception:pass
+                    if self.sound.settings['enabled']:
+                        kind='attention' if any(e.get('kind')=='attention' for e in notices) else notices[-1].get('kind')
+                        self.alarm(kind)
+            except Exception:
+                # Notification failure must never stop reservation processing.
+                pass
             delay=budget.interval(self.rows,failed)
             self.stop.wait(max(1,delay-(time.monotonic()-started)))
     def sync_loop(self):
