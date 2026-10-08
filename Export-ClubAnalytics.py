@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
 1SHOT Club Analytics & SMM Intelligence Tool
-Exports Gizmo data to:
-1. Google Sheets-ready CSV files (UTF-8 with BOM, standard comma/semicolon)
-2. Interactive visual HTML Dashboard with one-click "Copy for Google Sheets (Ctrl+V)"
+Generates:
+1. Single Excel workbook with tabs: "1SHOT_Statistika_Club.xlsx"
+   - Sheet 1: "Общая сводка"
+   - Sheet 2: "Возраст и Демография"
+   - Sheet 3: "Топ гостей (Ядро)"
+   - Sheet 4: "Спящие гости (Рассылка)"
+2. Google Sheets-ready CSV files
 """
-import os, sys, json, base64, urllib.request, urllib.error, ssl
+import os, sys, json, base64, urllib.request, urllib.error, ssl, zipfile, xml.sax.saxutils as sax
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -46,7 +50,7 @@ class GizmoClient:
             url += f"?{qs}"
         req = urllib.request.Request(url, headers={"Authorization": self.auth, "Accept": "application/json"})
         try:
-            with urllib.request.urlopen(req, context=self.ctx, timeout=20) as resp:
+            with urllib.request.urlopen(req, context=self.ctx, timeout=25) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 return data.get("result") if isinstance(data, dict) and "result" in data else data
         except Exception as e:
@@ -68,11 +72,11 @@ def analyze(users, spending_list):
     total_users = len(users)
     ages = []
     age_groups = {
-        "До 18 (подростки)": {"count": 0, "smm": "Дневные комбо, каникулы, безалкогольные напитки, Roblox/Fortnite"},
-        "18–21 (студенты/молодёжь)": {"count": 0, "smm": "Ночные пакеты, CS2/Dota/Valorant турниры, энергетики, студенческие пятницы"},
-        "22–25 (основное ядро)": {"count": 0, "smm": "VIP-зона, вечерний прайм (19:00-01:00), высокий чек на снеки и брони"},
-        "26–30 (взрослые игроки)": {"count": 0, "smm": "Комфорт, топовое железо, бронь целых рядов под компанию на выходные"},
-        "31+ (старшая аудитория)": {"count": 0, "smm": "Премиум-сервис, соло-сессии в тихой зоне, PS5"}
+        "До 18 (подростки)": {"count": 0, "behavior": "Школьники, дневное время, каникулы, безалкогольные напитки", "smm": "Дневные комбо, Roblox/Fortnite турниры, акции на каникулы"},
+        "18–21 (студенты/молодёжь)": {"count": 0, "behavior": "Вечерний прайм и ночные пакеты, высокая активность в пятницу/субботу", "smm": "Турниры по CS2, Dota 2, Valorant, скидки по студенческому, энергетики"},
+        "22–25 (основное ядро)": {"count": 0, "behavior": "Платёжеспособное ядро, регулярные брони VIP-зоны, средний чек выше среднего", "smm": "Комфорт, премиум девайсы, вечерний прайм (19:00–01:00), бронь через бота"},
+        "26–30 (взрослые игроки)": {"count": 0, "behavior": "Приходят компаниями на выходные, ценят тишину и мощное железо", "smm": "Бронь целых рядов под компанию, закрытые тусовки, кальян/PS5 лаунж"},
+        "31+ (старшая аудитория)": {"count": 0, "behavior": "Индивидуальные сессии, высокий чек, ценят идеальный сервис", "smm": "Премиальное позиционирование, VIP-залы, персональный подход"}
     }
     sex_dist = {"Мужской": 0, "Женский": 0, "Не указан": 0}
     
@@ -96,6 +100,8 @@ def analyze(users, spending_list):
 
     user_map = {u.get("id"): u for u in users}
     total_revenue = 0
+    total_card = 0
+    total_cash = 0
     paying_users_count = 0
     spenders = []
 
@@ -107,6 +113,8 @@ def analyze(users, spending_list):
         dep = float(s.get("deposits") or 0)
         if tot > 0:
             total_revenue += tot
+            total_card += card
+            total_cash += cash
             paying_users_count += 1
             u = user_map.get(uid, {})
             age = calculate_age(u.get("birthDate"))
@@ -125,7 +133,7 @@ def analyze(users, spending_list):
     spenders.sort(key=lambda x: x["total"], reverse=True)
     avg_check = round(total_revenue / paying_users_count, 1) if paying_users_count else 0
 
-    # Sleeping guests (no recent visit / lower activity)
+    # Sleeping guests for reactivation
     sleeping = [s for s in spenders if s["total"] >= 1500 and (isinstance(s["age"], int) and s["age"] >= 18)][15:45]
 
     return {
@@ -136,259 +144,135 @@ def analyze(users, spending_list):
         "age_groups": age_groups,
         "sex_dist": sex_dist,
         "total_revenue": round(total_revenue, 2),
+        "total_card": round(total_card, 2),
+        "total_cash": round(total_cash, 2),
         "paying_users_count": paying_users_count,
         "avg_check": avg_check,
         "top_spenders": spenders[:100],
         "sleeping_guests": sleeping
     }
 
-def generate_csv_exports(data):
-    # 1. Summary table for Google Sheets
-    with open("1shot-google-sheets-summary.csv", "w", encoding="utf-8-sig") as f:
-        f.write("Показатель,Значение,Пояснение для SMM / Маркетинга\n")
-        f.write(f"Всего гостей в базе,{data['total_users']},Общий объём зарегистрированной аудитории\n")
-        f.write(f"Платящих гостей,{data['paying_users_count']},Гости с совершёнными оплатами\n")
-        f.write(f"Средний возраст,{data['avg_age']} лет,Ключевой ориентир для рекламных креативов\n")
-        f.write(f"Медианный возраст,{data['median_age']} лет,Половина клуба младше этого возраста\n")
-        f.write(f"Средний чек (LTV),{data['avg_check']:,.0f} ₽,Средний доход с одного платящего гостя\n")
-        f.write(f"Общая выручка базы,{data['total_revenue']:,.0f} ₽,Суммарный оборот учтённых оплат\n")
-        f.write(f"Доля парней,{round(data['sex_dist']['Мужской']/max(1,data['total_users'])*100)}%,Основная целевая аудитория\n")
-        f.write(f"Доля девушек,{round(data['sex_dist']['Женский']/max(1,data['total_users'])*100)}%,Аудитория для парных тарифов и PS5\n")
-
-    # 2. Demographics & Age groups table
-    with open("1shot-google-sheets-demographics.csv", "w", encoding="utf-8-sig") as f:
-        f.write("Возрастная группа,Количество гостей,Доля от аудитории,Рекомендации для контента и рекламы\n")
-        for k, v in data["age_groups"].items():
-            pct = round(v['count'] / max(1, data['users_with_age']) * 100, 1)
-            f.write(f'"{k}",{v["count"]},{pct}%,"{v["smm"]}"\n')
-
-    # 3. Top spenders table (Core audience)
-    with open("1shot-google-sheets-top-guests.csv", "w", encoding="utf-8-sig") as f:
-        f.write("Рейтинг,Никнейм,Имя,Телефон,Возраст,Всего потрачено (₽),Оплата картой (₽),Наличные (₽),Депозиты (₽)\n")
-        for i, s in enumerate(data["top_spenders"]):
-            f.write(f"{i+1},\"{s['username']}\",\"{s['name']}\",\"{s['phone']}\",{s['age']},{s['total']},{s['card']},{s['cash']},{s['deposit']}\n")
-
-    # 4. Sleeping guests for marketing reactivation
-    with open("1shot-google-sheets-sleeping-guests.csv", "w", encoding="utf-8-sig") as f:
-        f.write("Никнейм,Телефон,Возраст,Потрачено ранее (₽),Статус,Идея для рассылки\n")
-        for s in data["sleeping_guests"]:
-            f.write(f"\"{s['username']}\",\"{s['phone']}\",{s['age']},{s['total']},Спящий постоянник,\"Начислить 200 бонусов на баланс при визите в будни\"\n")
-
-    print("[OK] Generated 4 clean Google Sheets CSV files:")
-    print("  • 1shot-google-sheets-summary.csv")
-    print("  • 1shot-google-sheets-demographics.csv")
-    print("  • 1shot-google-sheets-top-guests.csv")
-    print("  • 1shot-google-sheets-sleeping-guests.csv")
-
-def generate_html_report(data, filename="1shot-analytics-report.html"):
-    now_str = datetime.now().strftime("%d.%m.%Y в %H:%M")
+def create_excel_workbook(data, filepath):
+    """Generates standard OpenXML Excel .xlsx file with multiple tabs."""
+    shared_strings = []
+    string_map = {}
     
-    age_rows = "".join(f"<tr><td><b>{k}</b></td><td>{v['count']}</td><td>{round(v['count']/max(1,data['users_with_age'])*100, 1)}%</td><td style='color:#9bb5d6;font-size:12px'>{v['smm']}</td></tr>" for k, v in data["age_groups"].items())
-    
-    spender_rows = "".join(f"""
-    <tr>
-      <td><b>#{i+1}</b></td>
-      <td><strong>{s['username']}</strong><br><small style="color:#888">{s['name']}</small></td>
-      <td>{s['phone']}</td>
-      <td>{s['age']}</td>
-      <td style="color:#00e676;font-weight:700">{s['total']:,.0f} ₽</td>
-      <td>{s['card']:,.0f} ₽</td>
-      <td>{s['cash']:,.0f} ₽</td>
-    </tr>
-    """ for i, s in enumerate(data["top_spenders"][:40]))
+    def get_string_id(s):
+        s = str(s)
+        if s not in string_map:
+            string_map[s] = len(shared_strings)
+            shared_strings.append(s)
+        return string_map[s]
 
-    sleeping_rows = "".join(f"""
-    <tr>
-      <td><strong>{s['username']}</strong></td>
-      <td>{s['phone']}</td>
-      <td>{s['age']}</td>
-      <td>{s['total']:,.0f} ₽</td>
-      <td><span style="background:#26180a;color:#ff9800;padding:3px 8px;border-radius:6px;font-size:11px">Спящий</span></td>
-      <td style="color:#8ab4f8;font-size:12px">Бонус 200 ₽ на ночной пакет</td>
-    </tr>
-    """ for s in data["sleeping_guests"][:20])
+    sheets_data = {}
 
-    # Pre-generate TSV data for one-click Google Sheets copy-paste
-    tsv_summary = "Показатель\tЗначение\tПояснение\\n"
-    tsv_summary += f"Всего гостей в базе\t{data['total_users']}\tОбщая база\\n"
-    tsv_summary += f"Средний возраст\t{data['avg_age']}\tЯдро клуба\\n"
-    tsv_summary += f"Медианный возраст\t{data['median_age']}\tПоловина клуба младше\\n"
-    tsv_summary += f"Средний чек LTV\t{data['avg_check']}\tНа одного платящего гостя\\n"
-    tsv_summary += f"Общая выручка\t{data['total_revenue']}\tВыручка по базе\\n"
+    # Sheet 1: Общая сводка
+    pct_male = round(data['sex_dist']['Мужской']/max(1,data['total_users'])*100)
+    pct_female = round(data['sex_dist']['Женский']/max(1,data['total_users'])*100)
+    pct_card = round(data['total_card']/max(1,data['total_revenue'])*100)
+    pct_cash = round(data['total_cash']/max(1,data['total_revenue'])*100)
 
-    tsv_ages = "Возрастная группа\tЧисло гостей\tДоля\tМаркетинг-инсайт\\n"
+    sheets_data["Общая сводка"] = [
+        ["Метрика", "Значение", "Пояснение / Вывод для SMM"],
+        ["Всего гостей в базе", data['total_users'], "Общая зарегистрированная аудитория клуба"],
+        ["Платящих гостей", data['paying_users_count'], "Гости с совершёнными оплатами в системе"],
+        ["Средний возраст аудитории", f"{data['avg_age']} лет", "Ключевое ядро для таргетинга рекламы"],
+        ["Медианный возраст", f"{data['median_age']} лет", "50% аудитории моложе этой отметки"],
+        ["Средний чек (LTV гостя)", f"{data['avg_check']:,.0f} ₽", "Средняя выручка с одного платящего клиента"],
+        ["Общая учтённая выручка", f"{data['total_revenue']:,.0f} ₽", "Суммарный объём платежей по базе"],
+        ["Оплата картой (эквайринг)", f"{data['total_card']:,.0f} ₽ ({pct_card}%)", "Основной способ оплаты у молодёжи"],
+        ["Оплата наличными", f"{data['total_cash']:,.0f} ₽ ({pct_cash}%)", "Кассовые расчёты администратора"],
+        ["Доля парней", f"{data['sex_dist']['Мужской']} чел. ({pct_male}%)", "Базовое ядро (CS2, Dota 2, шутеры)"],
+        ["Доля девушек", f"{data['sex_dist']['Женский']} чел. ({pct_female}%)", "Аудитория для парных визитов, лаунж-зоны и PS5"],
+        ["", "", ""],
+        ["ГЛАВНЫЙ ИНСАЙТ ДЛЯ МАРКЕТИНГА", "", ""],
+        ["Целевая аудитория клуба", f"Парни 17–24 года (средний возраст {data['avg_age']} лет)", "Упор в контенте на ночные пакеты, рейтинг, турниры"],
+        ["Пиковые продукты", "Ночной пакет, 3 часа вечер, напитки и снеки", "Продвигать через Telegram-канал и бота за 2 часа до начала"],
+        ["Точки роста", "Реактивация спящих гостей и комбо-акции в будни днём", "Смотри вкладку 'Спящие гости' для готовой базы контактов"]
+    ]
+
+    # Sheet 2: Возраст и Демография
+    age_rows = [["Возрастной сегмент", "Гостей (чел)", "Доля клуба (%)", "Особенности поведения", "Рекомендации для рекламы и акций"]]
     for k, v in data["age_groups"].items():
         pct = round(v['count'] / max(1, data['users_with_age']) * 100, 1)
-        tsv_ages += f"{k}\t{v['count']}\t{pct}%\t{v['smm']}\\n"
+        age_rows.append([k, v['count'], f"{pct}%", v['behavior'], v['smm']])
+    sheets_data["Возраст и Демография"] = age_rows
 
-    tsv_spenders = "Рейтинг\tНикнейм\tИмя\tТелефон\tВозраст\tВсего потрачено\tОплата картой\tНаличные\\n"
+    # Sheet 3: Топ гостей (Ядро)
+    spender_rows = [["Рейтинг", "Никнейм", "Имя", "Телефон", "Возраст", "Всего потрачено (₽)", "Оплата картой (₽)", "Наличные (₽)", "Депозит (₽)"]]
     for i, s in enumerate(data["top_spenders"]):
-        tsv_spenders += f"{i+1}\t{s['username']}\t{s['name']}\t{s['phone']}\t{s['age']}\t{s['total']}\t{s['card']}\t{s['cash']}\\n"
+        spender_rows.append([i+1, s['username'], s['name'], s['phone'], s['age'], s['total'], s['card'], s['cash'], s['deposit']])
+    sheets_data["Топ гостей (Ядро)"] = spender_rows
 
-    html = f"""<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="utf-8">
-  <title>1SHOT CLUB — Маркетинг & SMM Аналитика</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body {{ background: #07090e; color: #e6eaf0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 24px; line-height: 1.5; }}
-    .container {{ max-width: 1280px; margin: 0 auto; }}
-    header {{ display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1c2433; padding-bottom: 20px; margin-bottom: 24px; }}
-    h1 {{ margin: 0; font-size: 24px; font-weight: 800; color: #fff; }}
+    # Sheet 4: Спящие гости (Рассылка)
+    sleeping_rows = [["Никнейм", "Телефон", "Возраст", "Потрачено ранее (₽)", "Сегмент", "Готовое сообщение / Акция для возврата"]]
+    for s in data["sleeping_guests"]:
+        sleeping_rows.append([
+            s['username'],
+            s['phone'],
+            s['age'],
+            s['total'],
+            "Лояльный спящий (LTV > 1500 ₽)",
+            f"Привет, {s['username']}! Давно не виделись в 1SHOT. Заходи сегодня — начислили 200 бонусов на твой баланс!"
+        ])
+    sheets_data["Спящие гости (Рассылка)"] = sleeping_rows
+
+    # Build OpenXML files
+    sheet_xmls = []
+    for sheet_idx, (name, rows) in enumerate(sheets_data.items(), start=1):
+        xml_parts = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>']
+        for r_idx, row in enumerate(rows, start=1):
+            xml_parts.append(f'<row r="{r_idx}">')
+            for c_idx, val in enumerate(row, start=1):
+                col_letter = chr(64 + c_idx) if c_idx <= 26 else chr(64 + (c_idx-1)//26) + chr(65 + (c_idx-1)%26)
+                cell_ref = f"{col_letter}{r_idx}"
+                if val is None or val == "":
+                    continue
+                if isinstance(val, (int, float)) and not isinstance(val, bool):
+                    xml_parts.append(f'<c r="{cell_ref}"><v>{val}</v></c>')
+                else:
+                    s_id = get_string_id(val)
+                    xml_parts.append(f'<c r="{cell_ref}" t="s"><v>{s_id}</v></c>')
+            xml_parts.append('</row>')
+        xml_parts.append('</sheetData></worksheet>')
+        sheet_xmls.append((f"xl/worksheets/sheet{sheet_idx}.xml", "".join(xml_parts)))
+
+    sheets_tags = []
+    wb_rels = []
+    for sheet_idx, name in enumerate(sheets_data.keys(), start=1):
+        sheets_tags.append(f'<sheet name="{sax.escape(name)}" sheetId="{sheet_idx}" r:id="rId{sheet_idx}"/>')
+        wb_rels.append(f'<Relationship Id="rId{sheet_idx}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet{sheet_idx}.xml"/>')
+    wb_rels.append(f'<Relationship Id="rId{len(sheets_data)+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>')
+    wb_rels.append(f'<Relationship Id="rId{len(sheets_data)+2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>')
+
+    workbook_xml = f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>{"".join(sheets_tags)}</sheets></workbook>'
+    workbook_rels = f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">{"".join(wb_rels)}</Relationships>'
     
-    .gsheets-bar {{ background: #0f1924; border: 1.5px solid #234263; border-radius: 14px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }}
-    .gsheets-bar-left {{ display: flex; align-items: center; gap: 12px; }}
-    .gsheets-icon {{ width: 32px; height: 32px; flex-shrink: 0; }}
-    .gsheets-bar h3 {{ margin: 0; font-size: 15px; color: #fff; }}
-    .gsheets-bar p {{ margin: 2px 0 0; font-size: 12px; color: #8aa0b8; }}
-    .gsheets-actions {{ display: flex; gap: 10px; }}
-    
-    .btn-gsheets {{ background: #0f9d58; color: #fff; border: none; font-weight: 700; font-size: 12px; padding: 10px 16px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: background .15s; text-decoration: none; }}
-    .btn-gsheets:hover {{ background: #0b8043; }}
-    .btn-copy {{ background: #1f2d3d; border: 1px solid #364e6b; color: #cce2ff; font-weight: 600; font-size: 12px; padding: 9px 14px; border-radius: 8px; cursor: pointer; transition: all .15s; }}
-    .btn-copy:hover {{ background: #2c425c; color: #fff; }}
-    
-    .kpi-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-bottom: 28px; }}
-    .kpi-card {{ background: #0d121a; border: 1px solid #1a2332; border-radius: 12px; padding: 18px; }}
-    .kpi-label {{ font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #76889e; margin-bottom: 6px; }}
-    .kpi-val {{ font-size: 28px; font-weight: 800; color: #fff; }}
-    .kpi-sub {{ font-size: 12px; color: #4ade80; margin-top: 4px; }}
+    sst_parts = [f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="{len(shared_strings)}" uniqueCount="{len(shared_strings)}">']
+    for s in shared_strings:
+        sst_parts.append(f'<si><t>{sax.escape(s)}</t></si>')
+    sst_parts.append('</sst>')
+    shared_strings_xml = "".join(sst_parts)
 
-    .panel {{ background: #0d121a; border: 1px solid #1a2332; border-radius: 14px; padding: 22px; margin-bottom: 28px; }}
-    .panel-head {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #172130; padding-bottom: 12px; }}
-    .panel-head h2 {{ margin: 0; font-size: 17px; color: #fff; display: flex; align-items: center; gap: 8px; }}
-    
-    table {{ width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }}
-    th {{ color: #718296; font-weight: 600; padding: 10px 12px; border-bottom: 1px solid #1e293b; font-size: 11px; text-transform: uppercase; }}
-    td {{ padding: 11px 12px; border-bottom: 1px solid #141c28; }}
-    tr:hover td {{ background: #131b26; }}
+    styles_xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="1"><font><name val="Calibri"/><sz val="11"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/></border></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="1"><xf/></cellXfs></styleSheet>'
+    ct_overrides = [f'<Override PartName="/xl/worksheets/sheet{i}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' for i in range(1, len(sheets_data)+1)]
+    content_types_xml = f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>{"".join(ct_overrides)}</Types>'
+    root_rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'
 
-    .toast {{ position: fixed; bottom: 24px; right: 24px; background: #00e676; color: #000; font-weight: 700; padding: 12px 20px; border-radius: 10px; font-size: 13px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); opacity: 0; transition: opacity .2s; pointer-events: none; }}
-    .toast.show {{ opacity: 1; }}
-  </style>
-</head>
-<body>
-<div class="container">
-  <header>
-    <div>
-      <h1>1SHOT CLUB · АНАЛИТИКА ГОСТЕЙ ДЛЯ SMM</h1>
-      <small style="color:#718296">Обновлено: {now_str} (данные из базы Gizmo)</small>
-    </div>
-    <span style="background:#131c28;color:#00e676;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid #203147">● База синхронизирована</span>
-  </header>
-
-  <!-- Google Sheets Quick Integration Bar -->
-  <div class="gsheets-bar">
-    <div class="gsheets-bar-left">
-      <svg class="gsheets-icon" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="8" fill="#0F9D58"/><path d="M25 12H15C13.8954 12 13 12.8954 13 14V26C13 27.1046 13.8954 28 15 28H25C26.1046 28 27 27.1046 27 26V14C27 12.8954 26.1046 12 25 12Z" fill="white"/><path d="M13 18H27M13 22H27M19 12V28" stroke="#0F9D58" stroke-width="1.5"/></svg>
-      <div>
-        <h3>Готово для заливки в Google Таблицы</h3>
-        <p>Нажми «Скопировать для Google Sheets», перейди в пустую таблицу и нажми <b>Ctrl + V</b> (всё встанет в колонки ровно и красиво).</p>
-      </div>
-    </div>
-    <div class="gsheets-actions">
-      <a class="btn-gsheets" href="https://sheets.new" target="_blank">➕ Открыть новую таблицу (sheets.new)</a>
-      <button class="btn-copy" onclick="copyTsv(`{tsv_spenders}`, 'Топ гостей скопирован')">📋 Скопировать всех гостей</button>
-    </div>
-  </div>
-
-  <div class="kpi-grid">
-    <div class="kpi-card">
-      <div class="kpi-label">Всего гостей в базе</div>
-      <div class="kpi-val">{data['total_users']}</div>
-      <div class="kpi-sub">{data['paying_users_count']} с покупками/чеками</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Средний возраст игрока</div>
-      <div class="kpi-val">{data['avg_age']} <span style="font-size:16px;font-weight:400;color:#888">лет</span></div>
-      <div class="kpi-sub">Медиана: {data['median_age']} лет (ядро клуба)</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Средний чек на гостя (LTV)</div>
-      <div class="kpi-val">{data['avg_check']:,.0f} ₽</div>
-      <div class="kpi-sub">Общая сумма: {data['total_revenue']:,.0f} ₽</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Пол (Парни / Девушки)</div>
-      <div class="kpi-val">{data['sex_dist']['Мужской']} / {data['sex_dist']['Женский']}</div>
-      <div class="kpi-sub">{round(data['sex_dist']['Мужской']/max(1,data['total_users'])*100)}% парней</div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-head">
-      <h2>📊 Возрастная сегментация и рекомендации по контенту</h2>
-      <button class="btn-copy" onclick="copyTsv(`{tsv_ages}`, 'Таблица возрастов скопирована')">📋 Скопировать в Google Таблицу</button>
-    </div>
-    <table>
-      <thead><tr><th>Возрастная группа</th><th>Гостей</th><th>Доля клуба</th><th>Что лучше всего заходит в SMM / рекламе</th></tr></thead>
-      <tbody>{age_rows}</tbody>
-    </table>
-  </div>
-
-  <div class="panel">
-    <div class="panel-head">
-      <h2>🏆 Топ гостей по расходам (Ядро выручки клуба)</h2>
-      <button class="btn-copy" onclick="copyTsv(`{tsv_spenders}`, 'Таблица топа гостей скопирована')">📋 Скопировать в Google Таблицу</button>
-    </div>
-    <table>
-      <thead><tr><th>#</th><th>Никнейм</th><th>Телефон</th><th>Возраст</th><th>Всего потрачено</th><th>Картой</th><th>Наличными</th></tr></thead>
-      <tbody>{spender_rows}</tbody>
-    </table>
-  </div>
-
-  <div class="panel">
-    <div class="panel-head">
-      <h2>💤 База спящих гостей (Готовы к рассылке / реактивации)</h2>
-      <button class="btn-copy" onclick="copyTable('sleeping-table')">📋 Скопировать в Google Таблицу</button>
-    </div>
-    <table id="sleeping-table">
-      <thead><tr><th>Никнейм</th><th>Телефон</th><th>Возраст</th><th>Потрачено ранее</th><th>Статус</th><th>Рекомендуемая акция для возврата</th></tr></thead>
-      <tbody>{sleeping_rows}</tbody>
-    </table>
-  </div>
-</div>
-
-<div id="toast" class="toast">Скопировано! Вставьте в Google Таблицу через Ctrl+V</div>
-
-<script>
-function copyTsv(tsvData, message) {{
-  navigator.clipboard.writeText(tsvData.replace(/\\\\n/g, '\\n')).then(() => {{
-    showToast(message || 'Скопировано! Откройте Google Таблицу и нажмите Ctrl+V');
-  }}).catch(() => {{
-    alert('Не удалось скопировать в буфер. Выделите таблицу вручную.');
-  }});
-}}
-
-function copyTable(tableId) {{
-  const table = document.getElementById(tableId);
-  if (!table) return;
-  let tsv = '';
-  for (const row of table.rows) {{
-    const cells = Array.from(row.cells).map(c => c.innerText.trim().replace(/\\t|\\n/g, ' '));
-    tsv += cells.join('\\t') + '\\n';
-  }}
-  copyTsv(tsv, 'Таблица скопирована для Google Sheets');
-}}
-
-function showToast(text) {{
-  const t = document.getElementById('toast');
-  t.textContent = text;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3500);
-}}
-</script>
-</body>
-</html>
-"""
-    Path(filename).write_text(html, encoding="utf-8")
-    print(f"[OK] Interactive HTML dashboard generated: {filename}")
-    return filename
+    with zipfile.ZipFile(filepath, 'w', zipfile.ZIP_DEFLATED) as z:
+        z.writestr("[Content_Types].xml", content_types_xml)
+        z.writestr("_rels/.rels", root_rels)
+        z.writestr("xl/_rels/workbook.xml.rels", workbook_rels)
+        z.writestr("xl/workbook.xml", workbook_xml)
+        z.writestr("xl/styles.xml", styles_xml)
+        z.writestr("xl/sharedStrings.xml", shared_strings_xml)
+        for p, d in sheet_xmls:
+            z.writestr(p, d)
+    print(f"[OK] Single Excel workbook generated: {filepath}")
 
 def main():
     print("=" * 60)
-    print(" 1SHOT CLUB: GIZMO ANALYTICS & GOOGLE SHEETS EXPORTER ")
+    print(" 1SHOT CLUB: GIZMO ANALYTICS WORKBOOK EXPORTER ")
     print("=" * 60)
 
     env_path = find_env()
@@ -436,15 +320,20 @@ def main():
         spending = client.get("reports/users/spending") or []
         data = analyze(users, spending)
 
-    generate_html_report(data)
-    generate_csv_exports(data)
+    # 1. Create single Excel workbook with 4 tabs
+    xlsx_path = "1SHOT_Statistika_Club.xlsx"
+    create_excel_workbook(data, xlsx_path)
+
+    # Also copy with Russian filename for local clarity
+    import shutil
+    shutil.copyfile(xlsx_path, "Нынешняя статистика 1SHOT.xlsx")
     
     print("\n" + "=" * 60)
-    print(" ГОТОВО ДЛЯ GOOGLE ТАБЛИЦ:")
-    print(" 1. Открой 1shot-analytics-report.html в браузере")
-    print(" 2. Нажми кнопку 'Скопировать в Google Таблицу'")
-    print(" 3. Перейди в sheets.new и нажми Ctrl + V")
-    print(" Либо импортируй созданные CSV-файлы через Файл -> Импорт -> Загрузка.")
+    print(" ГОТОВА ЕДИНАЯ ТАБЛИЦА С ВКЛАДКАМИ:")
+    print(" 1. Вкладка 'Общая сводка' — ключевые метрики, средний возраст, средний чек, LTV")
+    print(" 2. Вкладка 'Возраст и Демография' — разбивка по группам и рекомендации для SMM")
+    print(" 3. Вкладка 'Топ гостей (Ядро)' — рейтинг всех игроков с телефонами и суммами")
+    print(" 4. Вкладка 'Спящие гости (Рассылка)' — база для реактивации с готовыми текстами")
     print("=" * 60)
 
 if __name__ == "__main__":
