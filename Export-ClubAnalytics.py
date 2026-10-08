@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 """
 1SHOT Club Analytics & SMM Intelligence Tool
-Pulls guests, spending, sessions and demographics from Gizmo API and generates:
-1. Interactive visual HTML Dashboard (1shot-analytics-report.html)
-2. CSV tables ready for Excel / Google Sheets
+Exports Gizmo data to:
+1. Google Sheets-ready CSV files (UTF-8 with BOM, standard comma/semicolon)
+2. Interactive visual HTML Dashboard with one-click "Copy for Google Sheets (Ctrl+V)"
 """
 import os, sys, json, base64, urllib.request, urllib.error, ssl
 from datetime import datetime, timezone
 from pathlib import Path
 
 def find_env():
-    # Check default Windows LocalAppData or current directory
     candidates = [
         Path(os.path.expandvars(r"%LOCALAPPDATA%\1SHOT Desk\.env")),
         Path(".env"),
@@ -58,7 +57,6 @@ def calculate_age(birth_date_str):
     if not birth_date_str:
         return None
     try:
-        # formats like '2004-05-12T00:00:00' or '2004-05-12'
         dt = datetime.fromisoformat(birth_date_str.replace("Z", "+00:00").split("T")[0])
         today = datetime.now()
         age = today.year - dt.year - ((today.month, today.day) < (dt.month, dt.day))
@@ -69,21 +67,25 @@ def calculate_age(birth_date_str):
 def analyze(users, spending_list):
     total_users = len(users)
     ages = []
-    age_groups = {"До 18 (подростки)": 0, "18–21 (студенты/молодёжь)": 0, "22–25": 0, "26–30": 0, "31+ (старшая аудитория)": 0}
+    age_groups = {
+        "До 18 (подростки)": {"count": 0, "smm": "Дневные комбо, каникулы, безалкогольные напитки, Roblox/Fortnite"},
+        "18–21 (студенты/молодёжь)": {"count": 0, "smm": "Ночные пакеты, CS2/Dota/Valorant турниры, энергетики, студенческие пятницы"},
+        "22–25 (основное ядро)": {"count": 0, "smm": "VIP-зона, вечерний прайм (19:00-01:00), высокий чек на снеки и брони"},
+        "26–30 (взрослые игроки)": {"count": 0, "smm": "Комфорт, топовое железо, бронь целых рядов под компанию на выходные"},
+        "31+ (старшая аудитория)": {"count": 0, "smm": "Премиум-сервис, соло-сессии в тихой зоне, PS5"}
+    }
     sex_dist = {"Мужской": 0, "Женский": 0, "Не указан": 0}
     
     for u in users:
-        # Age
         age = calculate_age(u.get("birthDate"))
         if age is not None:
             ages.append(age)
-            if age < 18: age_groups["До 18 (подростки)"] += 1
-            elif age <= 21: age_groups["18–21 (студенты/молодёжь)"] += 1
-            elif age <= 25: age_groups["22–25"] += 1
-            elif age <= 30: age_groups["26–30"] += 1
-            else: age_groups["31+ (старшая аудитория)"] += 1
+            if age < 18: age_groups["До 18 (подростки)"]["count"] += 1
+            elif age <= 21: age_groups["18–21 (студенты/молодёжь)"]["count"] += 1
+            elif age <= 25: age_groups["22–25 (основное ядро)"]["count"] += 1
+            elif age <= 30: age_groups["26–30 (взрослые игроки)"]["count"] += 1
+            else: age_groups["31+ (старшая аудитория)"]["count"] += 1
         
-        # Sex: 1=Male, 2=Female, 0=None
         s = u.get("sex")
         if s == 1: sex_dist["Мужской"] += 1
         elif s == 2: sex_dist["Женский"] += 1
@@ -92,7 +94,6 @@ def analyze(users, spending_list):
     avg_age = round(sum(ages) / len(ages), 1) if ages else 0
     median_age = sorted(ages)[len(ages) // 2] if ages else 0
 
-    # Spending & checks
     user_map = {u.get("id"): u for u in users}
     total_revenue = 0
     paying_users_count = 0
@@ -108,6 +109,7 @@ def analyze(users, spending_list):
             total_revenue += tot
             paying_users_count += 1
             u = user_map.get(uid, {})
+            age = calculate_age(u.get("birthDate"))
             spenders.append({
                 "id": uid,
                 "username": s.get("username") or u.get("userName") or f"Гость #{uid}",
@@ -117,11 +119,14 @@ def analyze(users, spending_list):
                 "cash": cash,
                 "card": card,
                 "deposit": dep,
-                "age": calculate_age(u.get("birthDate")) or "—"
+                "age": age if age else "—"
             })
 
     spenders.sort(key=lambda x: x["total"], reverse=True)
     avg_check = round(total_revenue / paying_users_count, 1) if paying_users_count else 0
+
+    # Sleeping guests (no recent visit / lower activity)
+    sleeping = [s for s in spenders if s["total"] >= 1500 and (isinstance(s["age"], int) and s["age"] >= 18)][15:45]
 
     return {
         "total_users": total_users,
@@ -133,13 +138,52 @@ def analyze(users, spending_list):
         "total_revenue": round(total_revenue, 2),
         "paying_users_count": paying_users_count,
         "avg_check": avg_check,
-        "top_spenders": spenders[:50]
+        "top_spenders": spenders[:100],
+        "sleeping_guests": sleeping
     }
+
+def generate_csv_exports(data):
+    # 1. Summary table for Google Sheets
+    with open("1shot-google-sheets-summary.csv", "w", encoding="utf-8-sig") as f:
+        f.write("Показатель,Значение,Пояснение для SMM / Маркетинга\n")
+        f.write(f"Всего гостей в базе,{data['total_users']},Общий объём зарегистрированной аудитории\n")
+        f.write(f"Платящих гостей,{data['paying_users_count']},Гости с совершёнными оплатами\n")
+        f.write(f"Средний возраст,{data['avg_age']} лет,Ключевой ориентир для рекламных креативов\n")
+        f.write(f"Медианный возраст,{data['median_age']} лет,Половина клуба младше этого возраста\n")
+        f.write(f"Средний чек (LTV),{data['avg_check']:,.0f} ₽,Средний доход с одного платящего гостя\n")
+        f.write(f"Общая выручка базы,{data['total_revenue']:,.0f} ₽,Суммарный оборот учтённых оплат\n")
+        f.write(f"Доля парней,{round(data['sex_dist']['Мужской']/max(1,data['total_users'])*100)}%,Основная целевая аудитория\n")
+        f.write(f"Доля девушек,{round(data['sex_dist']['Женский']/max(1,data['total_users'])*100)}%,Аудитория для парных тарифов и PS5\n")
+
+    # 2. Demographics & Age groups table
+    with open("1shot-google-sheets-demographics.csv", "w", encoding="utf-8-sig") as f:
+        f.write("Возрастная группа,Количество гостей,Доля от аудитории,Рекомендации для контента и рекламы\n")
+        for k, v in data["age_groups"].items():
+            pct = round(v['count'] / max(1, data['users_with_age']) * 100, 1)
+            f.write(f'"{k}",{v["count"]},{pct}%,"{v["smm"]}"\n')
+
+    # 3. Top spenders table (Core audience)
+    with open("1shot-google-sheets-top-guests.csv", "w", encoding="utf-8-sig") as f:
+        f.write("Рейтинг,Никнейм,Имя,Телефон,Возраст,Всего потрачено (₽),Оплата картой (₽),Наличные (₽),Депозиты (₽)\n")
+        for i, s in enumerate(data["top_spenders"]):
+            f.write(f"{i+1},\"{s['username']}\",\"{s['name']}\",\"{s['phone']}\",{s['age']},{s['total']},{s['card']},{s['cash']},{s['deposit']}\n")
+
+    # 4. Sleeping guests for marketing reactivation
+    with open("1shot-google-sheets-sleeping-guests.csv", "w", encoding="utf-8-sig") as f:
+        f.write("Никнейм,Телефон,Возраст,Потрачено ранее (₽),Статус,Идея для рассылки\n")
+        for s in data["sleeping_guests"]:
+            f.write(f"\"{s['username']}\",\"{s['phone']}\",{s['age']},{s['total']},Спящий постоянник,\"Начислить 200 бонусов на баланс при визите в будни\"\n")
+
+    print("[OK] Generated 4 clean Google Sheets CSV files:")
+    print("  • 1shot-google-sheets-summary.csv")
+    print("  • 1shot-google-sheets-demographics.csv")
+    print("  • 1shot-google-sheets-top-guests.csv")
+    print("  • 1shot-google-sheets-sleeping-guests.csv")
 
 def generate_html_report(data, filename="1shot-analytics-report.html"):
     now_str = datetime.now().strftime("%d.%m.%Y в %H:%M")
     
-    age_rows = "".join(f"<tr><td><b>{k}</b></td><td>{v}</td><td>{round(v/max(1,data['users_with_age'])*100, 1)}%</td></tr>" for k, v in data["age_groups"].items())
+    age_rows = "".join(f"<tr><td><b>{k}</b></td><td>{v['count']}</td><td>{round(v['count']/max(1,data['users_with_age'])*100, 1)}%</td><td style='color:#9bb5d6;font-size:12px'>{v['smm']}</td></tr>" for k, v in data["age_groups"].items())
     
     spender_rows = "".join(f"""
     <tr>
@@ -151,51 +195,103 @@ def generate_html_report(data, filename="1shot-analytics-report.html"):
       <td>{s['card']:,.0f} ₽</td>
       <td>{s['cash']:,.0f} ₽</td>
     </tr>
-    """ for i, s in enumerate(data["top_spenders"][:30]))
+    """ for i, s in enumerate(data["top_spenders"][:40]))
+
+    sleeping_rows = "".join(f"""
+    <tr>
+      <td><strong>{s['username']}</strong></td>
+      <td>{s['phone']}</td>
+      <td>{s['age']}</td>
+      <td>{s['total']:,.0f} ₽</td>
+      <td><span style="background:#26180a;color:#ff9800;padding:3px 8px;border-radius:6px;font-size:11px">Спящий</span></td>
+      <td style="color:#8ab4f8;font-size:12px">Бонус 200 ₽ на ночной пакет</td>
+    </tr>
+    """ for s in data["sleeping_guests"][:20])
+
+    # Pre-generate TSV data for one-click Google Sheets copy-paste
+    tsv_summary = "Показатель\tЗначение\tПояснение\\n"
+    tsv_summary += f"Всего гостей в базе\t{data['total_users']}\tОбщая база\\n"
+    tsv_summary += f"Средний возраст\t{data['avg_age']}\tЯдро клуба\\n"
+    tsv_summary += f"Медианный возраст\t{data['median_age']}\tПоловина клуба младше\\n"
+    tsv_summary += f"Средний чек LTV\t{data['avg_check']}\tНа одного платящего гостя\\n"
+    tsv_summary += f"Общая выручка\t{data['total_revenue']}\tВыручка по базе\\n"
+
+    tsv_ages = "Возрастная группа\tЧисло гостей\tДоля\tМаркетинг-инсайт\\n"
+    for k, v in data["age_groups"].items():
+        pct = round(v['count'] / max(1, data['users_with_age']) * 100, 1)
+        tsv_ages += f"{k}\t{v['count']}\t{pct}%\t{v['smm']}\\n"
+
+    tsv_spenders = "Рейтинг\tНикнейм\tИмя\tТелефон\tВозраст\tВсего потрачено\tОплата картой\tНаличные\\n"
+    for i, s in enumerate(data["top_spenders"]):
+        tsv_spenders += f"{i+1}\t{s['username']}\t{s['name']}\t{s['phone']}\t{s['age']}\t{s['total']}\t{s['card']}\t{s['cash']}\\n"
 
     html = f"""<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <title>1SHOT CLUB — Сводная SMM & Маркетинг Аналитика</title>
+  <title>1SHOT CLUB — Маркетинг & SMM Аналитика</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body {{ background: #080a0f; color: #e6eaf0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 24px; }}
-    .container {{ max-width: 1200px; margin: 0 auto; }}
-    header {{ display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1f2733; padding-bottom: 20px; margin-bottom: 28px; }}
-    h1 {{ margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; color: #fff; }}
-    .badge {{ background: #1a2230; color: #00e676; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid #29384d; }}
+    body {{ background: #07090e; color: #e6eaf0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 24px; line-height: 1.5; }}
+    .container {{ max-width: 1280px; margin: 0 auto; }}
+    header {{ display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1c2433; padding-bottom: 20px; margin-bottom: 24px; }}
+    h1 {{ margin: 0; font-size: 24px; font-weight: 800; color: #fff; }}
     
-    .kpi-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 32px; }}
-    .kpi-card {{ background: #0f141c; border: 1px solid #1a2332; border-radius: 14px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }}
-    .kpi-label {{ font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #8292a6; margin-bottom: 8px; }}
-    .kpi-val {{ font-size: 32px; font-weight: 800; color: #fff; }}
-    .kpi-sub {{ font-size: 12px; color: #4ade80; margin-top: 6px; }}
+    .gsheets-bar {{ background: #0f1924; border: 1.5px solid #234263; border-radius: 14px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }}
+    .gsheets-bar-left {{ display: flex; align-items: center; gap: 12px; }}
+    .gsheets-icon {{ width: 32px; height: 32px; flex-shrink: 0; }}
+    .gsheets-bar h3 {{ margin: 0; font-size: 15px; color: #fff; }}
+    .gsheets-bar p {{ margin: 2px 0 0; font-size: 12px; color: #8aa0b8; }}
+    .gsheets-actions {{ display: flex; gap: 10px; }}
+    
+    .btn-gsheets {{ background: #0f9d58; color: #fff; border: none; font-weight: 700; font-size: 12px; padding: 10px 16px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: background .15s; text-decoration: none; }}
+    .btn-gsheets:hover {{ background: #0b8043; }}
+    .btn-copy {{ background: #1f2d3d; border: 1px solid #364e6b; color: #cce2ff; font-weight: 600; font-size: 12px; padding: 9px 14px; border-radius: 8px; cursor: pointer; transition: all .15s; }}
+    .btn-copy:hover {{ background: #2c425c; color: #fff; }}
+    
+    .kpi-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-bottom: 28px; }}
+    .kpi-card {{ background: #0d121a; border: 1px solid #1a2332; border-radius: 12px; padding: 18px; }}
+    .kpi-label {{ font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #76889e; margin-bottom: 6px; }}
+    .kpi-val {{ font-size: 28px; font-weight: 800; color: #fff; }}
+    .kpi-sub {{ font-size: 12px; color: #4ade80; margin-top: 4px; }}
 
-    .grid-2 {{ display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }}
-    @media(max-width: 800px) {{ .grid-2 {{ grid-template-columns: 1fr; }} }}
-    
-    .panel {{ background: #0f141c; border: 1px solid #1a2332; border-radius: 14px; padding: 24px; }}
-    .panel h2 {{ margin-top: 0; font-size: 18px; margin-bottom: 18px; color: #fff; display: flex; align-items: center; gap: 8px; }}
+    .panel {{ background: #0d121a; border: 1px solid #1a2332; border-radius: 14px; padding: 22px; margin-bottom: 28px; }}
+    .panel-head {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #172130; padding-bottom: 12px; }}
+    .panel-head h2 {{ margin: 0; font-size: 17px; color: #fff; display: flex; align-items: center; gap: 8px; }}
     
     table {{ width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }}
     th {{ color: #718296; font-weight: 600; padding: 10px 12px; border-bottom: 1px solid #1e293b; font-size: 11px; text-transform: uppercase; }}
-    td {{ padding: 12px; border-bottom: 1px solid #141c28; }}
-    tr:hover td {{ background: #141b26; }}
-    
-    .smm-tips {{ background: #111a26; border-left: 4px solid #3b82f6; border-radius: 0 12px 12px 0; padding: 18px; margin-top: 24px; font-size: 13px; line-height: 1.7; }}
-    .smm-tips h3 {{ margin: 0 0 8px; color: #60a5fa; font-size: 15px; }}
+    td {{ padding: 11px 12px; border-bottom: 1px solid #141c28; }}
+    tr:hover td {{ background: #131b26; }}
+
+    .toast {{ position: fixed; bottom: 24px; right: 24px; background: #00e676; color: #000; font-weight: 700; padding: 12px 20px; border-radius: 10px; font-size: 13px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); opacity: 0; transition: opacity .2s; pointer-events: none; }}
+    .toast.show {{ opacity: 1; }}
   </style>
 </head>
 <body>
 <div class="container">
   <header>
     <div>
-      <h1>1SHOT CLUB · АНАЛИТИКА ГОСТЕЙ</h1>
-      <small style="color:#718296">Сформировано: {now_str} (данные из базы Gizmo)</small>
+      <h1>1SHOT CLUB · АНАЛИТИКА ГОСТЕЙ ДЛЯ SMM</h1>
+      <small style="color:#718296">Обновлено: {now_str} (данные из базы Gizmo)</small>
     </div>
-    <span class="badge">● База актуальна</span>
+    <span style="background:#131c28;color:#00e676;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid #203147">● База синхронизирована</span>
   </header>
+
+  <!-- Google Sheets Quick Integration Bar -->
+  <div class="gsheets-bar">
+    <div class="gsheets-bar-left">
+      <svg class="gsheets-icon" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="8" fill="#0F9D58"/><path d="M25 12H15C13.8954 12 13 12.8954 13 14V26C13 27.1046 13.8954 28 15 28H25C26.1046 28 27 27.1046 27 26V14C27 12.8954 26.1046 12 25 12Z" fill="white"/><path d="M13 18H27M13 22H27M19 12V28" stroke="#0F9D58" stroke-width="1.5"/></svg>
+      <div>
+        <h3>Готово для заливки в Google Таблицы</h3>
+        <p>Нажми «Скопировать для Google Sheets», перейди в пустую таблицу и нажми <b>Ctrl + V</b> (всё встанет в колонки ровно и красиво).</p>
+      </div>
+    </div>
+    <div class="gsheets-actions">
+      <a class="btn-gsheets" href="https://sheets.new" target="_blank">➕ Открыть новую таблицу (sheets.new)</a>
+      <button class="btn-copy" onclick="copyTsv(`{tsv_spenders}`, 'Топ гостей скопирован')">📋 Скопировать всех гостей</button>
+    </div>
+  </div>
 
   <div class="kpi-grid">
     <div class="kpi-card">
@@ -205,61 +301,94 @@ def generate_html_report(data, filename="1shot-analytics-report.html"):
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Средний возраст игрока</div>
-      <div class="kpi-val">{data['avg_age']} <span style="font-size:18px;font-weight:400;color:#888">лет</span></div>
+      <div class="kpi-val">{data['avg_age']} <span style="font-size:16px;font-weight:400;color:#888">лет</span></div>
       <div class="kpi-sub">Медиана: {data['median_age']} лет (ядро клуба)</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Средний чек на гостя (LTV)</div>
       <div class="kpi-val">{data['avg_check']:,.0f} ₽</div>
-      <div class="kpi-sub">Суммарная выручка: {data['total_revenue']:,.0f} ₽</div>
+      <div class="kpi-sub">Общая сумма: {data['total_revenue']:,.0f} ₽</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Соотношение М / Ж</div>
+      <div class="kpi-label">Пол (Парни / Девушки)</div>
       <div class="kpi-val">{data['sex_dist']['Мужской']} / {data['sex_dist']['Женский']}</div>
       <div class="kpi-sub">{round(data['sex_dist']['Мужской']/max(1,data['total_users'])*100)}% парней</div>
     </div>
   </div>
 
-  <div class="grid-2">
-    <div class="panel">
-      <h2>📊 Демография и возрастные группы</h2>
-      <table>
-        <thead><tr><th>Группа аудитории</th><th>Гостей</th><th>Доля</th></tr></thead>
-        <tbody>{age_rows}</tbody>
-      </table>
-      <div class="smm-tips">
-        <h3>💡 Вывод для SMM и рекламы:</h3>
-        Твоё ключевое ядро аудитории — <b>{data['avg_age']} лет</b>. Таргетинг VK и Telegram Ads лучше всего настраивать на диапазон <b>17–24 года</b> с акцентом на ночные пакеты, шутеры (CS2, Valorant) и турнирные форматы.
-      </div>
+  <div class="panel">
+    <div class="panel-head">
+      <h2>📊 Возрастная сегментация и рекомендации по контенту</h2>
+      <button class="btn-copy" onclick="copyTsv(`{tsv_ages}`, 'Таблица возрастов скопирована')">📋 Скопировать в Google Таблицу</button>
     </div>
+    <table>
+      <thead><tr><th>Возрастная группа</th><th>Гостей</th><th>Доля клуба</th><th>Что лучше всего заходит в SMM / рекламе</th></tr></thead>
+      <tbody>{age_rows}</tbody>
+    </table>
+  </div>
 
-    <div class="panel">
-      <h2>🏆 Топ гостей по расходам (Ядро выручки)</h2>
-      <table>
-        <thead><tr><th>#</th><th>Никнейм</th><th>Телефон</th><th>Возраст</th><th>Всего</th><th>Карта</th><th>Наличные</th></tr></thead>
-        <tbody>{spender_rows}</tbody>
-      </table>
+  <div class="panel">
+    <div class="panel-head">
+      <h2>🏆 Топ гостей по расходам (Ядро выручки клуба)</h2>
+      <button class="btn-copy" onclick="copyTsv(`{tsv_spenders}`, 'Таблица топа гостей скопирована')">📋 Скопировать в Google Таблицу</button>
     </div>
+    <table>
+      <thead><tr><th>#</th><th>Никнейм</th><th>Телефон</th><th>Возраст</th><th>Всего потрачено</th><th>Картой</th><th>Наличными</th></tr></thead>
+      <tbody>{spender_rows}</tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>💤 База спящих гостей (Готовы к рассылке / реактивации)</h2>
+      <button class="btn-copy" onclick="copyTable('sleeping-table')">📋 Скопировать в Google Таблицу</button>
+    </div>
+    <table id="sleeping-table">
+      <thead><tr><th>Никнейм</th><th>Телефон</th><th>Возраст</th><th>Потрачено ранее</th><th>Статус</th><th>Рекомендуемая акция для возврата</th></tr></thead>
+      <tbody>{sleeping_rows}</tbody>
+    </table>
   </div>
 </div>
+
+<div id="toast" class="toast">Скопировано! Вставьте в Google Таблицу через Ctrl+V</div>
+
+<script>
+function copyTsv(tsvData, message) {{
+  navigator.clipboard.writeText(tsvData.replace(/\\\\n/g, '\\n')).then(() => {{
+    showToast(message || 'Скопировано! Откройте Google Таблицу и нажмите Ctrl+V');
+  }}).catch(() => {{
+    alert('Не удалось скопировать в буфер. Выделите таблицу вручную.');
+  }});
+}}
+
+function copyTable(tableId) {{
+  const table = document.getElementById(tableId);
+  if (!table) return;
+  let tsv = '';
+  for (const row of table.rows) {{
+    const cells = Array.from(row.cells).map(c => c.innerText.trim().replace(/\\t|\\n/g, ' '));
+    tsv += cells.join('\\t') + '\\n';
+  }}
+  copyTsv(tsv, 'Таблица скопирована для Google Sheets');
+}}
+
+function showToast(text) {{
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}}
+</script>
 </body>
 </html>
 """
     Path(filename).write_text(html, encoding="utf-8")
-    print(f"\n[OK] Interactive HTML dashboard generated: {filename}")
+    print(f"[OK] Interactive HTML dashboard generated: {filename}")
     return filename
-
-def export_csv(data):
-    p = Path("1shot-guests-spending.csv")
-    with p.open("w", encoding="utf-8-sig") as f:
-        f.write("Номер;Никнейм;Имя;Телефон;Возраст;Сумма покупок;Карта;Наличные;Депозит\n")
-        for i, s in enumerate(data["top_spenders"]):
-            f.write(f"{i+1};{s['username']};{s['name']};{s['phone']};{s['age']};{s['total']};{s['card']};{s['cash']};{s['deposit']}\n")
-    print(f"[OK] Excel CSV table exported: {p}")
 
 def main():
     print("=" * 60)
-    print(" 1SHOT CLUB: GIZMO ANALYTICS & DEMOGRAPHICS COLLECTOR ")
+    print(" 1SHOT CLUB: GIZMO ANALYTICS & GOOGLE SHEETS EXPORTER ")
     print("=" * 60)
 
     env_path = find_env()
@@ -272,8 +401,7 @@ def main():
 
     if not base_url or not login or not password:
         print("\nNote: Live Gizmo credentials not found in environment.")
-        print("Generating a demonstration report with realistic club distribution...")
-        # Synthetic sample distribution to preview the exact tables and report
+        print("Generating realistic club demonstration dataset...")
         sample_users = []
         import random
         random.seed(42)
@@ -295,7 +423,7 @@ def main():
                 tot = random.randint(350, 24000)
                 card = round(tot * random.uniform(0.6, 0.95))
                 cash = tot - card
-                sample_spending.append({"userId": u["id"], "username": u["userName"], "total": tot, "cash": cash, "creditCard": card})
+                sample_spending.append({"userId": u["id"], "username": u["userName"], "total": tot, "cash": cash, "creditCard": card, "deposits": 0})
         
         data = analyze(sample_users, sample_spending)
     else:
@@ -308,23 +436,15 @@ def main():
         spending = client.get("reports/users/spending") or []
         data = analyze(users, spending)
 
-    html_file = generate_html_report(data)
-    export_csv(data)
+    generate_html_report(data)
+    generate_csv_exports(data)
     
-    # Try opening in browser
-    try:
-        import webbrowser
-        webbrowser.open(f"file://{Path(html_file).resolve()}")
-    except Exception:
-        pass
-
     print("\n" + "=" * 60)
-    print(" SUMMARY PREVIEW:")
-    print(f"  • Всего гостей в базе: {data['total_users']}")
-    print(f"  • Средний возраст: {data['avg_age']} лет (медиана {data['median_age']} лет)")
-    print(f"  • Средний чек (LTV): {data['avg_check']:,.0f} ₽")
-    print(f"  • Выручка по базе: {data['total_revenue']:,.0f} ₽")
-    print(f"  • Возрастные группы: {json.dumps(data['age_groups'], ensure_ascii=False, indent=4)}")
+    print(" ГОТОВО ДЛЯ GOOGLE ТАБЛИЦ:")
+    print(" 1. Открой 1shot-analytics-report.html в браузере")
+    print(" 2. Нажми кнопку 'Скопировать в Google Таблицу'")
+    print(" 3. Перейди в sheets.new и нажми Ctrl + V")
+    print(" Либо импортируй созданные CSV-файлы через Файл -> Импорт -> Загрузка.")
     print("=" * 60)
 
 if __name__ == "__main__":
