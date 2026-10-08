@@ -3,7 +3,7 @@ export type Runner = (query: string, args?: unknown[]) => Promise<Record<string,
 let run: Runner;
 export function configureDatabase(runner: Runner) { run = runner; }
 const tables = new Set(['profiles','hosts_cache','club_settings','club_worker','club_bookings','club_events','club_accounts','club_commands','club_auth_requests']);
-const functions = new Set(['club_worker_poll','club_worker_lease','club_worker_transition','club_auth_claim','club_auth_enqueue','club_client_state','club_create_v2','club_booking_action','club_account_request','club_command','club_create_booking','club_checkin','club_cancel','club_admin_booking','club_admin_cancel']);
+const functions = new Set(['club_worker_poll','club_worker_lease','club_worker_transition','club_auth_claim','club_auth_enqueue','club_registration_submit','club_registration_status','club_registration_claim','club_registration_reject','club_registration_finish','club_client_state','club_create_v2','club_booking_action','club_account_request','club_command','club_create_booking','club_checkin','club_cancel','club_admin_booking','club_admin_cancel']);
 const ident = (s: string) => { if(!/^[a-z_][a-z0-9_]*$/.test(s)) throw Error('invalid_identifier'); return '"'+s+'"'; };
 const failure = (e: any) => ({data:null,error:{code:e.code || 'LOCAL_DB',message:e.code==='P0001'?String(e.message):'database_error'}});
 class Query implements PromiseLike<any> {

@@ -42,3 +42,10 @@ Deno.test('native psql export SQL is read-only, import-compatible and guards unf
   refused=false;try{await source.exec(query);}catch{refused=true;await source.exec('rollback');}assert(refused);
  }finally{await source.close();await target.close();}
 });
+
+Deno.test('transfer v1 refuses the registration schema even if empty',async()=>{
+ const pg=await database();const run=async(q:string,args:unknown[]=[])=> (await pg.query(q,args)).rows as any[];
+ try{const bundle=await exportBundle(run);await pg.exec('create table public.club_registration_requests(id uuid)');
+  for(const action of [()=>exportBundle(run),()=>importBundle(run,bundle)]){let refused=false;try{await action()}catch(e){refused=String(e).includes('does not support registration')}assert(refused)}
+ }finally{await pg.close()}
+});

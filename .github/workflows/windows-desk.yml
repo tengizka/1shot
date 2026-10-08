@@ -2,7 +2,7 @@ name: Build Windows Desk
 on:
   push:
     branches: [arena/01a0d663-1shot]
-    paths: ['desktop/**', 'tests/test_*.py', 'tests/*browser.cjs', '.github/workflows/windows-desk.yml']
+    paths: ['desktop/**', 'tests/test_*.py', 'tests/*browser.cjs', 'release/registration/**', '.github/workflows/windows-desk.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -28,6 +28,7 @@ jobs:
         env:
           LD_LIBRARY_PATH: /tmp/chromium-libs/lib
         run: |
+          node tests/registration-approval-browser.cjs
           node tests/desk-stability-browser.cjs
           node tests/desk-browser.cjs
           node tests/admin-tools-browser.cjs
@@ -55,12 +56,21 @@ jobs:
         run: python -m unittest discover -s tests -p test_local_backend.py
       - name: Test strict registration
         run: python -m unittest discover -s tests -p test_registration.py
+      - name: Test manual registration safety
+        run: python -m unittest discover -s tests -p test_registration_approval.py
+      - name: Stage registration frontend without publishing it
+        shell: pwsh
+        run: |
+          $target = Join-Path $env:RUNNER_TEMP 'registration-preview'
+          ./release/registration/Stage-Frontend.ps1 -OutputDirectory $target
+          if ((Get-Content index.html -Raw).Contains('registration-wait.js')) { throw 'Production frontend must remain unchanged during staging' }
+          if (-not (Get-Content (Join-Path $target 'index.html') -Raw).Contains('registration-wait.js')) { throw 'Staged frontend missing approval UI' }
       - name: Test branding assets
         run: python -m unittest discover -s tests -p test_desktop_branding.py
       - name: Generate release identity
         run: python -m desktop.write_metadata
       - name: Build portable app
-        run: python -m PyInstaller --noconfirm --clean --windowed --name 1SHOT-Desk --paths . --icon desktop/assets/app.ico --version-file desktop/version-info.txt --add-data "desktop/assets;desktop/assets" --add-data "desktop/brand.js;desktop" --add-data "desktop/index.html;desktop" --add-data "desktop/desk.js;desktop" --add-data "desktop/admin-tools.js;desktop" --add-data "desktop/desk.css;desktop" --add-data "desktop/polish.css;desktop" --add-data "desktop/polish.js;desktop" --add-data "assets/fonts;assets/fonts" --collect-all webview --exclude-module webview.platforms.winforms --exclude-module webview.platforms.edgechromium --exclude-module clr --exclude-module pythonnet desktop/launcher.py
+        run: python -m PyInstaller --noconfirm --clean --windowed --name 1SHOT-Desk --paths . --icon desktop/assets/app.ico --version-file desktop/version-info.txt --add-data "desktop/assets;desktop/assets" --add-data "desktop/brand.js;desktop" --add-data "desktop/index.html;desktop" --add-data "desktop/desk.js;desktop" --add-data "desktop/admin-tools.js;desktop" --add-data "desktop/registrations.js;desktop" --add-data "desktop/desk.css;desktop" --add-data "desktop/polish.css;desktop" --add-data "desktop/polish.js;desktop" --add-data "assets/fonts;assets/fonts" --collect-all webview --exclude-module webview.platforms.winforms --exclude-module webview.platforms.edgechromium --exclude-module clr --exclude-module pythonnet desktop/launcher.py
       - name: Launch packaged Qt UI and verify JS bridge (no club connections)
         shell: pwsh
         run: |

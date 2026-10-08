@@ -12,14 +12,14 @@ from .services import ApiError
 def adult_group(gizmo):
     groups=gizmo.request('GET','usergroups')
     found=[g for g in groups if g.get('name','').strip()=='18+'] if isinstance(groups,list) else []
-    if len(found)!=1 or not isinstance(found[0].get('id'),int) or found[0]['id']<=0:
+    if len(found)!=1 or type(found[0].get('id')) is not int or found[0]['id']<=0:
         raise ApiError('В Gizmo нужна ровно одна группа с названием 18+')
     return found[0]['id']
 
 
 def registration_params(req,gizmo,today=None):
     today=today or datetime.now(timezone(timedelta(hours=3))).date()
-    if not re.fullmatch(r'[\w.-]{3,30}',req.get('username','')) or not 6<=len(req.get('password',''))<=64:
+    if not re.fullmatch(r'[\w.-]{3,30}',req.get('username','')) or not isinstance(req.get('password'),str) or not 1<=len(req['password'])<=64 or not req['password'].strip():
         raise ApiError('Некорректный никнейм или пароль')
     if any(not isinstance(req.get(k),str) or not req[k].strip() or len(req[k])>45 for k in ('first_name','last_name')):
         raise ApiError('Имя и фамилия обязательны')
@@ -29,7 +29,12 @@ def registration_params(req,gizmo,today=None):
     birth=date.fromisoformat(req['birth_date'])
     age=today.year-birth.year-((today.month,today.day)<(birth.month,birth.day))
     if birth>today or age>110:raise ApiError('Проверьте дату рождения')
-    group=adult_group(gizmo) if age>=18 else int(os.getenv('GUEST_USER_GROUP_ID','3'))
+    if age>=18:group=adult_group(gizmo)
+    else:
+        groups=gizmo.request('GET','usergroups')
+        matches=[g for g in groups if g.get('name','').strip()=='Клиенты'] if isinstance(groups,list) else []
+        if len(matches)!=1 or type(matches[0].get('id')) is not int or matches[0]['id']<=0:raise ApiError('Нужна ровно одна группа Клиенты')
+        group=matches[0]['id']
     return {'Username':req['username'],'UserGroupId':group,'FirstName':req['first_name'].strip(),'LastName':req['last_name'].strip(),'MobilePhone':phone,'Sex':req['sex'],'BirthDate':birth.isoformat()+'T00:00:00'}
 
 
@@ -63,18 +68,7 @@ def process_auth(bridge):
                 req=json.loads(AESGCM(secret).decrypt(raw[:12],raw[12:],row['id'].encode()))
                 uid=None;username=req['username'];password=req['password']
                 if req['action']=='register':
-                    params=registration_params(req,gizmo)
-                    if gizmo.request('GET',f'users/loginname/{quote(username,safe="")}/exist'):
-                        result={'status':'username_taken'}
-                    else:
-                        guard();uid=gizmo.request('PUT','users',params=params)
-                        if type(uid) is not int or uid<=0:raise ApiError('Нет ID нового аккаунта')
-                        guard();gizmo.request('POST',f'users/{uid}/password/{quote(password,safe="")}')
-                        actual=gizmo.user(uid)
-                        if actual.get('userGroupId')!=params['UserGroupId'] or str(actual.get('birthDate',''))[:10]!=req['birth_date']:
-                            raise ApiError('Gizmo не подтвердил группу / дату рождения')
-                        verified=gizmo.request('GET',f'users/{quote(username,safe="")}/{quote(password,safe="")}/valid')
-                        if verified.get('result')!=0 or verified.get('identity',{}).get('userId')!=uid:raise ApiError('Пароль не подтверждён')
+                    raise ApiError('Нужно очное одобрение администратора')
                 elif req['action']=='login':
                     username=login_name(gizmo,username)
                     verified=gizmo.request('GET',f'users/{quote(username,safe="")}/{quote(password,safe="")}/valid')

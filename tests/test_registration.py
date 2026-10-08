@@ -4,7 +4,7 @@ from desktop.registration import registration_params, adult_group, login_name
 from desktop.services import ApiError
 
 class Gizmo:
- def __init__(self):self.groups=[{'id':8,'name':'18+'}];self.users=[]
+ def __init__(self):self.groups=[{'id':8,'name':'18+'},{'id':3,'name':'Клиенты'}];self.users=[]
  def request(self,method,path,**kw):return self.groups if path=='usergroups' else self.users
 class RegistrationTests(unittest.TestCase):
  def setUp(self):
@@ -65,5 +65,5 @@ class AuthQueueTests(unittest.TestCase):
   with tempfile.TemporaryDirectory() as folder,patch.dict(os.environ,{'AGENT_SECRET':secret}):
    gizmo=FakeGizmo();cloud=Cloud();store=Store(Path(folder)/'test.sqlite3');bridge=SimpleNamespace(gizmo=gizmo,cloud=cloud,store=store)
    process_auth(bridge);process_auth(bridge)
-   self.assertEqual(cloud.finished['status'],'done');self.assertEqual(gizmo.member['userGroupId'],8);self.assertEqual(gizmo.writes,['users'])
+   self.assertEqual(cloud.finished['status'],'failed');self.assertIsNone(gizmo.member);self.assertEqual(gizmo.writes,[])
    self.assertNotIn(password,json.dumps(store.get('auth-v2:'+id)));self.assertNotIn('cipher',json.dumps(store.get('auth-v2:'+id)))

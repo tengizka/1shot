@@ -2,7 +2,7 @@ name: Test local server
 on:
   push:
     branches: [arena/01a0d663-1shot]
-    paths: ['server/**', 'supabase/migrations/**', 'backend-config.js', 'index.html', '.dockerignore', '.github/workflows/local-server.yml']
+    paths: ['server/**', 'supabase/migrations/**', 'supabase/functions/**', 'tests/*.test.ts', 'backend-config.js', 'index.html', '.dockerignore', '.github/workflows/local-server.yml']
   workflow_dispatch:
 permissions:
   contents: read

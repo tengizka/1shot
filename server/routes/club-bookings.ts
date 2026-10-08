@@ -1,4 +1,4 @@
-// Local port of existing handler; SQL safety protocol is unchanged.
+// Local mirror of the Supabase handler.
 import {cors,json,db,verify,codeHash,publicFields} from '../shared.ts';
 // Public bounded lifetime only; no worker identifiers or credentials.
 async function deskStatus(client: ReturnType<typeof db>) {
@@ -15,7 +15,13 @@ export default async function handler(req: Request){
   const b=await req.json();const client=db();
   if(b.action==='capabilities'){
    const {data,error}=await client.from('club_settings').select('*').eq('id',true).single();
-   if(error)throw error;return json({enabled:!!data.enabled,timezone:'Europe/Moscow',protocol:data.flow_version||1,poll_bundle:1,desk:await deskStatus(client)});
+   if(error)throw error;
+   let registration=null;
+   if(b.registration_pending===true){
+    let user:number;try{user=verify(b.initData,Deno.env.get('TELEGRAM_BOT_TOKEN')||'')}catch{return json({error:'Откройте приложение заново через Telegram'},403)}
+    const {data:r,error:e}=await client.rpc('club_registration_status',{p_user:user});if(e)throw e;registration=r;
+   }
+   return json({registration,registration_approval:1,enabled:!!data.enabled,timezone:'Europe/Moscow',protocol:data.flow_version||1,poll_bundle:1,desk:await deskStatus(client)});
   }
   let user:number;try{user=verify(b.initData,Deno.env.get('TELEGRAM_BOT_TOKEN')||'');}catch{return json({error:'Откройте приложение заново через Telegram'},403);}
   if(b.action==='state'){

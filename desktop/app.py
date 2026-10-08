@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 from .engine import Controller,Store
 from .accounts import Accounts
+from .registration_approval import RegistrationApproval
 from .polling import PollBudget
 from .sound import Sound
 from .services import Cloud,Gizmo,LegacyBridge
@@ -24,6 +25,8 @@ class App:
         self.controller.stopping=self.stop.is_set
         self.bridge.guard=self.controller.guard
         self.accounts=Accounts(self.gizmo,self.cloud,self.store,self.controller.guard)
+        self.registration=RegistrationApproval(self.cloud,self.gizmo,self.store,self.controller.guard)
+        self.registrations=[];self.registration_ready=False
         self.sound=Sound(HOME,self.store);self.host_rows=[];self.password_requests=[];self.protocol_ready=False;self.maximized=False
         self.cloud.host_source=lambda:self.host_rows if self.last_sync and time.time()-self.last_sync<15 else None
         self.online=False;self.error='Подключение…';self.sync_error='';self.last_sync=0
@@ -40,6 +43,19 @@ class App:
                 self.cloud.snapshot(self.store.get('event_cursor',0))
                 return self.cloud.desk('cancel',id=id)
         except Exception as error:return {'error':str(error)}
+    def approve_registration(self,id,confirmed=False):
+        try:
+            if confirmed is not True:return {'error':'Подтвердите очную проверку личности'}
+            with self.operations:
+                self.renew_account_lease()
+                return self.registration.approve(id,confirmed)
+        except Exception:return {'error':'Нет подтверждения результата. Не повторяйте создание; проверьте состояние анкеты'}
+    def reject_registration(self,id,confirmed=False):
+        try:
+            with self.operations:
+                self.renew_account_lease()
+                return self.registration.reject(id,confirmed)
+        except Exception:return {'error':'Не удалось подтвердить отклонение анкеты'}
     def find_account(self,username):
         try:
             with self.operations:return {'user':self.accounts.find(username)}
@@ -123,7 +139,7 @@ class App:
         except Exception as error:return {'error':str(error)}
     def snapshot(self):
         with self.lock:
-            return {'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':self.error,'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
+            return {'registrations':self.registrations,'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':self.error,'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
     def acknowledge(self):
         with self.lock:self.store.set('alerts',{})
         self.sound.stop()
@@ -137,6 +153,9 @@ class App:
             try:
                 with self.operations:
                     snapshot=self.controller.tick()
+                    self.registration_ready='registrations' in snapshot.get('desk',{})
+                    self.registrations=snapshot.get('desk',{}).get('registrations',[])
+                    if self.registration_ready:self.registration.flush()
                     if snapshot.get("auth_pending"):self.bridge.auth()
                     if os.getenv("LEGACY_AUTH_ENABLED","false").lower()=="true" and time.monotonic()-last_legacy>=60:
                         last_legacy=time.monotonic();self.bridge.legacy_auth()

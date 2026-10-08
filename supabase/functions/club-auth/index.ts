@@ -17,6 +17,10 @@ Deno.serve(async req=>{
    const {error}=await client.from('club_auth_requests').update({status:b.status,gizmo_user_id:b.gizmo_user_id||null,cipher:null}).eq('id',b.id).eq('worker_id',b.worker_id).eq('status','running');if(error)throw error;return json({ok:true});
   }
   let user:number;try{user=verify(b.initData,Deno.env.get('TELEGRAM_BOT_TOKEN')||'')}catch{return json({error:'Откройте приложение заново через Telegram'},403)}
+  if(b.action==='register')return json({error:'Регистрация теперь только после очного подтверждения администратора'},409);
+  if(b.action==='registration_status'){
+   const {data,error}=await client.rpc('club_registration_status',{p_user:user});if(error)throw error;return json({registration:data});
+  }
   if(b.action==='status'){
    const {data,error}=await client.from('club_auth_requests').select('status,created_at,gizmo_user_id').eq('id',b.request_id).eq('telegram_id',user).single();if(error)throw error;
    if(['pending','running'].includes(data.status)&&Date.now()-Date.parse(data.created_at)>180000)return json({status:'failed'});
@@ -24,10 +28,10 @@ Deno.serve(async req=>{
    const {data:profile,error:pe}=await client.from('profiles').select('telegram_id,gizmo_user_id,username,first_name,last_name').eq('telegram_id',user).eq('gizmo_user_id',data.gizmo_user_id).single();if(pe)throw pe;
    return json({status:'done',profile});
   }
-  if(!['login','register'].includes(b.action))return json({error:'invalid_action'},400);
-  if(typeof b.username!=='string'||!b.username.trim()||b.username.length>254||typeof b.password!=='string'||b.password.length<(b.action==='register'?6:1)||b.password.length>64)return json({error:'Заполните никнейм / телефон и пароль (6–64 символа)'},400);
+  if(!['login','register_application'].includes(b.action))return json({error:'invalid_action'},400);
+  if(typeof b.username!=='string'||!b.username.trim()||b.username.length>254||typeof b.password!=='string'||b.password.length<1||!b.password.trim()||b.password.length>64)return json({error:'Заполните никнейм / телефон и пароль (1–64 символа)'},400);
   const payload:Record<string,unknown>={action:b.action,username:b.username.trim(),password:b.password};
-  if(b.action==='register'){
+  if(b.action==='register_application'){
    if(!/^[\p{L}\p{N}_.-]{3,30}$/u.test(b.username)||!['first_name','last_name'].every(k=>typeof b[k]==='string'&&b[k].trim()&&b[k].length<=45)||typeof b.mobile_phone!=='string'||!/^\+?[0-9 ()-]{7,20}$/.test(b.mobile_phone)||![1,2].includes(b.sex)||typeof b.birth_date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(b.birth_date))return json({error:'Заполните все поля регистрации корректно'},400);
    const birth=new Date(b.birth_date+'T00:00:00Z');if(!Number.isFinite(birth.getTime())||birth.toISOString().slice(0,10)!==b.birth_date||birth.getTime()>Date.now()||Date.now()-birth.getTime()>111*366*86400000)return json({error:'Проверьте дату рождения'},400);
    for(const key of ['first_name','last_name','mobile_phone','sex','birth_date'])payload[key]=b[key];
@@ -38,6 +42,11 @@ Deno.serve(async req=>{
   const encrypted=cipher.update(JSON.stringify(payload),'utf8');const tail=cipher.final();
   const bytes=new Uint8Array([...iv,...encrypted,...tail,...cipher.getAuthTag()]);
   const encoded=btoa(String.fromCharCode(...bytes));
+  if(b.action==='register_application'){
+   const {password:_password,action:_action,...summary}=payload;
+   const {data,error}=await client.rpc('club_registration_submit',{p_id:id,p_user:user,p_data:summary,p_cipher:encoded});if(error)throw error;
+   return json({request_id:data,status:'awaiting_admin'});
+  }
   const {error}=await client.rpc('club_auth_enqueue',{p_id:id,p_user:user,p_cipher:encoded});if(error)throw error;
   return json({request_id:id});
  }catch(e){const error=e as {code?:string,message?:string};return json({error:error.code==='P0001'?error.message:'Обновлённый сервис входа недоступен. Обратитесь в клуб'},error.code==='P0001'?429:503)}

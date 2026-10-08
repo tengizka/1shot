@@ -2,6 +2,8 @@ import type {Runner} from '../database.ts';
 export const TABLES=['profiles','hosts_cache','reservations','club_settings','club_bookings','club_events','club_accounts','club_commands','club_auth_requests'] as const;
 export type Bundle={format:'1shot-local-v1',exported_at:string,tables:Record<string,Record<string,unknown>[]>};
 export async function exportBundle(run:Runner):Promise<Bundle>{
+ const schema=await run("select to_regclass('public.club_registration_requests') is not null as unsupported");
+ if(schema[0]?.unsupported)throw Error('Transfer v1 does not support registration approvals; operation refused to prevent data loss');
  const live=await run('select lease_until > now() as live from public.club_worker where id=true');
  if(live[0]?.live)throw Error('Stop Desk and wait for lease expiration before exporting');
  const active=await run("select (select count(*) from club_commands where status in ('queued','running')) + (select count(*) from club_auth_requests where status in ('pending','running')) as n");
@@ -15,6 +17,8 @@ export async function exportBundle(run:Runner):Promise<Bundle>{
 export async function importBundle(run:Runner,bundle:Bundle){
  if(bundle.format!=='1shot-local-v1'||!bundle.tables||TABLES.some(t=>!Array.isArray(bundle.tables[t]))||Object.keys(bundle.tables).some(t=>!TABLES.includes(t as any)))throw Error('Invalid backup format');
  if(bundle.tables.club_commands.some(r=>['queued','running'].includes(String(r.status)))||bundle.tables.club_auth_requests.some(r=>['pending','running'].includes(String(r.status))||r.cipher))throw Error('Unfinished operations or credentials in backup');
+ const schema=await run("select to_regclass('public.club_registration_requests') is not null as unsupported");
+ if(schema[0]?.unsupported)throw Error('Transfer v1 does not support registration approvals; operation refused to prevent data loss');
  const live=await run('select lease_until > now() as live from public.club_worker where id=true');if(live[0]?.live)throw Error('Local Desk must be stopped');
  for(const table of TABLES.filter(t=>t!=='club_settings')){const rows=await run(`select count(*) as n from public.${table}`);if(Number(rows[0].n))throw Error('Destination must be empty: '+table);}
  const warnings:string[]=[];

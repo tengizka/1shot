@@ -574,24 +574,8 @@ def handle_login(req_id: str, telegram_id: int, username: str, password: str):
 
 def handle_register(req_id: str, telegram_id: int, username: str, password: str,
                     first_name: str, last_name: str):
-    try:
-        # Проверяем, что логин свободен
-        r_exist = gizmo_get(f"users/loginname/{requests.utils.quote(username, safe='')}/exist")
-        r_exist.raise_for_status()
-        exist_result = r_exist.json().get("result")
-        if exist_result is True:
-            report_auth(req_id, "username_taken")
-            log.info("Логин '%s' уже занят (telegram_id=%s)", username, telegram_id)
-            return
-
-        gizmo_user_id = create_gizmo_user(username, password, first_name, last_name)
-        upsert_profile(telegram_id, gizmo_user_id, username, first_name, last_name)
-        report_auth(req_id, "done", gizmo_user_id=gizmo_user_id)
-        log.info("✓ Регистрация: '%s' → gizmo_user_id=%s (telegram_id=%s)",
-                 username, gizmo_user_id, telegram_id)
-    except Exception as e:
-        report_auth(req_id, "failed", error_message=str(e))
-        log.warning("Ошибка обработки register req %s: %s", req_id, e)
+    # Legacy workers must never create an account from an online application.
+    report_auth(req_id, "failed", error_message="registration_requires_in_person_approval")
 
 
 def process_auth_requests():

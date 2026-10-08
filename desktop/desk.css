@@ -16,3 +16,4 @@ input,textarea,[contenteditable=true]{-webkit-user-select:text;user-select:text}
 ::selection{background:#ddd;color:#000}
 .guest-details button{margin:4px 0;font-size:9px}
 .card>.actions{margin-top:12px}.card>.note:empty{display:none}
+.registration-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.registration-list .card p{overflow-wrap:anywhere}

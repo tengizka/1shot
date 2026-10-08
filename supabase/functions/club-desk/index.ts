@@ -7,7 +7,15 @@ Deno.serve(async req=>{
   const b=await req.json(),client=db();
   const {data:worker,error}=await client.from('club_worker').select('*').eq('worker_id',b.worker_id).gt('lease_until',new Date().toISOString()).single();
   if(error||!worker)return json({error:'lease_expired'},409);
+  if(['registration_claim','registration_reject','registration_finish'].includes(b.action)){
+   const args:Record<string,unknown>={p_worker:b.worker_id,p_id:b.id};
+   if(b.action==='registration_finish'){args.p_status=b.status;args.p_uid=b.gizmo_user_id??null;}
+   else args.p_confirmed=b.confirmed===true;
+   const {data,error}=await client.rpc('club_'+b.action,args);if(error)throw error;
+   return b.action==='registration_claim'?json({request:data}):json({ok:data===true});
+  }
   if(b.action==='poll'){
+
    await client.from('club_worker').update({protocol:2}).eq('worker_id',b.worker_id);
    const {data:accounts,error:e1}=await client.from('club_accounts').select('*').gt('requested_at',new Date(Date.now()-120000).toISOString()).order('updated_at',{ascending:true,nullsFirst:true}).limit(50);
    const {data:jobs,error:e2}=await client.from('club_commands').select('*').in('status',['queued','running']).order('created_at').limit(50);

@@ -125,15 +125,7 @@ class LegacyBridge:
                         uid=identity.get('identity',{}).get('userId') if identity.get('result')==0 else None
                         if not uid:result={'status':'invalid_credentials'}
                     elif req['action']=='register':
-                        from .registration import registration_params
-                        params=registration_params(req,self.gizmo)
-                        exists=self.gizmo.request('GET',f'users/loginname/{quote(username,safe="")}/exist')
-                        uid=None
-                        if exists:result={'status':'username_taken'}
-                        else:
-                            uid=self.gizmo.request('PUT','users',params=params)
-                            if not isinstance(uid,int) or uid<=0:raise ApiError('Не получен ID пользователя')
-                            self.gizmo.request('POST',f'users/{uid}/password/{quote(password,safe="")}')
+                        raise ApiError('Нужно очное одобрение администратора')
                     else:raise ApiError('unknown_auth_action')
                     if uid:
                         saved=self.cloud.request('upsert-profile',body={'telegram_id':req['telegram_id'],'gizmo_user_id':uid,'username':username,'first_name':req.get('first_name',''),'last_name':req.get('last_name','')})
