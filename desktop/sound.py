@@ -3,11 +3,12 @@ import math
 import struct
 import sys
 import wave
+import threading
 
 PRESETS={'soft':[(0,523.25),(.38,659.25)],'chime':[(0,659.25),(.32,783.99),(.64,1046.5)],'pulse':[(0,440),(.7,440)],'glass':[(0,880),(.3,1174.66)],'warm':[(0,349.23),(.45,440)],'rise':[(0,392),(.25,493.88),(.5,587.33)],'low':[(0,261.63),(.5,329.63)],'spark':[(0,1046.5),(.2,1318.51)],'softbell':[(0,587.33),(.55,783.99)],'drop':[(0,783.99),(.4,523.25)],'triple':[(0,440),(.35,523.25),(.7,659.25)],'calm':[(0,293.66),(.65,392)]}
 DEFAULT={'preset':'soft','volume':50,'repeat':20,'enabled':True}
 class Sound:
-    def __init__(self,home,store):self.home,self.store=home,store;self.settings=DEFAULT|store.get('sound',{})
+    def __init__(self,home,store):self.home,self.store=home,store;self.settings=DEFAULT|store.get('sound',{});self.audio_lock=threading.RLock()
     def configure(self,settings):
         preset=settings.get('preset','soft')
         if preset not in PRESETS:raise ValueError('Неизвестный звук')
@@ -33,10 +34,14 @@ class Sound:
         with wave.open(str(path),'wb') as f:f.setnchannels(1);f.setsampwidth(2);f.setframerate(rate);f.writeframes(b''.join(samples))
         return path
     def play(self,kind=None):
-        path=self.path(self.settings.get('events',{}).get(kind))
-        if sys.platform=='win32':
-            import winsound
-            winsound.PlaySound(str(path),winsound.SND_FILENAME|winsound.SND_ASYNC)
+        self.play_preset(self.settings.get('events',{}).get(kind) or self.settings['preset'])
+    def play_preset(self,preset):
+        if preset not in PRESETS:raise ValueError('Неизвестный звук')
+        with self.audio_lock:
+            path=self.path(preset)
+            if sys.platform=='win32':
+                import winsound
+                winsound.PlaySound(str(path),winsound.SND_FILENAME|winsound.SND_ASYNC)
     def stop(self):
         if sys.platform=='win32':
             import winsound

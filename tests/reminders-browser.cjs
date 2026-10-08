@@ -1,0 +1,23 @@
+const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium').default,fs=require('fs'),assert=require('assert/strict');
+(async()=>{const browser=await chromium.launch({executablePath:await binary.executablePath(),args:binary.args,headless:true});try{
+ const page=await browser.newPage({viewport:{width:1100,height:800}}),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
+ await page.addInitScript(()=>{
+  window.saved=[];window.previews=[];window.rejectSave=false;
+  window.reminderState={config:{revision:0,items:[{id:'air-conditioners',text:'Проверить кондиционеры',minutes:150,enabled:true,sound:'soft'}]},history:[]};
+  window.pywebview={api:{snapshot:async()=>({online:true,last_sync:Date.now()/1000,protocol_ready:true,rows:[],hosts:[],alerts:0,reminders:structuredClone(reminderState),password_requests:[]}),reminder_settings:async(items,revision)=>{saved.push({items,revision});if(rejectSave)return {error:'Настройки уже изменились'};reminderState.config={revision:revision+1,items};return {ok:true,reminders:structuredClone(reminderState)}},preview_reminder:async preset=>{previews.push(preset);return {ok:true}}}};
+  document.addEventListener('DOMContentLoaded',()=>dispatchEvent(new Event('pywebviewready')));
+ });
+ await page.route('**/*',r=>{const u=new URL(r.request().url()),f='desktop/'+(u.pathname==='/'?'index.html':u.pathname.slice(1));if(u.host==='desk.test'&&fs.existsSync(f))return r.fulfill({body:fs.readFileSync(f),contentType:f.endsWith('.js')?'text/javascript':f.endsWith('.css')?'text/css':f.endsWith('.woff2')?'font/woff2':'text/html'});return r.abort()});
+ await page.goto('https://desk.test/');await page.waitForSelector('#desk-splash',{state:'detached'});await page.getByRole('button',{name:'Настройки',exact:true}).click();
+ const first=page.locator('#reminder-editors fieldset').first();assert.equal(await first.locator('[name=minutes]').inputValue(),'150');
+ await first.locator('[name=text]').fill('Проверить вентиляцию');await first.locator('[name=text]').evaluate(e=>{e.focus();e.setSelectionRange(5,9);window.original=e});
+ await page.evaluate(async()=>{for(let i=0;i<10;i++)await refresh()});assert.equal(await page.evaluate(()=>document.activeElement===original&&original.selectionStart===5),true);
+ await first.locator('[name=sound]').selectOption('glass');await first.getByRole('button',{name:'Прослушать'}).click();assert.deepEqual(await page.evaluate(()=>previews),['glass']);assert.equal(await page.evaluate(()=>saved.length),0,'preview does not save settings');
+ await page.locator('#reminder-add').click();const second=page.locator('#reminder-editors fieldset').nth(1);await second.locator('[name=text]').fill('<img src=x onerror=alert(1)>');await second.locator('[name=minutes]').fill('20');await second.locator('[name=sound]').selectOption('none');await second.locator('[name=enabled]').uncheck();
+ await page.getByRole('button',{name:'Сохранить напоминания',exact:true}).click();assert.match(await page.locator('#reminder-message').textContent(),/сохранены/);
+ assert.equal(await page.evaluate(()=>saved[0].items[1].minutes),20);assert.equal(await page.evaluate(()=>saved[0].items[1].enabled),false);
+ await page.evaluate(async()=>{reminderState.history=[{text:'<img src=x onerror=alert(1)>',occurred_at:1700000000,event_id:'e'}];await refresh()});assert.equal(await page.locator('#reminder-cards img').count(),0);assert.match(await page.locator('#reminder-cards').textContent(),/<img/);assert.equal(await page.getByRole('button',{name:'Увидел',exact:true}).count(),0);
+ await first.locator('[name=text]').fill('Не потерять черновик');await page.evaluate(()=>{rejectSave=true;reminderState.config.revision=7});await page.getByRole('button',{name:'Сохранить напоминания',exact:true}).click();assert.match(await page.locator('#reminder-message').textContent(),/уже изменились/);assert.equal(await first.locator('[name=text]').inputValue(),'Не потерять черновик');
+ await page.locator('#reminder-reload').click();await page.evaluate(()=>rejectSave=false);await second.getByRole('button',{name:'Удалить',exact:true}).click();await page.getByRole('button',{name:'Сохранить напоминания',exact:true}).click();assert.equal(await page.evaluate(()=>saved.at(-1).revision),7);assert.equal(await page.locator('#reminder-editors fieldset').count(),1);
+ await page.screenshot({path:'/tmp/1shot-reminders.png'});assert.deepEqual(errors,[]);console.log('Reminders UI PASS: default, stable draft/caret, preview without save, custom/disable/delete, conflict/reload and escaped visual notices.');
+}finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});

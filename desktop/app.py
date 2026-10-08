@@ -11,6 +11,7 @@ from .guest_passwords import GuestPasswords
 from .polling import PollBudget
 from .sound import Sound
 from .notifications import NotificationGate
+from .reminders import Reminders
 from .services import Cloud,Gizmo,LegacyBridge
 from .version import VERSION, AUTHOR, APP_TITLE, APP_ID
 
@@ -35,9 +36,34 @@ class App:
         self.cloud.host_source=lambda:self.host_rows if self.last_sync and time.time()-self.last_sync<15 else None
         self.online=False;self.error='Подключение…';self.sync_error='';self.last_sync=0
         self.notifications=NotificationGate(self.store)
+        self.reminders=None;self.reminder_error=''
+        try:self.reminders=Reminders(self.store)
+        except Exception:self.reminder_error='Не удалось прочитать напоминания. Настройки сохранены без изменений'
         self.rows=[];self.alerts={};self.notified_cursor=0;self.muted_until=0;self.window=None;self.tray=None;self.exiting=False
     def alarm(self,kind=None):self.sound.play(kind)
     def sound_settings(self,settings):return self.sound.configure(settings)
+    def reminder_settings(self,items,revision):
+        if not self.reminders:return {'error':self.reminder_error}
+        try:return {'ok':True, 'reminders':self.reminders.configure(items,revision)}
+        except ValueError as error:return {'error':str(error)}
+        except Exception:return {'error':'Не удалось сохранить напоминания. Проверьте локальное хранилище'}
+    def preview_reminder(self,preset):
+        from .sound import PRESETS
+        if preset not in PRESETS:return {'error':'Неизвестный звук'}
+        self.sound.play_preset(preset);return {'ok':True}
+    def reminder_loop(self):
+        while not self.stop.wait(1):
+            if not self.reminders:continue
+            try:
+                events=self.reminders.tick()
+                if events:
+                    if self.tray:
+                        try:self.tray.notify(' · '.join(e['text'] for e in events)[:240],'1SHOT · Напоминание')
+                        except Exception:pass
+                    audible=next((e for e in events if e['sound']!='none'),None)
+                    if audible and self.sound.settings['enabled']:self.sound.play_preset(audible['sound'])
+                self.reminder_error=''
+            except Exception:self.reminder_error='Не удалось обработать напоминание. Проверьте локальное хранилище или звук'
     def minimize(self):self.window.minimize()
     def maximize(self):
         self.maximized=not self.maximized
@@ -161,7 +187,7 @@ class App:
         except Exception:return {'error':'Нет подтверждения сверки. Пароль повторно не устанавливался'}
     def snapshot(self):
         with self.lock:
-            return {'password_grants':self.password_grants,'password_ready':self.password_ready and self.online,'registrations':self.registrations,'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':self.error,'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'notifications':list(self.store.get('alerts',{}).values())[-5:],'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
+            return {'reminders':self.reminders.snapshot() if self.reminders else None,'reminder_error':self.reminder_error,'password_grants':self.password_grants,'password_ready':self.password_ready and self.online,'registrations':self.registrations,'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':self.error,'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'notifications':list(self.store.get('alerts',{}).values())[-5:],'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
     def acknowledge(self):
         with self.lock:self.store.set('alerts',{})
         self.sound.stop()
@@ -240,7 +266,7 @@ class App:
         icon=Image.open(ROOT/'desktop'/'assets'/'tray-icon.png').convert('RGBA')
         self.tray=pystray.Icon('1SHOT',icon,f'1SHOT Desk v{VERSION} · {AUTHOR}',pystray.Menu(pystray.MenuItem('Открыть',self.reveal,default=True),pystray.MenuItem('Выход',self.quit)))
         threading.Thread(target=self.tray.run,daemon=True).start()
-        threading.Thread(target=self.work,daemon=True).start();threading.Thread(target=self.sync_loop,daemon=True).start()
+        threading.Thread(target=self.reminder_loop,daemon=True).start();threading.Thread(target=self.work,daemon=True).start();threading.Thread(target=self.sync_loop,daemon=True).start()
 
 def main():
     if not getattr(sys,'frozen',False):
