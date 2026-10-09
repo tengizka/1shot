@@ -36,7 +36,11 @@ def load_env(path):
 
 class GizmoClient:
     def __init__(self, base_url, login, password, verify_ssl=False):
-        self.base = base_url.rstrip("/") + "/api"
+        # Normalize base URL so it never doubles /api
+        base = base_url.rstrip("/")
+        if not base.endswith("/api"):
+            base += "/api"
+        self.base = base
         self.auth = "Basic " + base64.b64encode(f"{login}:{password}".encode()).decode()
         self.ctx = ssl.create_default_context()
         if not verify_ssl:
@@ -44,7 +48,10 @@ class GizmoClient:
             self.ctx.verify_mode = ssl.CERT_NONE
 
     def get(self, endpoint, params=None):
-        url = f"{self.base}/{endpoint.lstrip('/')}"
+        endpoint = endpoint.lstrip("/")
+        if endpoint.startswith("api/"):
+            endpoint = endpoint[4:]
+        url = f"{self.base}/{endpoint}"
         if params:
             qs = "&".join(f"{k}={urllib.parse.quote(str(v))}" for k, v in params.items() if v is not None)
             url += f"?{qs}"
@@ -311,13 +318,14 @@ def main():
         
         data = analyze(sample_users, sample_spending)
     else:
-        print(f"Connecting to Gizmo at {base_url}...")
         client = GizmoClient(base_url, login, password, verify_ssl)
-        print("Fetching users list from Gizmo...")
+        print(f"Connecting to Gizmo API at: {client.base}")
+        print("Fetching users list from Gizmo (/api/users)...")
         users = client.get("users") or []
         print(f"Fetched {len(users)} users.")
-        print("Fetching spending report...")
+        print("Fetching spending report (/api/reports/users/spending)...")
         spending = client.get("reports/users/spending") or []
+        print(f"Fetched spending for {len(spending)} users.")
         data = analyze(users, spending)
 
     # 1. Create single Excel workbook with 4 tabs
