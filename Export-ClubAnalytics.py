@@ -282,8 +282,8 @@ def analyze(users, spending_list, active_sessions, sessions_log=None, client=Non
         "core_count": len(core_guests),
         "regular_count": len(regular_guests),
         "casual_count": len(casual_guests),
-        "top_spenders": spenders[:100],
-        "sleeping_guests": sleeping_candidates[:50]
+        "top_spenders": spenders[:300],
+        "sleeping_guests": sleeping_candidates[:100]
     }
 
 def create_designed_excel_workbook(data, filepath):
@@ -686,7 +686,7 @@ def main():
         import random
         random.seed(42)
         first_names = ["Алексей", "Дмитрий", "Артём", "Иван", "Максим", "Никита", "Михаил", "Даниил", "Егор", "Андрей", "София", "Анна"]
-        for i in range(1, 240):
+        for i in range(1, 450):
             birth_year = random.choices([2008, 2007, 2005, 2004, 2003, 2001, 1999, 1995, 1990], weights=[8, 14, 25, 22, 16, 8, 4, 2, 1])[0]
             days_ago = random.choices([0, 1, 3, 5, 10, 18, 35, 60], weights=[15, 20, 25, 15, 10, 5, 6, 4])[0]
             last_dt = (datetime.now() - timedelta(days=days_ago)).isoformat()
