@@ -111,14 +111,6 @@ jobs:
         run: |
           Copy-Item desktop/env.example dist/1SHOT-Desk/env.example
           Copy-Item desktop/README.md dist/1SHOT-Desk/README.md
-          Copy-Item desktop/UPGRADE-1.1.md dist/1SHOT-Desk/UPGRADE-1.1.md
-          Copy-Item desktop/UPGRADE-1.2.md dist/1SHOT-Desk/UPGRADE-1.2.md
-          Copy-Item desktop/UPGRADE-1.3.md dist/1SHOT-Desk/UPGRADE-1.3.md
-          Copy-Item desktop/UPGRADE-1.4.md dist/1SHOT-Desk/UPGRADE-1.4.md
-          Copy-Item desktop/UPGRADE-1.5.md dist/1SHOT-Desk/UPGRADE-1.5.md
-          Copy-Item desktop/UPGRADE-1.5.1.md dist/1SHOT-Desk/UPGRADE-1.5.1.md
-          Copy-Item desktop/UPGRADE-1.6.md dist/1SHOT-Desk/UPGRADE-1.6.md
-          Copy-Item desktop/UPGRADE-1.7.md dist/1SHOT-Desk/UPGRADE-1.7.md
       - uses: actions/upload-artifact@v4
         with:
           name: 1SHOT-Desk-Windows

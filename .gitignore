@@ -18,7 +18,5 @@ desktop/assets/hall-map.js
 
 desktop/assets/arrival-time.js
 
-# Local club server secrets, database exports and backup archives
-server/backups/
-server/private/
+# Local club backup archives
 *.dump
