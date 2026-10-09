@@ -423,6 +423,9 @@ def create_designed_excel_workbook(data, filepath):
 
     sheet_xmls = []
     for sheet_idx, cfg in enumerate(sheets_configs, start=1):
+        num_cols = len(cfg["col_widths"])
+        last_col = chr(64 + num_cols) if num_cols <= 26 else chr(64 + (num_cols-1)//26) + chr(65 + (num_cols-1)%26)
+
         cols_xml = ['<cols>']
         for c_i, w in enumerate(cfg["col_widths"], start=1):
             cols_xml.append(f'<col min="{c_i}" max="{c_i}" width="{w}" customWidth="1"/>')
@@ -430,7 +433,6 @@ def create_designed_excel_workbook(data, filepath):
 
         rows_xml = ['<sheetData>']
         row_num = 1
-        num_cols = len(cfg["col_widths"])
 
         # Row 1: Title (Clean Left, 14pt Dark Bold)
         rows_xml.append(f'<row r="{row_num}" ht="28" customHeight="1">')
@@ -520,13 +522,26 @@ def create_designed_excel_workbook(data, filepath):
             rows_xml.append('</row>')
             row_num += 1
 
-        rows_xml.append('</sheetData></worksheet>')
-        sheet_xmls.append((f"xl/worksheets/sheet{sheet_idx}.xml", "".join(cols_xml) + "".join(rows_xml)))
+        rows_xml.append('</sheetData>')
+
+        # Fully compliant OpenXML Worksheet with root element and dimension
+        ws_full = [
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n',
+            '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">\n',
+            f'<dimension ref="A1:{last_col}{row_num}"/>\n',
+            '<sheetViews><sheetView tabSelected="1" workbookViewId="0"/></sheetViews>\n',
+            '<sheetFormatPr defaultRowHeight="15"/>\n',
+            "".join(cols_xml),
+            "".join(rows_xml),
+            '</worksheet>'
+        ]
+        sheet_xmls.append((f"xl/worksheets/sheet{sheet_idx}.xml", "".join(ws_full)))
 
     sst_parts = [f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="{len(shared_strings)}" uniqueCount="{len(shared_strings)}">']
     for s in shared_strings:
-        sst_parts.append(f'<si><t>{sax.escape(str(s))}</t></si>')
+        sst_parts.append(f'<si><t xml:space="preserve">{sax.escape(str(s))}</t></si>')
     sst_parts.append('</sst>')
+    shared_strings_xml = "".join(sst_parts)
     shared_strings_xml = "".join(sst_parts)
 
     styles_xml = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -620,6 +635,9 @@ def create_designed_excel_workbook(data, filepath):
     <!-- 13: Normal Row Center (IDs, Phones, Frequency) -->
     <xf numFmtId="0" fontId="0" fillId="0" borderId="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
   </cellXfs>
+  <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+  <dxfs count="0"/>
+  <tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleMedium9"/>
 </styleSheet>"""
 
     sheets_tags = []
