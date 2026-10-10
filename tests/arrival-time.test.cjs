@@ -1,5 +1,6 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),vm=require('vm'),fs=require('fs');
-const ctx=vm.createContext({Date});vm.runInContext(fs.readFileSync('arrival-time.js','utf8'),ctx);
+const arrivalPath = fs.existsSync('miniapp/arrival-time.js') ? 'miniapp/arrival-time.js' : 'arrival-time.js';
+const ctx=vm.createContext({Date});vm.runInContext(fs.readFileSync(arrivalPath,'utf8'),ctx);
 test('Moscow midnight labels tomorrow and year rollover, independent of browser timezone',()=>{
  const now=Date.parse('2026-12-31T23:55:00+03:00');const at=ctx.nextClubArrival(0,0,now);
  assert.equal(at,'2026-12-31T21:00:00.000Z');assert.equal(ctx.clubArrivalLabel(at,now),'Завтра, 00:00 МСК');assert.equal(ctx.clubDateInput(at),'2027-01-01T00:00');

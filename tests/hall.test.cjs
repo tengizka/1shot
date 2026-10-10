@@ -2,9 +2,9 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const vm=require('node:vm');
 const fs=require('node:fs');
-const html=fs.readFileSync('index.html','utf8');
+const html=fs.readFileSync(fs.existsSync('miniapp/index.html')?'miniapp/index.html':'index.html','utf8');
 const context=vm.createContext({});
-vm.runInContext(fs.readFileSync('hall-map.js','utf8'),context);
+vm.runInContext(fs.readFileSync(fs.existsSync('miniapp/hall-map.js')?'miniapp/hall-map.js':'hall-map.js','utf8'),context);
 const layout=vm.runInContext('HALL_LAYOUT',context);
 test('complete physical layout: 31 unique places including PS5 and 10 VIP seats',()=>{
   assert.equal(layout.length,31);assert.equal(new Set(layout.map(p=>p.id)).size,31);

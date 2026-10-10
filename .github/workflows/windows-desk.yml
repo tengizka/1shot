@@ -2,7 +2,7 @@ name: Build Windows Desk
 on:
   push:
     branches: [arena/01a0d663-1shot]
-    paths: ['index.html', 'hall*.js', 'hall.css', 'club-booking.*', 'profile-feedback.js', 'tests/hall*', 'desktop/**', 'tests/test_*.py', 'tests/*browser.cjs', 'tests/*powershell.ps1', 'release/registration/**', '.github/workflows/windows-desk.yml']
+    paths: ['miniapp/**', 'index.html', 'tests/**', 'desktop/**', 'tests/test_*.py', 'tests/*browser.cjs', 'tests/*powershell.ps1', 'release/registration/**', '.github/workflows/windows-desk.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -74,7 +74,8 @@ jobs:
         run: |
           $target = Join-Path $env:RUNNER_TEMP 'registration-preview'
           ./release/registration/Stage-Frontend.ps1 -OutputDirectory $target
-          if ((Get-Content index.html -Raw).Contains('registration-wait.js')) { throw 'Production frontend must remain unchanged during staging' }
+          $indexFile = if (Test-Path miniapp/index.html) { 'miniapp/index.html' } else { 'index.html' }
+          if ((Get-Content $indexFile -Raw).Contains('registration-wait.js')) { throw 'Production frontend must remain unchanged during staging' }
           if (-not (Get-Content (Join-Path $target 'index.html') -Raw).Contains('registration-wait.js')) { throw 'Staged frontend missing approval UI' }
       - name: Verify SQLite backup and read-only upgrade preflight
         shell: pwsh

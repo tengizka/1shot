@@ -12,7 +12,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   await page.route('**/*',route=>{
    const url=new URL(route.request().url());
    if(url.host==='club.test'){
-    const file=url.pathname==='/'?'index.html':url.pathname.slice(1);
+    const rawPath=url.pathname==='/'?'index.html':url.pathname.slice(1);const file=fs.existsSync('miniapp/'+rawPath)?'miniapp/'+rawPath:rawPath;
     if(fs.existsSync(file))return route.fulfill({contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.woff2')?'font/woff2':'text/html',body:fs.readFileSync(file)});
    }
    if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*'}});

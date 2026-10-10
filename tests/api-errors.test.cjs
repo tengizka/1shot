@@ -1,7 +1,8 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const vm=require('node:vm');
-const html=require('node:fs').readFileSync('index.html','utf8');
+const fs=require('node:fs');
+const html=fs.readFileSync(fs.existsSync('miniapp/index.html')?'miniapp/index.html':'index.html','utf8');
 const code=html.slice(html.indexOf('async function apiFetch('),html.indexOf('function saveProfile('));
 for (const body of [
  {error:"Could not find the 'telegram_username' column in the schema cache"},

@@ -4,13 +4,19 @@
 
 ## Структура репозитория
 
-- **`index.html`**, **`hall-map.js`**, **`hall.css`**, **`club-booking.js`** — клиентский Telegram Mini App: карта зала клуба, бронирование ПК, расписание, профиль гостя.
-- **`desktop/`** — настольное приложение администратора 1SHOT Desk (Windows / PySide6): мониторинг ПК, управление бронями, очное подтверждение регистраций, сброс паролей, расписание смен, звуковые уведомления и локальные напоминания.
-- **`supabase/`** — Edge Functions (`club-auth`, `club-desk`, `club-bookings`, `club-agent`) и SQL-миграции базы данных.
-- **`Install-Desk.ps1`** — автоматическая установка и обновление 1SHOT Desk на Windows.
-- **`Export-ClubAnalytics.py`** / **`Get-Analytics.ps1`** — выгрузка полной аналитики клуба и базы гостей на 4 вкладки в Excel (`1SHOT_Statistika_Club.xlsx`).
-- **`Export-OwnerDashboard.py`** / **`Get-OwnerReport.ps1`** — управленческий дашборд для владельцев клуба без лишней воды (`Otchet_Dlya_Vladeltsev.xlsx`).
-- **`Import-ClubRota.ps1`** — импорт графика смен администраторов.
+- 📱 **`miniapp/`** — клиентский Telegram Mini App: интерактивная карта зала клуба, бронирование ПК, адаптивная сетка без скролла, профиль гостя.
+- 🖥️ **`desktop/`** — настольное приложение администратора 1SHOT Desk (Windows / PySide6): мониторинг ПК, управление бронями, очное подтверждение регистраций, сброс паролей, звуковые алерты и локальные напоминания.
+- 📊 **`analytics/`** — управленческие и операционные отчеты клуба:
+  - `Export-ClubAnalytics.py` / `Get-Analytics.ps1` — операционная аналитика и база спящих гостей (`1SHOT_Statistika_Club.xlsx`).
+  - `Export-OwnerDashboard.py` / `Get-OwnerReport.ps1` — дашборд для собственников без лишней воды (`Otchet_Dlya_Vladeltsev.xlsx`).
+- ⚙️ **`scripts/`** — автоматизация:
+  - `Install-Desk.ps1` — автоустановка и обновление 1SHOT Desk на Windows.
+  - `Import-ClubRota.ps1` — импорт графика смен администраторов.
+  - `Apply-Supabase-Upgrade.py` — накат SQL-миграций на Supabase.
+- ☁️ **`supabase/`** — Edge Functions (`club-auth`, `club-desk`, `club-bookings`, `club-agent`) и SQL-миграции базы данных.
+- 📖 **`docs/`** — документация архитектуры и полная спецификация Gizmo 2.0 API (`docs.json`).
+- 🧪 **`tests/`** — набор модульных (Python), поведенческих и UI-тестов (Playwright).
+- 🚀 **`release/`** — staging и изолированные формы предрелизной регистрации.
 
 ---
 

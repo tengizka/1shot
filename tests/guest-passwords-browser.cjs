@@ -8,8 +8,14 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   await page.addInitScript(()=>{window.Telegram={WebApp:{initData:'test',initDataUnsafe:{user:{id:100}},ready(){},expand(){},enableClosingConfirmation(){},setHeaderColor(){},setBackgroundColor(){}}}});
   await page.route('**/*',r=>{const url=new URL(r.request().url());
    if(url.host==='club.test'){
-    const file=url.pathname==='/'?'index.html':url.pathname==='/password-choice.js'?'release/registration/password-choice.js':url.pathname.slice(1);
-    if(fs.existsSync(file)){let body=fs.readFileSync(file);if(file==='index.html')body=body.toString().replace('<script src="club-booking.js?', '<script src="password-choice.js"></script><script src="club-booking.js?');return r.fulfill({contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.woff2')?'font/woff2':'text/html',body})}
+    let file;
+    if(url.pathname==='/password-choice.js'){
+      file='release/registration/password-choice.js';
+    } else {
+      const rawPath=url.pathname==='/'?'index.html':url.pathname.slice(1);
+      file=fs.existsSync('miniapp/'+rawPath)?'miniapp/'+rawPath:rawPath;
+    }
+    if(fs.existsSync(file)){let body=fs.readFileSync(file);if(file==='index.html'||file==='miniapp/index.html')body=body.toString().replace('<script src="club-booking.js?', '<script src="password-choice.js"></script><script src="club-booking.js?');return r.fulfill({contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.woff2')?'font/woff2':'text/html',body})}
    }
    if(r.request().method()==='OPTIONS')return r.fulfill({status:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*'}});
    if(url.pathname.endsWith('/club-bookings')){const b=r.request().postDataJSON();calls.push(b);return r.fulfill({contentType:'application/json',body:JSON.stringify({enabled:true,protocol:2,poll_bundle:1,password_grant:grant,desk:{online:true,valid_for_ms:30000}})})}

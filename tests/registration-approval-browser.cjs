@@ -7,8 +7,14 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   await page.addInitScript(()=>{window.Telegram={WebApp:{initData:'test',initDataUnsafe:{user:{id:123}},ready(){},expand(){},enableClosingConfirmation(){},setHeaderColor(){},setBackgroundColor(){}}}});
   await page.route('**/*',route=>{const url=new URL(route.request().url());
    if(url.host==='club.test'){
-    const file=url.pathname==='/'?'index.html':['/registration-wait.js','/registration-wait.css'].includes(url.pathname)?'release/registration'+url.pathname:url.pathname.slice(1);
-    if(fs.existsSync(file)){let body=fs.readFileSync(file);if(file==='index.html')body=body.toString().replace('<script src="club-booking.js?', '<link rel="stylesheet" href="registration-wait.css"><script src="registration-wait.js"></script><script src="club-booking.js?');return route.fulfill({contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.woff2')?'font/woff2':'text/html',body})}
+    let file;
+    if(['/registration-wait.js','/registration-wait.css'].includes(url.pathname)){
+      file='release/registration'+url.pathname;
+    } else {
+      const rawPath=url.pathname==='/'?'index.html':url.pathname.slice(1);
+      file=fs.existsSync('miniapp/'+rawPath)?'miniapp/'+rawPath:rawPath;
+    }
+    if(fs.existsSync(file)){let body=fs.readFileSync(file);if(file==='index.html'||file==='miniapp/index.html')body=body.toString().replace('<script src="club-booking.js?', '<link rel="stylesheet" href="registration-wait.css"><script src="registration-wait.js"></script><script src="club-booking.js?');return route.fulfill({contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.woff2')?'font/woff2':'text/html',body})}
    }
    if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*'}});
    if(url.pathname.endsWith('/club-bookings')){const b=route.request().postDataJSON();calls.push(b);return route.fulfill({contentType:'application/json',body:JSON.stringify(b.action==='capabilities'?{enabled:true,protocol:2,poll_bundle:1,registration_approval:1,registration,desk:{online:true,valid_for_ms:30000}}:{bookings:[],hosts:[],account:null,commands:[],desk:{online:true,valid_for_ms:30000}})})}

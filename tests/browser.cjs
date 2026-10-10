@@ -12,15 +12,15 @@ const assert=require('node:assert/strict');
   let hosts=[],reservationCalls=0;
   await page.route('**/*',route=>{
    const url=route.request().url();
-   for(const file of ['hall-map.js','hall-swipe.js','experience.js','club-booking.js'])if(url.startsWith('https://club.test/'+file))return route.fulfill({contentType:'text/javascript',body:fs.readFileSync(file,'utf8')});
+   for(const file of ['hall-map.js','hall-swipe.js','experience.js','club-booking.js'])if(url.startsWith('https://club.test/'+file))return route.fulfill({contentType:'text/javascript',body:fs.readFileSync(fs.existsSync('miniapp/'+file)?'miniapp/'+file:file,'utf8')});
    if(url.startsWith('https://club.test/assets/fonts/')) {
     const file=new URL(url).pathname.slice(1);
-    return route.fulfill({contentType:file.endsWith('.css')?'text/css':'font/woff2',body:fs.readFileSync(file)});
+    return route.fulfill({contentType:file.endsWith('.css')?'text/css':'font/woff2',body:fs.readFileSync(fs.existsSync('miniapp/'+file)?'miniapp/'+file:file)});
    }
-   if(url.startsWith('https://club.test/hall.css'))return route.fulfill({contentType:'text/css',body:fs.readFileSync('hall.css','utf8')});
-   if(url.startsWith('https://club.test/club-booking.css'))return route.fulfill({contentType:'text/css',body:fs.readFileSync('club-booking.css','utf8')});
+   if(url.startsWith('https://club.test/hall.css'))return route.fulfill({contentType:'text/css',body:fs.readFileSync(fs.existsSync('miniapp/hall.css')?'miniapp/hall.css':'hall.css','utf8')});
+   if(url.startsWith('https://club.test/club-booking.css'))return route.fulfill({contentType:'text/css',body:fs.readFileSync(fs.existsSync('miniapp/club-booking.css')?'miniapp/club-booking.css':'club-booking.css','utf8')});
    if(url.includes('/functions/v1/club-bookings'))return route.fulfill({contentType:'application/json',body:'{"enabled":false,"desk":{"online":true,"valid_for_ms":30000}}'});
-   if(url==='https://club.test/')return route.fulfill({contentType:'text/html',body:fs.readFileSync('index.html','utf8')});
+   if(url==='https://club.test/')return route.fulfill({contentType:'text/html',body:fs.readFileSync(fs.existsSync('miniapp/index.html')?'miniapp/index.html':'index.html','utf8')});
    if(url.includes('/functions/v1/hosts'))return route.fulfill({contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify({hosts})});
    if(url.includes('/functions/v1/reservations')){reservationCalls++;return route.fulfill({contentType:'application/json',body:'{}'});}
    return route.abort();

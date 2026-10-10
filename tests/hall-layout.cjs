@@ -15,7 +15,7 @@ const fs=require('node:fs'),assert=require('node:assert/strict');
   await page.route('**/*',route=>{
    const url=new URL(route.request().url());
    if(url.host==='club.test'){
-    const file=url.pathname==='/'?'index.html':url.pathname.slice(1);
+    const rawPath=url.pathname==='/'?'index.html':url.pathname.slice(1);const file=fs.existsSync('miniapp/'+rawPath)?'miniapp/'+rawPath:rawPath;
     if(fs.existsSync(file))return route.fulfill({contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.woff2')?'font/woff2':'text/html',body:fs.readFileSync(file)});
    }
    if(url.pathname.endsWith('/hosts'))return route.fulfill({contentType:'application/json',body:JSON.stringify({hosts:ids.map((id,i)=>({host_id:String(id),status:i%8===0?'reserved':i%8===1?'busy':i%8===2?'broken':'free',updated_at:new Date(Date.now()-(live?0:3600000)).toISOString()}))})});

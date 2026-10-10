@@ -749,7 +749,7 @@ def main():
         data = analyze(users, spending, active_sessions, sessions_log, client)
 
     # Output file
-    xlsx_path = "1SHOT_Statistika_Club.xlsx"
+    xlsx_path = str(Path(__file__).parent / "1SHOT_Statistika_Club.xlsx")
     create_designed_excel_workbook(data, xlsx_path)
 
     print("\n" + "=" * 60)

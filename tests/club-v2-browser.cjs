@@ -9,7 +9,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
    const url=new URL(route.request().url());
    if(url.host==='club.test'){
     if(url.pathname==='/avatar.svg')return route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><circle cx="32" cy="32" r="30" fill="white"/></svg>'});
-    const file=url.pathname==='/'?'index.html':url.pathname.slice(1);if(fs.existsSync(file))return route.fulfill({contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.woff2')?'font/woff2':'text/html',body:fs.readFileSync(file)});
+    const rawPath=url.pathname==='/'?'index.html':url.pathname.slice(1);const file=fs.existsSync('miniapp/'+rawPath)?'miniapp/'+rawPath:rawPath;if(fs.existsSync(file))return route.fulfill({contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.woff2')?'font/woff2':'text/html',body:fs.readFileSync(file)});
    }
    if(url.pathname.endsWith('/hosts'))return route.fulfill({contentType:'application/json',body:JSON.stringify({hosts:[11,12,13,14,15,21,22,23,24,25].map(id=>({host_id:String(id),status:'free',updated_at:new Date().toISOString()}))})});
    if(url.pathname.endsWith('/club-bookings')){

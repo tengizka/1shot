@@ -5,7 +5,8 @@ from unittest.mock import Mock
 
 class ProfileSaveTests(TestCase):
     def context(self, response):
-        tree = ast.parse(Path('agent.py').read_text())
+        agent_path = Path('scripts/agent.py') if Path('scripts/agent.py').exists() else Path('agent.py')
+        tree = ast.parse(agent_path.read_text())
         funcs = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name in ('upsert_profile', 'handle_login')]
         ns = dict(post_to_supabase=Mock(return_value=response), report_auth=Mock(),
                   validate_gizmo_credentials=Mock(return_value=(True, 42)), log=Mock())

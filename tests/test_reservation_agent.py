@@ -15,7 +15,8 @@ class GizmoReservationTests(TestCase):
         names = {'GizmoReservationUncertain','parse_gizmo_date','infer_reservation_unit_seconds',
                  'build_reservation_params','validate_gizmo_booking_user','create_gizmo_reservation','get_reservation_unit_seconds',
                  'save_reservation_journal','load_reservation_journal','process_pending_reservations'}
-        tree = ast.parse(Path('agent.py').read_text())
+        agent_path = Path('scripts/agent.py') if Path('scripts/agent.py').exists() else Path('agent.py')
+        tree = ast.parse(agent_path.read_text())
         nodes = [n for n in tree.body if isinstance(n,(ast.FunctionDef,ast.ClassDef)) and n.name in names]
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -37,7 +38,8 @@ class GizmoReservationTests(TestCase):
             return response
         self.get.side_effect = get
     def test_method_query_and_reference_contract(self):
-        spec=json.loads(Path('docs.json').read_text())
+        docs_path = Path('docs/docs.json') if Path('docs/docs.json').exists() else Path('docs.json')
+        spec=json.loads(docs_path.read_text())
         endpoint=spec['paths']['/api/reservations']['put']
         self.assertTrue(all(p['in']=='query' for p in endpoint['parameters']))
         self.assertIn('hostId',spec['components']['schemas']['ReservationHostParameter']['required'])

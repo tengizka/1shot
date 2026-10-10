@@ -642,7 +642,7 @@ def main():
 
         model = build_owner_model(users, spending, active_sessions, sessions_log)
 
-    xlsx_path = "Otchet_Dlya_Vladeltsev.xlsx"
+    xlsx_path = str(Path(__file__).parent / "Otchet_Dlya_Vladeltsev.xlsx")
     create_owner_workbook(model, xlsx_path)
 
     print("\n" + "=" * 60)
