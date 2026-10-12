@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1SHOT Mini App — Figma Design Showcase (All Screens)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/fonts/unbounded.css">
+<style>
+:root {
+  --canvas-bg: #111216;
+  --panel-bg: #1A1B22;
+  --panel-border: #2A2B36;
+  --text-main: #FFFFFF;
+  --text-muted: #8A8B94;
+  --text-dim: #555761;
+  --accent: #FF5A36;
+  --accent-glow: rgba(255, 90, 54, 0.25);
+  
+  /* App Tokens */
+  --app-bg: #0E0F13;
+  --app-card: #14151A;
+  --app-input: #1C1D23;
+  --app-border: #23242B;
+  --app-vip: #C9A227;
+  --app-free: #22C55E;
+  --app-busy: #EF4444;
+  --app-reserved: #F59E0B;
+  --app-broken: #2A2B30;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--canvas-bg);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--text-main);
+  font-family: 'Inter', -apple-system, sans-serif;
+  min-height: 100vh;
+  padding: 32px 40px 80px;
+  overflow-x: auto;
+}
+
+/* TOP TOOLBAR */
+.toolbar {
+  position: sticky;
+  top: 16px;
+  z-index: 1000;
+  max-width: 1400px;
+  margin: 0 auto 40px;
+  background: rgba(26, 27, 34, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.4);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-badge {
+  background: var(--accent);
+  color: #fff;
+  font-family: 'Unbounded', sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+
+.brand-title {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.brand-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #242530;
+  border: 1px solid #353646;
+  color: #fff;
+  padding: 9px 16px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  background: #2D2F3E;
+  border-color: #4A4C62;
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: #E64A26;
+}
+
+/* FIGMA HINT CARD */
+.figma-hint {
+  max-width: 1400px;
+  margin: 0 auto 40px;
+  background: linear-gradient(135deg, rgba(255,90,54,0.1), rgba(201,162,39,0.08));
+  border: 1px solid rgba(255,90,54,0.3);
+  border-radius: 14px;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.hint-text h4 {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: #fff;
+}
+.hint-text p {
+  font-size: 13px;
+  color: #BBB;
+  line-height: 1.5;
+}
+.hint-copy-url {
+  background: #111;
+  border: 1px solid #333;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--accent);
+  cursor: pointer;
+  user-select: all;
+  white-space: nowrap;
+}
+
+/* CANVAS GRID OF SCREENS */
+.screens-canvas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(390px, 1fr));
+  gap: 48px;
+  max-width: 1700px;
+  margin: 0 auto;
+}
+
+/* INDIVIDUAL SCREEN CONTAINER */
+.screen-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.screen-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.screen-num {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.screen-name {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.screen-badge {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.06);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+/* DEVICE MOCKUP (iPhone 14/15 390x844) */
+.device-frame {
+  width: 390px;
+  height: 844px;
+  background: var(--app-bg);
+  border-radius: 46px;
+  border: 5px solid #282933;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+  font-family: 'Unbounded', sans-serif;
+  color: #fff;
+}
+
+/* STATUS BAR */
+.status-bar {
+  height: 48px;
+  padding: 12px 24px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 50;
+  flex-shrink: 0;
+}
+.status-time {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.2px;
+}
+.dynamic-island {
+  width: 104px;
+  height: 28px;
+  background: #000;
+  border-radius: 16px;
+  position: absolute;
+  top: 11px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.status-icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* HOME INDICATOR */
+.home-indicator {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 134px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  z-index: 60;
+  pointer-events: none;
+}
+
+/* APP SHARED ELEMENTS */
+.app-header {
+  padding: 8px 18px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+.header-logo {
+  width: 100px;
+  height: auto;
+}
+.balance-chip {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--app-border);
+  border-radius: 100px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #fff;
+}
+.duty-admin-bar {
+  padding: 0 18px 10px;
+  font-size: 9px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.admin-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--app-free);
+  box-shadow: 0 0 6px var(--app-free);
+}
+
+.hall-heading {
+  padding: 4px 18px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.hall-heading h1 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+.free-indicator {
+  font-size: 10px;
+  color: #AAA;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.free-indicator .live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--app-free);
+  animation: pulseDot 2s infinite ease-in-out;
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* TABS */
+.zone-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 0 18px 10px;
+}
+.ztab {
+  padding: 10px;
+  font-family: 'Unbounded', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  border-radius: 10px;
+  border: 1px solid var(--app-border);
+  background: var(--app-card);
+  color: var(--text-muted);
+  text-align: center;
+}
+.ztab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* LEGEND */
+.legend-bar {
+  display: flex;
+  gap: 12px;
+  padding: 0 18px 12px;
+  font-size: 8px;
+  color: #8A8B94;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.leg-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.leg-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.leg-dot.free { background: var(--app-free); }
+.leg-dot.busy { background: var(--app-busy); }
+
+/* BOTTOM NAV */
+.bottom-nav {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: rgba(14, 15, 19, 0.95);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--app-border);
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 6px 12px 14px;
+  z-index: 40;
+}
+.nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.nav-btn.active {
+  color: var(--accent);
+}
+.nav-ico {
+  width: 20px;
+  height: 20px;
+}
+
+/* PC CARDS GRID */
+.pc-grid-vip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 7px;
+  padding: 10px 14px;
+}
+.pc-card {
+  aspect-ratio: 1 / 1.15;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: var(--app-card);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.pc-card.free {
+  border-color: rgba(34, 197, 94, 0.4);
+  background: linear-gradient(160deg, #14281E, #0D1612 80%);
+}
+.pc-card.busy {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: linear-gradient(160deg, #2A1417, #150D0E 80%);
+}
+.pc-card.reserved {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: linear-gradient(160deg, #2E2111, #16110B 80%);
+}
+.pc-card.repair {
+  background: #111;
+  border-color: #333;
+  opacity: 0.6;
+}
+.pc-num {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+.pc-status {
+  font-size: 7px;
+  color: #999;
+}
+.pc-card.free .pc-status { color: var(--app-free); }
+.pc-card.busy .pc-status { color: var(--app-busy); }
+.pc-card.reserved .pc-status { color: var(--app-reserved); }
+.pc-tag {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 7px;
+  font-weight: 700;
+  color: var(--app-vip);
+}
+.pc-phone-icon {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 9px;
+  height: 9px;
+  fill: #888;
+}
+
+/* PS5 CARD */
+.ps5-card {
+  margin: 10px 14px;
+  background: linear-gradient(135deg, #1A1728, #12111C);
+  border: 1px solid #3B2E63;
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ps5-info strong {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+.ps5-info small {
+  font-size: 9px;
+  color: #9A95B5;
+}
+.ps5-btn {
+  background: #4C378A;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* SCREEN 1: SPLASH */
+.splash-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  position: relative;
+}
+.splash-logo {
+  width: 220px;
+  margin-bottom: 24px;
+}
+.splash-tag {
+  font-size: 11px;
+  letter-spacing: 5px;
+  color: var(--accent);
+  font-weight: 700;
+}
+.splash-made {
+  position: absolute;
+  bottom: 36px;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+}
+
+/* AUTH VIEWS */
+.auth-view {
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.auth-tabs {
+  display: flex;
+  background: var(--app-card);
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 24px;
+}
+.auth-tab {
+  flex: 1;
+  padding: 10px;
+  text-align: center;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.auth-tab.active {
+  background: var(--accent);
+  color: #fff;
+}
+.input-group {
+  margin-bottom: 16px;
+}
+.input-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  display: block;
+}
+.mock-input {
+  width: 100%;
+  padding: 13px 14px;
+  background: var(--app-input);
+  border: 1.5px solid var(--app-border);
+  border-radius: 10px;
+  font-family: 'Unbounded', sans-serif;
+  font-size: 12px;
+  color: #fff;
+}
+.mock-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--accent);
+  border: none;
+  border-radius: 10px;
+  font-family: 'Unbounded', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  margin-top: 10px;
+}
+.sex-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.sex-btn {
+  background: var(--app-input);
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.sex-btn.active {
+  border-color: var(--accent);
+  color: #fff;
+  background: rgba(255, 90, 54, 0.1);
+}
+
+/* BOOKING SHEET */
+.booking-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 30;
+}
+.bottom-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #14151C;
+  border-top: 1px solid #2B2C3A;
+  border-radius: 24px 24px 0 0;
+  padding: 18px 20px 40px;
+  z-index: 35;
+  box-shadow: 0 -12px 40px rgba(0,0,0,0.8);
+}
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: #3B3C4E;
+  border-radius: 2px;
+  margin: 0 auto 16px;
+}
+.sheet-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.sheet-subtitle {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+.arrival-picker {
+  background: #1A1B24;
+  border: 1px solid #282937;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+.arrival-date {
+  font-size: 9px;
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.arrival-time-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.arrival-time-text {
+  font-size: 15px;
+  font-weight: 700;
+}
+.arrival-note {
+  font-size: 8px;
+  color: var(--text-dim);
+}
+.duration-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.dur-btn {
+  background: #1C1D26;
+  border: 1px solid #282937;
+  border-radius: 8px;
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: #AAA;
+}
+.dur-btn.active {
+  background: rgba(255, 90, 54, 0.15);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ACTIVE SESSION OVERLAY */
+.active-session-banner {
+  margin: 12px 14px;
+  background: linear-gradient(135deg, #1C1314, #130D0F);
+  border: 1.5px solid var(--accent);
+  box-shadow: 0 0 24px var(--accent-glow);
+  border-radius: 16px;
+  padding: 16px;
+}
+.session-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+.session-pc {
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+}
+.session-timer {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.session-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+.btn-lock {
+  background: #242531;
+  border: 1px solid #383A4C;
+  border-radius: 8px;
+  padding: 9px;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  color: #fff;
+}
+.btn-exit-pc {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid var(--app-busy);
+  border-radius: 8px;
+  padding: 9px;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--app-busy);
+}
+
+/* OVERLAY VIEWS (TARIFFS & PROFILE) */
+.overlay-view {
+  padding: 12px 18px 70px;
+  overflow-y: auto;
+  flex: 1;
+}
+.ov-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.ov-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+.ov-card {
+  background: var(--app-card);
+  border: 1px solid var(--app-border);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.ov-card.vip {
+  border-color: rgba(201,162,39,0.35);
+  background: linear-gradient(145deg, #181612, #11100D);
+}
+.badge-vip {
+  display: inline-block;
+  background: var(--app-vip);
+  color: #000;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+.rate-price {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 6px 0 10px;
+}
+.packages-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+.pkg-item {
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+  padding: 8px 6px;
+  text-align: center;
+  font-size: 9px;
+}
+.pkg-item b {
+  display: block;
+  font-size: 11px;
+  margin-top: 2px;
+  color: #fff;
+}
+
+/* PROFILE VIEW */
+.prof-user {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.prof-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #FF8566);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  border: 2px solid rgba(255,255,255,0.1);
+}
+.prof-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.stat-box {
+  background: var(--app-card);
+  border: 1px solid var(--app-border);
+  border-radius: 12px;
+  padding: 12px;
+}
+.stat-label {
+  font-size: 8px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.stat-val {
+  font-size: 15px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+.btn-save-prof {
+  background: #FFF;
+  color: #000;
+  font-weight: 700;
+  padding: 13px;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+.btn-logout {
+  background: rgba(239,68,68,0.12);
+  border: 1px solid var(--app-busy);
+  color: var(--app-busy);
+  font-weight: 700;
+  padding: 13px;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 11px;
+}
+
+/* REGISTRATION WAIT VIEW */
+.wait-banner {
+  text-align: center;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+.wait-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 90, 54, 0.15);
+  border: 2px solid var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+.wait-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.wait-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-width: 280px;
+}
+
+</style>
+</head>
+<body>
+
+<!-- TOOLBAR -->
+<header class="toolbar">
+  <div class="brand">
+    <div class="brand-badge">1SHOT</div>
+    <div>
+      <div class="brand-title">Mini App Design Showcase</div>
+      <div class="brand-desc">Все экраны клиентского приложения для Figma & Design Review</div>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="btn" onclick="copyShowcaseUrl()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      Копировать URL для плагина Figma
+    </button>
+    <a href="../miniapp/" class="btn btn-primary" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      Открыть живой Mini App
+    </a>
+  </div>
+</header>
+
+<!-- FIGMA IMPORT INSTRUCTIONS -->
+<div class="figma-hint">
+  <div class="hint-text">
+    <h4>⚡ Как импортировать эти экраны в Figma прямо сейчас:</h4>
+    <p>1. Открой плагин <strong>html.to.design</strong> в Figma &nbsp;•&nbsp; 2. Вставь ссылку ниже &nbsp;•&nbsp; 3. Выбери размер <strong>iPhone (390×844)</strong> и нажми <strong>Import</strong>. Все экраны станут готовыми слоями с Auto Layout!</p>
+  </div>
+  <div class="hint-copy-url" id="plugin-url" onclick="copyShowcaseUrl()">https://tengizka.github.io/1shot/miniapp/figma-preview.html</div>
+</div>
+
+<!-- SCREENS GRID -->
+<div class="screens-canvas">
+
+  <!-- ================= SCREEN 1: SPLASH ================= -->
+  <div class="screen-card">
+    <div class="screen-header">
+      <span class="screen-num">01</span>
+      <span class="screen-name">Splash Screen</span>
+      <span class="screen-badge">Заставка</span>
+    </div>
+    <div class="device-frame">
+      <div class="status-bar">
+        <span class="status-time">09:41</span>
+        <div class="dynamic-island"></div>
+        <div class="status-icons">
+          <svg width="14" height="10" viewBox="0 0 24 16" fill="white"><path d="M1 10h4v6H1zM7 6h4v10H7zM13 2h4v14h-4zM19 0h4v16h-4z"/></svg>
+          <svg width="18" height="10" viewBox="0 0 26 12" fill="white"><rect x="1" y="1" width="21" height="10" rx="3" fill="none" stroke="white" stroke-width="2"/><rect x="3" y="3" width="13" height="6" rx="1.5"/><path d="M24 4v4"/></svg>
+        </div>
+      </div>
+      <div class="splash-view">
+        <svg class="splash-logo" viewBox="0 0 522 138" fill="white">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M478 17.5V52.5H441V61.5H478V127H487V61.5H522V52.5H487V17.5H478ZM97 52.5H50V61.5H125V77L104 108V72.5H95V137L134 80V52.5H108L125 28.5V42H134V0L97 52.5ZM264 52.5H230V17.5H221V52.5H156V61.5H221V127H230V61.5H264V127H273V17.5H264V52.5ZM346.5 0L346.5 52.5H296V61.5H346.5V79.5L386 137V61.5H411V52.5H384L346.5 0ZM355.5 76.5V28.5L373 52.5H366V61.5H377V108L355.5 76.5ZM14.4 17.5V52.5H0V61.5H14.4V118H0V127H37.8V118H23.4V17.5H14.4Z"/>
+        </svg>
+        <div class="splash-tag">КИБЕРХАУС</div>
+        <div class="splash-made">made by tengizka</div>
+      </div>
+      <div class="home-indicator"></div>
+    </div>
+  </div>
+
+  <!-- ================= SCREEN 2: LOGIN ================= -->
+  <div class="screen-card">
+    <div class="screen-header">
+      <span class="screen-num">02</span>
+      <span class="screen-name">Авторизация</span>
+      <span class="screen-badge">Вход</span>
+    </div>
+    <div class="device-frame">
+      <div class="status-bar">
+        <span class="status-time">09:41</span>
+        <div class="dynamic-island"></div>
+        <div class="status-icons">
+          <svg width="14" height="10" viewBox="0 0 24 16" fill="white"><path d="M1 10h4v6H1zM7 6h4v10H7zM13 2h4v14h-4zM19 0h4v16h-4z"/></svg>
+          <svg width="18" height="10" viewBox="0 0 26 12" fill="white"><rect x="1" y="1" width="21" height="10" rx="3" fill="none" stroke="white" stroke-width="2"/><rect x="3" y="3" width="13" height="6" rx="1.5"/><path d="M24 4v4"/></svg>
+        </div>
+      </div>
+      <div class="auth-view">
+        <svg class="header-logo" style="margin: 20px auto 32px;" viewBox="0 0 522 138" fill="white">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M478 17.5V52.5H441V61.5H478V127H487V61.5H522V52.5H487V17.5H478ZM97 52.5H50V61.5H125V77L104 108V72.5H95V137L134 80V52.5H108L125 28.5V42H134V0L97 52.5ZM264 52.5H230V17.5H221V52.5H156V61.5H221V127H230V61.5H264V127H273V17.5H264V52.5ZM346.5 0L346.5 52.5H296V61.5H346.5V79.5L386 137V61.5H411V52.5H384L346.5 0ZM355.5 76.5V28.5L373 52.5H366V61.5H377V108L355.5 76.5ZM14.4 17.5V52.5H0V61.5H14.4V118H0V127H37.8V118H23.4V17.5H14.4Z"/>
+        </svg>
+        <div class="auth-tabs">
+          <div class="auth-tab active">ВХОД</div>
+          <div class="auth-tab">РЕГИСТРАЦИЯ</div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Никнейм или Телефон</label>
+          <div class="mock-input">tengizka</div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Пароль</label>
+          <div class="mock-input">••••••••</div>
+        </div>
+        <div class="mock-btn">Войти в профиль</div>
+        <div style="margin-top: 18px; text-align: center; font-size: 10px; color: var(--accent);">Забыли пароль?</div>
+        <div style="margin-top: auto; text-align: center; font-size: 9px; color: #555;">Используй логин и пароль за компьютерами клуба</div>
+      </div>
+      <div class="home-indicator"></div>
+    </div>
+  </div>
+
+  <!-- ================= SCREEN 3: REGISTRATION ================= -->
+  <div class="screen-card">
+    <div class="screen-header">
+      <span class="screen-num">03</span>
+      <span class="screen-name">Регистрация</span>
+      <span class="screen-badge">Новый гость (18+)</span>
+    </div>
+    <div class="device-frame">
+      <div class="status-bar">
+        <span class="status-time">09:41</span>
+        <div class="dynamic-island"></div>
+        <div class="status-icons">
+          <svg width="14" height="10" viewBox="0 0 24 16" fill="white"><path d="M1 10h4v6H1zM7 6h4v10H7zM13 2h4v14h-4zM19 0h4v16h-4z"/></svg>
+          <svg width="18" height="10" viewBox="0 0 26 12" fill="white"><rect x="1" y="1" width="21" height="10" rx="3" fill="none" stroke="white" stroke-width="2"/><rect x="3" y="3" width="13" height="6" rx="1.5"/><path d="M24 4v4"/></svg>
+        </div>
+      </div>
+      <div class="auth-view" style="overflow-y: auto;">
+        <div class="auth-tabs" style="margin-top: 10px;">
+          <div class="auth-tab">ВХОД</div>
+          <div class="auth-tab active">РЕГИСТРАЦИЯ</div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Никнейм</label>
+          <div class="mock-input">PlayerOne</div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Номер телефона</label>
+          <div class="mock-input">+7 (999) 123-45-67</div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Пароль</label>
+          <div class="mock-input">••••••••</div>
+        </div>
+        <div class="sex-selector">
+          <div class="sex-btn active">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="14" r="5"/><path d="M19 5l-5.4 5.4M19 5h-4M19 5v4"/></svg>
+            Мужчина
+          </div>
+          <div class="sex-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="9" r="5"/><path d="M12 14v7M9 18h6"/></svg>
+            Женщина
+          </div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Дата рождения</label>
+          <div class="mock-input" style="color: #AAA;">15 мая 2002 г.</div>
+        </div>
+        <div class="mock-btn">Зарегистрироваться</div>
+      </div>
+      <div class="home-indicator"></div>
+    </div>
+  </div>
+
+  <!-- ================= SCREEN 4: HALL VIP ================= -->
+  <div class="screen-card">
+    <div class="screen-header">
+      <span class="screen-num">04</span>
+      <span class="screen-name">Зал клуба (VIP)</span>
+      <span class="screen-badge">Карта 10 ПК</span>
+    </div>
+    <div class="device-frame">
+      <div class="status-bar">
+        <span class="status-time">09:41</span>
+        <div class="dynamic-island"></div>
+        <div class="status-icons">
+          <svg width="14" height="10" viewBox="0 0 24 16" fill="white"><path d="M1 10h4v6H1zM7 6h4v10H7zM13 2h4v14h-4zM19 0h4v16h-4z"/></svg>
+          <svg width="18" height="10" viewBox="0 0 26 12" fill="white"><rect x="1" y="1" width="21" height="10" rx="3" fill="none" stroke="white" stroke-width="2"/><rect x="3" y="3" width="13" height="6" rx="1.5"/><path d="M24 4v4"/></svg>
+        </div>
+      </div>
+      <div class="app-header">
+        <svg class="header-logo" viewBox="0 0 522 138" fill="white">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M478 17.5V52.5H441V61.5H478V127H487V61.5H522V52.5H487V17.5H478ZM97 52.5H50V61.5H125V77L104 108V72.5H95V137L134 80V52.5H108L125 28.5V42H134V0L97 52.5ZM264 52.5H230V17.5H221V52.5H156V61.5H221V127H230V61.5H264V127H273V17.5H264V52.5ZM346.5 0L346.5 52.5H296V61.5H346.5V79.5L386 137V61.5H411V52.5H384L346.5 0ZM355.5 76.5V28.5L373 52.5H366V61.5H377V108L355.5 76.5ZM14.4 17.5V52.5H0V61.5H14.4V118H0V127H37.8V118H23.4V17.5H14.4Z"/>
+        </svg>
+        <div class="balance-chip">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+          1 250 ₽
+        </div>
+      </div>
+      <div class="duty-admin-bar">
+        <div class="admin-indicator"></div>
+        <span>Дежурный администратор: <strong>Максим</strong> (до 21:00)</span>
+      </div>
+      <div class="hall-heading">
+        <h1>Выбери свой ПК</h1>
+        <div class="free-indicator"><span class="live-dot"></span>Свободно: 4</div>
+      </div>
+      <div class="zone-tabs">
+        <div class="ztab active">VIP (10 ПК)</div>
+        <div class="ztab">STANDARD (20 ПК)</div>
+      </div>
+      <div class="legend-bar">
+        <div class="leg-item"><div class="leg-dot free"></div>Свободен</div>
+        <div class="leg-item"><div class="leg-dot busy"></div>Занят</div>
+        <div class="leg-item"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Бронь</div>
+        <div class="leg-item"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Ремонт</div>
+      </div>
+
+      <!-- VIP GRID 10 PCS (11-15, 21-25) -->
+      <div class="pc-grid-vip">
+        <div class="pc-card free">
+          <span class="pc-tag">VIP</span>
+          <span class="pc-num">11</span>
+          <span class="pc-status">Свободен</span>
+        </div>
+        <div class="pc-card busy">
+          <span class="pc-tag">VIP</span>
+          <span class="pc-num">12</span>
+          <span class="pc-status">~40 мин</span>
+        </div>
+        <div class="pc-card free">
+          <span class="pc-tag">VIP</span>
+          <span class="pc-num">13</span>
+          <span class="pc-status">Свободен</span>
+        </div>
+        <div class="pc-card reserved">
+          <svg class="pc-phone-icon" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" fill="currentColor"/></svg>
+          <span class="pc-tag">VIP</span>
+          <span class="pc-num">14</span>
+          <span class="pc-status">Бронь</span>
+        </div>
+        <div class="pc-card free">
+          <span class="pc-tag">VIP</span>
+          <span class="pc-num">15</span>
+          <span class="pc-status">Свободен</span>
+        </div>
+        <div class="pc-card busy">
+          <span class="pc-tag">VIP</span>
+          <span class="pc-num">21</span>
+          <span class="pc-status">~1ч 20м</span>
+        </div>
+        <div class="pc-card free">
+          <span class="pc-tag">VIP</span>
+          <span class="pc-num">22</span>
+          <span class="pc-status">Свободен</span>
+        </div>
+        <div class="pc-card busy">
+          <span class="pc-tag">VIP</span>
+          <span class="pc-num">23</span>
+          <span class="pc-status">~15 мин</span>
+        </div>
+        <div class="pc-card repair">
+          <span class="pc-tag">VIP</span>
+          <span class="pc-num">24</span>
+          <span class="pc-status">Ремонт</span>
+        </div>
+        <div class="pc-card busy">
+          <span class="pc-tag">VIP</span>
+          <span class="pc-num">25</span>
+          <span class="pc-status">~2ч 05м</span>
+        </div>
+      </div>
+
+      <!-- PS5 CARD -->
+      <div class="ps5-card">
+        <div class="ps5-info">
+          <strong>PlayStation 5</strong>
+          <small>Бронь только по телефону</small>
+        </div>
+        <div class="ps5-btn">Позвонить</div>
+      </div>
+
+      <!-- BOTTOM NAV -->
+      <div class="bottom-nav">
+        <div class="nav-btn active">
+          <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Зал
+        </div>
+        <div class="nav-btn">
+          <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M4 10h16"/></svg>
+          Тарифы
+        </div>
+        <div class="nav-btn">
+          <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.8 3.2-7 7-7s7 3.2 7 7"/></svg>
+          Профиль
+        </div>
+      </div>
+      <div class="home-indicator"></div>
+    </div>
+  </div>
+
+  <!-- ================= SCREEN 5: HALL STANDARD ================= -->
+  <div class="screen-card">
+    <div class="screen-header">
+      <span class="screen-num">05</span>
+      <span class="screen-name">Зал (STANDARD)</span>
+      <span class="screen-badge">Ряды 100, 200, 300, 400</span>
+    </div>
+    <div class="device-frame">
+      <div class="status-bar">
+        <span class="status-time">09:41</span>
+        <div class="dynamic-island"></div>
+        <div class="status-icons">
+          <svg width="14" height="10" viewBox="0 0 24 16" fill="white"><path d="M1 10h4v6H1zM7 6h4v10H7zM13 2h4v14h-4zM19 0h4v16h-4z"/></svg>
+          <svg width="18" height="10" viewBox="0 0 26 12" fill="white"><rect x="1" y="1" width="21" height="10" rx="3" fill="none" stroke="white" stroke-width="2"/><rect x="3" y="3" width="13" height="6" rx="1.5"/><path d="M24 4v4"/></svg>
+        </div>
+      </div>
+      <div class="app-header">
+        <svg class="header-logo" viewBox="0 0 522 138" fill="white">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M478 17.5V52.5H441V61.5H478V127H487V61.5H522V52.5H487V17.5H478ZM97 52.5H50V61.5H125V77L104 108V72.5H95V137L134 80V52.5H108L125 28.5V42H134V0L97 52.5ZM264 52.5H230V17.5H221V52.5H156V61.5H221V127H230V61.5H264V127H273V17.5H264V52.5ZM346.5 0L346.5 52.5H296V61.5H346.5V79.5L386 137V61.5H411V52.5H384L346.5 0ZM355.5 76.5V28.5L373 52.5H366V61.5H377V108L355.5 76.5ZM14.4 17.5V52.5H0V61.5H14.4V118H0V127H37.8V118H23.4V17.5H14.4Z"/>
+        </svg>
+        <div class="balance-chip">1 250 ₽</div>
+      </div>
+      <div class="hall-heading">
+        <h1>Выбери свой ПК</h1>
+        <div class="free-indicator"><span class="live-dot"></span>Свободно: 9</div>
+      </div>
+      <div class="zone-tabs">
+        <div class="ztab">VIP</div>
+        <div class="ztab active">STANDARD</div>
+      </div>
+
+      <!-- STANDARD ROWS (100, 200, 300, 400) -->
+      <div style="padding: 6px 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-size: 8px; color: #888; letter-spacing: 1px;">РЯД 100 (6 ПК)</div>
+        <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px;">
+          <div class="pc-card free"><span class="pc-num" style="font-size: 11px;">104</span></div>
+          <div class="pc-card free"><span class="pc-num" style="font-size: 11px;">105</span></div>
+          <div class="pc-card busy"><span class="pc-num" style="font-size: 11px;">106</span></div>
+          <div class="pc-card busy"><span class="pc-num" style="font-size: 11px;">101</span></div>
+          <div class="pc-card free"><span class="pc-num" style="font-size: 11px;">102</span></div>
+          <div class="pc-card free"><span class="pc-num" style="font-size: 11px;">103</span></div>
+        </div>
+
+        <div style="font-size: 8px; color: #888; letter-spacing: 1px;">РЯД 200 (8 ПК)</div>
+        <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px;">
+          <div class="pc-card free"><span class="pc-num" style="font-size: 11px;">204</span></div>
+          <div class="pc-card busy"><span class="pc-num" style="font-size: 11px;">205</span></div>
+          <div class="pc-card free"><span class="pc-num" style="font-size: 11px;">206</span></div>
+          <div class="pc-card free"><span class="pc-num" style="font-size: 11px;">207</span></div>
+          <div class="pc-card busy"><span class="pc-num" style="font-size: 11px;">208</span></div>
+          <div class="pc-card free"><span class="pc-num" style="font-size: 11px;">201</span></div>
+        </div>
+
+        <div style="font-size: 8px; color: #888; letter-spacing: 1px;">РЯД 300 &amp; 400 (6 ПК)</div>
+        <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px;">
+          <div class="pc-card free"><span class="pc-num" style="font-size: 11px;">304</span></div>
+          <div class="pc-card free"><span class="pc-num" style="font-size: 11px;">303</span></div>
+          <div class="pc-card busy"><span class="pc-num" style="font-size: 11px;">302</span></div>
+          <div class="pc-card busy"><span class="pc-num" style="font-size: 11px;">301</span></div>
+          <div class="pc-card free"><span class="pc-num" style="font-size: 11px;">402</span></div>
+          <div class="pc-card free"><span class="pc-num" style="font-size: 11px;">401</span></div>
+        </div>
+      </div>
+
+      <!-- BOTTOM NAV -->
+      <div class="bottom-nav">
+        <div class="nav-btn active"><svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Зал</div>
+        <div class="nav-btn"><svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M4 10h16"/></svg>Тарифы</div>
+        <div class="nav-btn"><svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.8 3.2-7 7-7s7 3.2 7 7"/></svg>Профиль</div>
+      </div>
+      <div class="home-indicator"></div>
+    </div>
+  </div>
+
+  <!-- ================= SCREEN 6: BOOKING SHEET ================= -->
+  <div class="screen-card">
+    <div class="screen-header">
+      <span class="screen-num">06</span>
+      <span class="screen-name">Бронирование ПК</span>
+      <span class="screen-badge">Выбор времени</span>
+    </div>
+    <div class="device-frame">
+      <div class="status-bar">
+        <span class="status-time">09:41</span>
+        <div class="dynamic-island"></div>
+        <div class="status-icons">
+          <svg width="14" height="10" viewBox="0 0 24 16" fill="white"><path d="M1 10h4v6H1zM7 6h4v10H7zM13 2h4v14h-4zM19 0h4v16h-4z"/></svg>
+          <svg width="18" height="10" viewBox="0 0 26 12" fill="white"><rect x="1" y="1" width="21" height="10" rx="3" fill="none" stroke="white" stroke-width="2"/><rect x="3" y="3" width="13" height="6" rx="1.5"/><path d="M24 4v4"/></svg>
+        </div>
+      </div>
+      
+      <!-- BACKGROUND BEHIND MODAL -->
+      <div style="opacity: 0.2; padding: 20px;">
+        <div class="hall-heading"><h1>Выбери свой ПК</h1></div>
+        <div class="pc-grid-vip">
+          <div class="pc-card free"><span class="pc-num">11</span></div>
+          <div class="pc-card busy"><span class="pc-num">12</span></div>
+          <div class="pc-card free"><span class="pc-num">13</span></div>
+          <div class="pc-card free"><span class="pc-num">14</span></div>
+          <div class="pc-card free"><span class="pc-num">15</span></div>
+        </div>
+      </div>
+      <div class="booking-backdrop"></div>
+
+      <!-- BOTTOM SHEET -->
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">ПК 14 <span style="color: var(--app-vip); font-size: 13px;">(VIP)</span></div>
+        <div class="sheet-subtitle">Бронь удерживается до 30 минут с момента прибытия</div>
+
+        <div class="arrival-picker">
+          <div class="arrival-date">Сегодня, 12 октября (МСК)</div>
+          <div class="arrival-time-display">
+            <span class="arrival-time-text">В течение 15 минут</span>
+            <span style="font-size: 11px; color: var(--accent); font-weight: 600;">изменить</span>
+          </div>
+          <div class="arrival-note" style="margin-top: 6px;">Максимум ожидания 30 минут</div>
+        </div>
+
+        <div class="input-label" style="margin-bottom: 8px;">Формат игры</div>
+        <div class="duration-tabs">
+          <div class="dur-btn active">1 час</div>
+          <div class="dur-btn">Интервал</div>
+          <div class="dur-btn">Как пойдёт</div>
+        </div>
+
+        <div class="mock-btn" style="margin-top: 0;">Забронировать ПК 14</div>
+        <div style="text-align: center; margin-top: 14px; font-size: 9px; color: #777;">
+          Вопросы по брони? <span style="color: #AAA;">+7 (495) 583-78-11</span>
+        </div>
+      </div>
+      <div class="home-indicator"></div>
+    </div>
+  </div>
+
+  <!-- ================= SCREEN 7: QUEUE FOR OCCUPIED ================= -->
+  <div class="screen-card">
+    <div class="screen-header">
+      <span class="screen-num">07</span>
+      <span class="screen-name">Занятый ПК / Очередь</span>
+      <span class="screen-badge">CTA «Когда освободится»</span>
+    </div>
+    <div class="device-frame">
+      <div class="status-bar">
+        <span class="status-time">09:41</span>
+        <div class="dynamic-island"></div>
+        <div class="status-icons">
+          <svg width="14" height="10" viewBox="0 0 24 16" fill="white"><path d="M1 10h4v6H1zM7 6h4v10H7zM13 2h4v14h-4zM19 0h4v16h-4z"/></svg>
+          <svg width="18" height="10" viewBox="0 0 26 12" fill="white"><rect x="1" y="1" width="21" height="10" rx="3" fill="none" stroke="white" stroke-width="2"/><rect x="3" y="3" width="13" height="6" rx="1.5"/><path d="M24 4v4"/></svg>
+        </div>
+      </div>
+      <div style="opacity: 0.2; padding: 20px;">
+        <div class="hall-heading"><h1>Выбери свой ПК</h1></div>
+      </div>
+      <div class="booking-backdrop"></div>
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between;">
+          <div class="sheet-title">ПК 12 <span style="color: var(--app-vip); font-size: 13px;">(VIP)</span></div>
+          <span style="color: var(--app-busy); font-size: 11px; font-weight: 700;">Сейчас занят</span>
+        </div>
+        <div class="sheet-subtitle">Текущий сеанс закончится примерно через ~35 минут</div>
+
+        <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+          <div style="font-size: 11px; font-weight: 600; color: #fff; margin-bottom: 4px;">Встать в очередь ожидания</div>
+          <p style="font-size: 9px; color: #BBB; line-height: 1.4;">Как только ПК освободится и пройдёт 3-минутный санитарный интервал, бот зарезервирует место и пришлёт подтверждение в Telegram.</p>
+        </div>
+
+        <div class="mock-btn" style="background: linear-gradient(135deg, #FF5A36, #D43918);">Забронировать как освободится</div>
+        <div style="text-align: center; margin-top: 14px; font-size: 9px; color: #777;">
+          Или выберите любой другой свободный компьютер в зале
+        </div>
+      </div>
+      <div class="home-indicator"></div>
+    </div>
+  </div>
+
+  <!-- ================= SCREEN 8: ACTIVE SESSION ================= -->
+  <div class="screen-card">
+    <div class="screen-header">
+      <span class="screen-num">08</span>
+      <span class="screen-name">Активная сессия</span>
+      <span class="screen-badge">Игра за ПК</span>
+    </div>
+    <div class="device-frame">
+      <div class="status-bar">
+        <span class="status-time">09:41</span>
+        <div class="dynamic-island"></div>
+        <div class="status-icons">
+          <svg width="14" height="10" viewBox="0 0 24 16" fill="white"><path d="M1 10h4v6H1zM7 6h4v10H7zM13 2h4v14h-4zM19 0h4v16h-4z"/></svg>
+          <svg width="18" height="10" viewBox="0 0 26 12" fill="white"><rect x="1" y="1" width="21" height="10" rx="3" fill="none" stroke="white" stroke-width="2"/><rect x="3" y="3" width="13" height="6" rx="1.5"/><path d="M24 4v4"/></svg>
+        </div>
+      </div>
+      
+      <!-- HERO ACTIVE SESSION BANNER -->
+      <div class="active-session-banner">
+        <div class="session-head">
+          <div>
+            <span style="font-size: 8px; color: var(--accent); letter-spacing: 1px; text-transform: uppercase;">АКТИВНАЯ ИГРА</span>
+            <div class="session-pc">ПК 15 (VIP-зал)</div>
+          </div>
+          <div style="text-align: right;">
+            <span style="font-size: 8px; color: #888;">ОСТАЛОСЬ</span>
+            <div class="session-timer">2ч 45м</div>
+          </div>
+        </div>
+        <div style="background: rgba(255,255,255,0.06); height: 4px; border-radius: 2px; overflow: hidden; margin: 10px 0;">
+          <div style="background: var(--accent); width: 65%; height: 100%;"></div>
+        </div>
+        <div class="session-actions">
+          <div class="btn-lock">🔒 Заблокировать ПК</div>
+          <div class="btn-exit-pc">Завершить сессию</div>
+        </div>
+      </div>
+
+      <div style="padding: 10px 14px;">
+        <div style="font-size: 11px; font-weight: 700; margin-bottom: 10px;">Быстрые действия</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div style="background: var(--app-card); border: 1px solid var(--app-border); border-radius: 12px; padding: 12px;">
+            <div style="font-size: 9px; color: #888;">БАЛАНС</div>
+            <div style="font-size: 14px; font-weight: 700; margin: 4px 0;">1 250 ₽</div>
+            <div style="font-size: 8px; color: var(--app-free);">Пополнить на ресепшн</div>
+          </div>
+          <div style="background: var(--app-card); border: 1px solid var(--app-border); border-radius: 12px; padding: 12px;">
+            <div style="font-size: 9px; color: #888;">ТАРИФ</div>
+            <div style="font-size: 14px; font-weight: 700; margin: 4px 0;">Пакет 3ч</div>
+            <div style="font-size: 8px; color: var(--accent);">Продлить время</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM NAV -->
+      <div class="bottom-nav">
+        <div class="nav-btn active"><svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Сессия</div>
+        <div class="nav-btn"><svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M4 10h16"/></svg>Тарифы</div>
+        <div class="nav-btn"><svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.8 3.2-7 7-7s7 3.2 7 7"/></svg>Профиль</div>
+      </div>
+      <div class="home-indicator"></div>
+    </div>
+  </div>
+
+  <!-- ================= SCREEN 9: TARIFFS ================= -->
+  <div class="screen-card">
+    <div class="screen-header">
+      <span class="screen-num">09</span>
+      <span class="screen-name">Тарифы клуба</span>
+      <span class="screen-badge">Цены и пакеты</span>
+    </div>
+    <div class="device-frame">
+      <div class="status-bar">
+        <span class="status-time">09:41</span>
+        <div class="dynamic-island"></div>
+        <div class="status-icons">
+          <svg width="14" height="10" viewBox="0 0 24 16" fill="white"><path d="M1 10h4v6H1zM7 6h4v10H7zM13 2h4v14h-4zM19 0h4v16h-4z"/></svg>
+          <svg width="18" height="10" viewBox="0 0 26 12" fill="white"><rect x="1" y="1" width="21" height="10" rx="3" fill="none" stroke="white" stroke-width="2"/><rect x="3" y="3" width="13" height="6" rx="1.5"/><path d="M24 4v4"/></svg>
+        </div>
+      </div>
+      <div class="overlay-view">
+        <div class="ov-header">
+          <div class="ov-title">Тарифы</div>
+        </div>
+
+        <!-- VIP RATE -->
+        <div class="ov-card vip">
+          <span class="badge-vip">ПРЕМИУМ ЗОНА</span>
+          <div style="font-size: 13px; font-weight: 700;">VIP</div>
+          <div class="rate-price">229 ₽ <small style="font-size: 11px; font-weight: 400; color: #888;">/ 1 час</small></div>
+          <div class="packages-grid">
+            <div class="pkg-item">3 часа<b>599 ₽</b></div>
+            <div class="pkg-item">5 часов<b>799 ₽</b></div>
+            <div class="pkg-item">12 часов<b>1 599 ₽</b></div>
+          </div>
+        </div>
+
+        <!-- STANDARD RATE -->
+        <div class="ov-card">
+          <div style="font-size: 13px; font-weight: 700;">STANDARD</div>
+          <div class="rate-price">189 ₽ <small style="font-size: 11px; font-weight: 400; color: #888;">/ 1 час</small></div>
+          <div class="packages-grid">
+            <div class="pkg-item">3 часа<b>499 ₽</b></div>
+            <div class="pkg-item">5 часов<b>699 ₽</b></div>
+            <div class="pkg-item">12 часов<b>1 390 ₽</b></div>
+          </div>
+        </div>
+
+        <!-- PS5 RATE -->
+        <div class="ov-card" style="margin-bottom: 20px;">
+          <div style="font-size: 13px; font-weight: 700;">PlayStation 5</div>
+          <div class="rate-price">299 ₽ <small style="font-size: 11px; font-weight: 400; color: #888;">/ 1 час</small></div>
+          <div style="font-size: 9px; color: #888;">Бронирование по телефону: +7 (495) 583-78-11</div>
+        </div>
+      </div>
+
+      <!-- BOTTOM NAV -->
+      <div class="bottom-nav">
+        <div class="nav-btn"><svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Зал</div>
+        <div class="nav-btn active"><svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M4 10h16"/></svg>Тарифы</div>
+        <div class="nav-btn"><svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.8 3.2-7 7-7s7 3.2 7 7"/></svg>Профиль</div>
+      </div>
+      <div class="home-indicator"></div>
+    </div>
+  </div>
+
+  <!-- ================= SCREEN 10: PROFILE ================= -->
+  <div class="screen-card">
+    <div class="screen-header">
+      <span class="screen-num">10</span>
+      <span class="screen-name">Профиль гостя</span>
+      <span class="screen-badge">Личный кабинет</span>
+    </div>
+    <div class="device-frame">
+      <div class="status-bar">
+        <span class="status-time">09:41</span>
+        <div class="dynamic-island"></div>
+        <div class="status-icons">
+          <svg width="14" height="10" viewBox="0 0 24 16" fill="white"><path d="M1 10h4v6H1zM7 6h4v10H7zM13 2h4v14h-4zM19 0h4v16h-4z"/></svg>
+          <svg width="18" height="10" viewBox="0 0 26 12" fill="white"><rect x="1" y="1" width="21" height="10" rx="3" fill="none" stroke="white" stroke-width="2"/><rect x="3" y="3" width="13" height="6" rx="1.5"/><path d="M24 4v4"/></svg>
+        </div>
+      </div>
+      <div class="overlay-view">
+        <div class="ov-header">
+          <div class="ov-title">Профиль</div>
+        </div>
+
+        <div class="prof-user">
+          <div class="prof-avatar">T</div>
+          <div>
+            <div style="font-size: 15px; font-weight: 700;">tengizka</div>
+            <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Тенгиз • Гость клуба</div>
+          </div>
+        </div>
+
+        <div class="prof-stats">
+          <div class="stat-box">
+            <div class="stat-label">Баланс</div>
+            <div class="stat-val" style="color: var(--app-free);">1 250 ₽</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Сыграно часов</div>
+            <div class="stat-val">84 ч</div>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Телефон</label>
+          <div class="mock-input" style="color: #AAA;">+7 (999) 000-00-00</div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Дата рождения (неизменяемая)</label>
+          <div class="mock-input" style="color: #666;">15.05.2000</div>
+        </div>
+
+        <div class="btn-save-prof">Сохранить изменения</div>
+        <div class="btn-logout">Выйти из аккаунта</div>
+      </div>
+
+      <!-- BOTTOM NAV -->
+      <div class="bottom-nav">
+        <div class="nav-btn"><svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Зал</div>
+        <div class="nav-btn"><svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M4 10h16"/></svg>Тарифы</div>
+        <div class="nav-btn active"><svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.8 3.2-7 7-7s7 3.2 7 7"/></svg>Профиль</div>
+      </div>
+      <div class="home-indicator"></div>
+    </div>
+  </div>
+
+  <!-- ================= SCREEN 11: REGISTRATION WAIT ================= -->
+  <div class="screen-card">
+    <div class="screen-header">
+      <span class="screen-num">11</span>
+      <span class="screen-name">Очная верификация</span>
+      <span class="screen-badge">Подтверждение админом</span>
+    </div>
+    <div class="device-frame">
+      <div class="status-bar">
+        <span class="status-time">09:41</span>
+        <div class="dynamic-island"></div>
+        <div class="status-icons">
+          <svg width="14" height="10" viewBox="0 0 24 16" fill="white"><path d="M1 10h4v6H1zM7 6h4v10H7zM13 2h4v14h-4zM19 0h4v16h-4z"/></svg>
+          <svg width="18" height="10" viewBox="0 0 26 12" fill="white"><rect x="1" y="1" width="21" height="10" rx="3" fill="none" stroke="white" stroke-width="2"/><rect x="3" y="3" width="13" height="6" rx="1.5"/><path d="M24 4v4"/></svg>
+        </div>
+      </div>
+      <div class="wait-banner">
+        <div class="wait-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
+        </div>
+        <div class="wait-title">Заявка принята!</div>
+        <p class="wait-desc">
+          Подойдите к администратору за стойкой ресепшн с документом, подтверждающим возраст (18+).<br><br>
+          Администратор подтвердит заявку в системе 1SHOT Desk, после чего ваш аккаунт сразу станет активен.
+        </p>
+        <div style="margin-top: 32px; background: rgba(255,255,255,0.05); padding: 10px 16px; border-radius: 8px; font-size: 10px; color: #888;">
+          Код заявки: <strong style="color: #fff;">#REG-8492</strong>
+        </div>
+      </div>
+      <div class="home-indicator"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function copyShowcaseUrl() {
+  const url = "https://tengizka.github.io/1shot/miniapp/figma-preview.html";
+  navigator.clipboard.writeText(url).then(() => {
+    alert("Ссылка скопирована в буфер обмена!\n\nВставь её в плагин html.to.design в Figma:\n" + url);
+  }).catch(() => {
+    prompt("Скопируй ссылку вручную:", url);
+  });
+}
+</script>
+</body>
+</html>
