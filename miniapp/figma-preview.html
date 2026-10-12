@@ -9,6 +9,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/fonts/unbounded.css">
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
+
 :root {
   --canvas-bg: #111216;
   --panel-bg: #1A1B22;
@@ -946,9 +948,13 @@ body {
     </div>
   </div>
   <div class="actions">
+    <button class="btn" onclick="downloadHtml()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Скачать .html файл
+    </button>
     <button class="btn" onclick="copyShowcaseUrl()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-      Копировать URL для плагина Figma
+      Копировать URL для Figma
     </button>
     <a href="../miniapp/" class="btn btn-primary" target="_blank">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
@@ -1618,6 +1624,16 @@ body {
 </div>
 
 <script>
+function downloadHtml() {
+  const blob = new Blob([document.documentElement.outerHTML], { type: 'text/html;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '1shot-figma-screens.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
 function copyShowcaseUrl() {
   const url = "https://tengizka.github.io/1shot/miniapp/figma-preview.html";
   navigator.clipboard.writeText(url).then(() => {
