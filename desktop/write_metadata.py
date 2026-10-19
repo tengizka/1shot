@@ -7,8 +7,8 @@ from .version import VERSION, VERSION_INFO, AUTHOR, APP_TITLE
 def main():
     root=Path(__file__).resolve().parent
     shutil.copytree(root.parent/'assets/fonts',root/'assets/fonts',dirs_exist_ok=True)
-    shutil.copyfile(root.parent/'hall-map.js',root/'assets/hall-map.js')
-    shutil.copyfile(root.parent/'arrival-time.js',root/'assets/arrival-time.js')
+    shutil.copyfile(root.parent/'miniapp/hall-map.js',root/'assets/hall-map.js')
+    shutil.copyfile(root.parent/'miniapp/arrival-time.js',root/'assets/arrival-time.js')
     (root/'brand.js').write_text('window.DESK_BUILD = '+json.dumps(dict(version=VERSION,author=AUTHOR,title=APP_TITLE),ensure_ascii=False)+';\n',encoding='utf-8')
     strings={'CompanyName':'tengizka','FileDescription':'1SHOT Club Desk','FileVersion':VERSION,
              'InternalName':'1SHOT-Desk','OriginalFilename':'1SHOT-Desk.exe',
