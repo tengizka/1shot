@@ -25,8 +25,9 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
    return route.abort();
   });
   await page.goto('https://club.test/');await page.waitForSelector('#splash',{state:'hidden'});await page.waitForSelector('.map-pc.free');await page.waitForFunction(()=>window.clubV2);await page.evaluate(()=>switchZone('vip'));await page.waitForTimeout(500);
-  await page.locator('[data-hid="11"]').click();assert.equal(await page.locator('[data-mode="instant"]').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('[data-kind="hour"]').count(),0);
-  await page.locator('#club-submit').click();await page.waitForSelector('#oneshot-overlay.open');assert.equal(requests.find(b=>b.action==='create_v2').mode,'instant');
+  await page.locator('[data-hid="11"]').click();await page.waitForSelector('#instant-mode:not([hidden])');assert.equal(await page.locator('[data-kind="hour"]').count(),0);
+  assert.equal(await page.locator('#bk-room').textContent(),'VIP 1');assert.equal(await page.locator('[data-hid="11"]').evaluate(e=>e.classList.contains('picked')),true,'tapped PC stays highlighted');
+  await page.waitForTimeout(400);await page.locator('#instant-mode').click();await page.waitForSelector('#oneshot-overlay.open');assert.equal(requests.find(b=>b.action==='create_v2').mode,'instant');
   assert.equal(await page.locator('#club-booking').evaluate(d=>d.open),false,'sheet closes while the logo loader runs');
   await page.waitForSelector('#session-screen:not([hidden])');await page.waitForSelector('#oneshot-overlay',{state:'hidden'});
   await page.locator('#btn-session-manage').click();await page.waitForSelector('.current-session');assert.equal(await page.locator('.club-reservation input').count(),0);

@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#000000">
 <title>1SHOT · Карта клуба</title>
 <script src="hall-map.js?v=20261008-ui"></script>
-<script src="oneshot-loader.js?v=2.1.0"></script>
+<script src="oneshot-loader.js?v=2.2.0"></script>
 <link rel="preload" href="../assets/fonts/unbounded/unbounded-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/unbounded/unbounded-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../assets/fonts/unbounded.css">
@@ -349,12 +349,11 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
     <div class="wiz-top"><button type="button" class="wiz-back" aria-label="Назад" onclick="authBack()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button><div class="wiz-progress" aria-hidden="true"></div><span class="wiz-count"></span></div>
     <div class="step" data-title="Вход">
       <label class="step-label" for="l-user">Твой номер<br>или никнейм</label>
-      <input type="text" id="l-user" placeholder="+7 999 123-45-67" autocomplete="username" inputmode="text" required>
-      <p class="step-hint">Номер можно ввести с +7, 7, 8 или без кода — мы поймём.</p>
+      <input type="text" id="l-user" placeholder="+7 999 123-45-67" autocomplete="username" inputmode="text" enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false" required>
     </div>
     <div class="step" data-title="Вход">
       <label class="step-label" for="l-pass">Пароль</label>
-      <input type="password" id="l-pass" placeholder="••••" autocomplete="current-password" required>
+      <input type="password" id="l-pass" placeholder="••••" autocomplete="current-password" enterkeyhint="done" required>
       <button type="button" class="step-link" onclick="authForgot()">Забыли пароль?</button>
     </div>
     <div class="wiz-actions"><button type="submit" class="btn-main" id="btn-login">Дальше</button></div>
@@ -363,14 +362,14 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
 
   <form id="form-register" class="auth-form wizard" onsubmit="authNext(event)" novalidate>
     <div class="wiz-top"><button type="button" class="wiz-back" aria-label="Назад" onclick="authBack()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button><div class="wiz-progress" aria-hidden="true"></div><span class="wiz-count"></span></div>
-    <div class="step"><label class="step-label" for="r-user">Придумай<br>никнейм</label><input type="text" id="r-user" placeholder="vasya_228" autocomplete="username" minlength="3" maxlength="30" required><p class="step-hint">С ним ты будешь входить за компьютерами клуба.</p></div>
-    <div class="step"><label class="step-label" for="r-pass">Придумай<br>пароль</label><input type="password" id="r-pass" placeholder="минимум 6 символов" autocomplete="new-password" minlength="6" required></div>
-    <div class="step"><label class="step-label" for="r-phone">Номер<br>телефона</label><input id="r-phone" type="tel" autocomplete="tel" maxlength="20" required placeholder="+7 999 123-45-67"></div>
-    <div class="step"><label class="step-label" for="r-name">Как тебя<br>зовут?</label><input type="text" id="r-name" placeholder="Вася" autocomplete="given-name" maxlength="45" required></div>
-    <div class="step"><label class="step-label" for="r-last">Фамилия</label><input id="r-last" autocomplete="family-name" maxlength="45" required placeholder="Пупкин"></div>
+    <div class="step"><label class="step-label" for="r-user">Придумай<br>никнейм</label><input type="text" id="r-user" placeholder="vasya_228" autocomplete="username" minlength="3" maxlength="30" enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false" required></div>
+    <div class="step"><label class="step-label" for="r-pass">Придумай<br>пароль</label><input type="password" id="r-pass" placeholder="минимум 6 символов" autocomplete="new-password" minlength="6" enterkeyhint="done" required></div>
+    <div class="step"><label class="step-label" for="r-phone">Номер<br>телефона</label><input id="r-phone" type="tel" inputmode="tel" autocomplete="tel" enterkeyhint="done" required value="+7 " placeholder="+7 999 123-45-67"></div>
+    <div class="step"><label class="step-label" for="r-name">Как тебя<br>зовут?</label><input type="text" id="r-name" placeholder="Вася" autocomplete="given-name" maxlength="45" enterkeyhint="done" required></div>
+    <div class="step"><label class="step-label" for="r-last">Фамилия</label><input id="r-last" autocomplete="family-name" maxlength="45" enterkeyhint="done" required placeholder="Пупкин"></div>
     <div class="step"><span class="step-label">Пол</span><fieldset class="gender-choice"><legend class="sr-repair">Пол</legend><label title="Мужчина"><input type="radio" name="sex" value="1" required aria-label="Мужчина"><svg viewBox="0 0 32 40" aria-hidden="true"><circle cx="16" cy="6" r="4"/><path d="M10 38V24H7V14h18v10h-3v14m-6-14v14"/></svg><span>Мужской</span></label><label title="Женщина"><input type="radio" name="sex" value="2" required aria-label="Женщина"><svg viewBox="0 0 32 40" aria-hidden="true"><circle cx="16" cy="6" r="4"/><path d="M12 38V28H8l4-14h8l4 14h-4v10m-4-10v10"/></svg><span>Женский</span></label></fieldset></div>
-    <div class="step"><span class="step-label">Дата<br>рождения</span><button type="button" id="birthday-open">Выбрать дату рождения</button><input id="r-birth" type="hidden"><p class="step-hint">Нужна для доступа в зал 18+.</p></div>
-    <div class="step" data-optional="1"><label class="step-label" for="r-promo">Есть<br>промокод?</label><input id="r-promo" type="text" maxlength="32" autocomplete="off" autocapitalize="characters" placeholder="Например, BLOGGER1"><p class="step-hint">По промокоду — 1 час в STANDART после подтверждения администратором. Нет кода — просто нажми «Дальше».</p></div>
+    <div class="step"><span class="step-label">Дата<br>рождения</span><button type="button" id="birthday-open">Выбрать дату рождения</button><input id="r-birth" type="hidden"></div>
+    <div class="step" data-optional="1"><label class="step-label" for="r-promo">Есть<br>промокод?</label><input id="r-promo" type="text" maxlength="32" autocomplete="off" autocapitalize="characters" enterkeyhint="done" placeholder="BLOGGER1"><p class="step-hint">1 час STANDART после подтверждения админом. Нет кода — жми «Дальше».</p></div>
     <div class="wiz-actions"><button type="submit" class="btn-main" id="btn-reg">Дальше</button></div>
     <div class="auth-err" id="err-reg"></div>
     <p class="auth-hint">После отправки подойди к администратору с документом — он подтвердит анкету.</p>
@@ -443,8 +442,12 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
       Зал
     </button>
     <button class="nav-btn" id="nav-tariffs" onclick="navTo('tariffs')">
-      <svg class="nav-ico" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M4 10h16"/><circle cx="12" cy="14" r="1.5" fill="currentColor" stroke="none"/></svg>
-      Тарифы
+      <svg class="nav-ico" viewBox="0 0 24 24"><path d="M3 12.5 12.5 3H21v8.5L11.5 21Z"/><circle cx="16.5" cy="7.5" r="1.5"/></svg>
+      Прайс
+    </button>
+    <button class="nav-btn" id="nav-food" onclick="navTo('food')">
+      <svg class="nav-ico" viewBox="0 0 24 24"><path d="M6 8h11l-1.4 13H7.4Z"/><path d="M12 8V3h4M4 8h15"/></svg>
+      Еда
     </button>
     <button class="nav-btn" id="nav-profile" onclick="navTo('profile')">
       <svg class="nav-ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7"/></svg>
@@ -469,48 +472,71 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
 <!-- TARIFFS OVERLAY -->
 <div class="overlay" id="ov-tariffs">
   <div class="ov-head">
-    <div class="ov-title">Тарифы</div>
+    <div class="ov-title">Прайс</div>
     <div class="ov-close" onclick="navTo('hall')">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
     </div>
   </div>
   <div class="ov-body">
-    <article class="rate-card smm-price">
-      <div class="smm-head"><span class="smm-tag smm-tag-white">Прайс</span><span class="smm-note">Время оплачивается в клубе, здесь только бронь места</span></div>
-      <div class="price-row price-th"><span>Тариф</span><b>Основной</b><b>VIP</b></div>
+    <div class="seg-tabs" role="tablist" aria-label="Разделы прайса">
+      <button type="button" role="tab" data-pane="price" aria-selected="true">Прайс</button>
+      <button type="button" role="tab" data-pane="promo" aria-selected="false">Акции</button>
+      <button type="button" role="tab" data-pane="hw" aria-selected="false">Железо</button>
+    </div>
+    <section class="seg-pane" data-pane="price" role="tabpanel">
+      <div class="price-row price-th"><span>Время</span><b>STANDART</b><b>VIP</b></div>
       <div class="price-row"><span>1 час</span><b>189 ₽</b><b>229 ₽</b></div>
       <div class="price-row"><span>3 часа</span><b>499 ₽</b><b>599 ₽</b></div>
       <div class="price-row"><span>5 часов</span><b>699 ₽</b><b>799 ₽</b></div>
       <div class="price-row"><span>12 часов</span><b>1399 ₽</b><b>1599 ₽</b></div>
       <div class="price-row price-morning"><span>Утро<small>8:00–13:00</small></span><b>399 ₽</b><b>499 ₽</b></div>
       <div class="price-row price-night"><span>Ночь<small>22:00–8:00</small></span><b>899 ₽</b><b>999 ₽</b></div>
-      <div class="price-row price-one"><span>TV-зона PS5, 1 час<small>бронь только по телефону</small></span><b>299 ₽</b></div>
-    </article>
-    <article class="rate-card smm-promos">
-      <span class="smm-tag">Акция</span>
-      <h2 class="smm-title">Пополни<br>и играй больше</h2>
-      <p class="smm-text">Бонусные часы за пополнение баланса одним чеком, 1 раз в месяц. Можно не на кассе.</p>
-      <div class="promo-row"><b>700 ₽</b><span>1 ч PC</span></div>
-      <div class="promo-row"><b>1000 ₽</b><span>2 ч PC / 1 ч VIP / 1 ч TV</span></div>
-      <div class="promo-row"><b>2000 ₽</b><span>4 ч PC / 2 ч VIP / 2 ч TV</span></div>
-      <div class="promo-row"><b>3000 ₽</b><span>6 ч PC / 3 ч VIP / 3 ч TV</span></div>
-      <span class="smm-tag">Подарок</span>
-      <h2 class="smm-title">Час за отзыв</h2>
-      <p class="smm-text">Отзыв на Яндекс Картах или в 2ГИС: после модерации дарим 1 час в основном зале. Один отзыв на гостя.</p>
-      <span class="smm-tag smm-tag-pink">День рождения</span>
-      <h2 class="smm-title">3 часа имениннику</h2>
-      <p class="smm-text">И по 1 часу друзьям, до 5 человек. Часы в основном зале, в день рождения и 3 дня после. Нужен оригинал паспорта, прав или свидетельства о рождении. Госуслуги не подходят.</p>
-    </article>
-    <article class="rate-card smm-hardware">
-      <span class="smm-tag smm-tag-white">Железо</span>
+      <div class="price-row price-one"><span>TV-зона PS5, 1 час<small>бронь по телефону</small></span><b>299 ₽</b></div>
+      <p class="smm-note">Время оплачивается в клубе. Здесь только бронь места.</p>
+    </section>
+    <section class="seg-pane" data-pane="promo" role="tabpanel" hidden>
+      <article class="promo-card">
+        <span class="smm-tag">Пополнение</span>
+        <h2 class="smm-title">Пополни и играй больше</h2>
+        <div class="promo-row"><b>700 ₽</b><span>1 ч PC</span></div>
+        <div class="promo-row"><b>1000 ₽</b><span>2 ч PC / 1 ч VIP / 1 ч TV</span></div>
+        <div class="promo-row"><b>2000 ₽</b><span>4 ч PC / 2 ч VIP / 2 ч TV</span></div>
+        <div class="promo-row"><b>3000 ₽</b><span>6 ч PC / 3 ч VIP / 3 ч TV</span></div>
+        <p class="smm-note">Одним чеком, 1 раз в месяц. Можно не на кассе.</p>
+      </article>
+      <article class="promo-card">
+        <span class="smm-tag smm-tag-white">Подарок</span>
+        <h2 class="smm-title">Час за отзыв</h2>
+        <p class="smm-text">Отзыв на Яндекс Картах или в 2ГИС. После модерации дарим 1 час в STANDART. Один отзыв на гостя.</p>
+      </article>
+      <article class="promo-card">
+        <span class="smm-tag smm-tag-pink">День рождения</span>
+        <h2 class="smm-title">3 часа имениннику</h2>
+        <p class="smm-text">И по 1 часу друзьям, до 5 человек. В день рождения и 3 дня после. Нужен оригинал паспорта, прав или свидетельства. Госуслуги не подходят.</p>
+      </article>
+    </section>
+    <section class="seg-pane" data-pane="hw" role="tabpanel" hidden>
       <div class="hw-row"><b>STANDART</b><span>20 PC · RTX 4060 · i5-13400F · 32 GB · Acer Nitro 24,5" 240 Hz · DXRacer I-Master</span></div>
       <div class="hw-row hw-vip1"><b>VIP 1</b><span>5 PC · RTX 4070 · i7-13700F · MSI MAG 27" 240 Hz 2K · DXRacer Gladiator</span></div>
       <div class="hw-row hw-vip2"><b>VIP 2</b><span>5 PC · RTX 4070 · i7-13700F · Acer Nitro 24,5" 390 Hz · DXRacer Gladiator</span></div>
       <div class="hw-row"><b>TV-зона</b><span>PlayStation 5 · Samsung 65" 4K 60 Hz · диваны, до 2 человек</span></div>
-      <p class="smm-text">Периферия VIP: LAMZU MAYA X, Dark Project Arena KD2 Optic, HyperX Cloud III. CS2 и Dota 2 уже стоят, любую игру скачаем к приходу.</p>
-    </article>
-    <a class="call-club" href="tel:+74955837811" onclick="openClubContact(event)">Позвонить в клуб <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14"/></svg></span></a>
-    <p class="smm-foot"><span>+7 (495) 583-78-11</span><span>Мытищи, ул. Мира, 37 · 24/7</span></p>
+      <p class="smm-note">Периферия VIP: LAMZU MAYA X, Dark Project Arena KD2 Optic, HyperX Cloud III. CS2 и Dota 2 уже стоят, любую игру скачаем к приходу.</p>
+    </section>
+  </div>
+</div>
+
+<!-- FOOD OVERLAY -->
+<div class="overlay" id="ov-food">
+  <div class="ov-head">
+    <div class="ov-title">Еда</div>
+    <div class="ov-close" onclick="navTo('hall')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </div>
+  </div>
+  <div class="ov-body food-soon">
+    <span class="smm-tag">Скоро</span>
+    <h2 class="smm-title">Еда<br>и напитки</h2>
+    <p class="smm-text">Здесь появится меню бара клуба.</p>
   </div>
 </div>
 
@@ -523,29 +549,35 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
     </div>
   </div>
   <div class="ov-body">
-    <div class="prof-card">
+    <section class="me-hero">
       <div class="prof-ava">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FF5A36" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7"/></svg>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7"/></svg>
       </div>
-      <div>
+      <div class="me-id">
         <div class="prof-name" id="prof-name">—</div>
         <div class="prof-sub" id="prof-account">Аккаунт клуба</div>
       </div>
+    </section>
+    <div class="me-stats">
+      <div class="me-stat bal-card"><span class="bal-lbl">Баланс</span><b class="bal-val" id="prof-balance">— ₽</b></div>
+      <div class="me-stat"><span>Наиграно</span><b id="ps-hours">—</b></div>
+      <div class="me-stat"><span>Сейчас</span><b id="ps-now">—</b></div>
     </div>
-
-    <div class="bal-card">
-      <div class="bal-lbl">Баланс</div>
-      <div class="bal-val" id="prof-balance">— ₽</div>
-      <div class="bal-sub" id="balance-note">Баланс клуба пока не подключён</div>
-    </div>
-
+    <p class="bal-sub" id="balance-note">Баланс клуба пока не подключён</p>
+    <div id="prof-account-slot"></div>
     <section class="club-info" aria-label="О клубе">
-      <a class="info-link" href="https://yandex.ru/profile/204221279175" target="_blank" rel="noopener"><span>Яндекс Карты · 5,0<small>441 оценка · «Хорошее место 2026» · есть парковка</small></span><b aria-hidden="true">→</b></a>
-      <div class="info-link"><span>Мытищи, ул. Мира, 37 · 24/7<small>Остановка «17-й микрорайон», около 185 м</small></span></div>
-      <div class="social-row"><a href="https://t.me/oneshotmira17" target="_blank" rel="noopener">Telegram</a><a href="https://www.instagram.com/1shotmira" target="_blank" rel="noopener">Instagram</a><a href="https://vk.ru/1shotmira" target="_blank" rel="noopener">VK</a></div>
+      <div class="info-link"><span>Мытищи, ул. Мира, 37 · 24/7<small>Остановка «17-й микрорайон», около 185 м · есть парковка</small></span></div>
+      <div class="social-row">
+        <a href="https://t.me/oneshotmira17" target="_blank" rel="noopener" aria-label="Telegram"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.5 3.5 2.8 10.7c-1 .4-1 1.5 0 1.8l4.7 1.5 1.8 5.6c.3.8 1.1.9 1.6.4l2.6-2.4 4.9 3.6c.8.5 1.6.2 1.8-.8l3.2-15.3c.3-1.2-.6-2-1.9-1.6ZM9.6 14.4l-.4 4 7.7-10.6Z"/></svg></a>
+        <a href="https://vk.ru/1shotmira" target="_blank" rel="noopener" aria-label="ВКонтакте"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.8 18.5C6 18.5 2.1 13.8 2 6h3.4c.1 5.7 2.6 8.1 4.6 8.6V6h3.2v4.9c2-.2 4-2.4 4.7-4.9h3.2a9.4 9.4 0 0 1-4.3 6.1 9.8 9.8 0 0 1 5 6.4h-3.5a6.2 6.2 0 0 0-5.1-4.5v4.5Z"/></svg></a>
+        <a href="https://www.instagram.com/1shotmira" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24" aria-hidden="true" class="stroke"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.4" cy="6.6" r=".6"/></svg></a>
+        <a href="https://yandex.ru/profile/204221279175" target="_blank" rel="noopener" aria-label="Яндекс Карты, рейтинг 5,0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5a8 8 0 0 0-8 8c0 5.4 6 11.4 7.3 12.6a1 1 0 0 0 1.4 0C14 20.9 20 14.9 20 9.5a8 8 0 0 0-8-8Zm1.3 13.6h-1.8V9.9h-.7c-1.3 0-2 .7-2 1.7 0 1.1.5 1.6 1.4 2.3l.8.5-2.2 3.4H6.9l2-3c-1.2-.8-1.9-1.8-1.9-3.3 0-2 1.4-3.3 4-3.3h2.3Z"/></svg><small>5,0</small></a>
+        <a href="https://2gis.ru/mytishchi/search/1SHOT%20%D0%9C%D0%B8%D1%80%D0%B0%2037" target="_blank" rel="noopener" aria-label="2ГИС"><b class="gis">2GIS</b></a>
+      </div>
+      <p class="soc-caption">Яндекс Карты 5,0 · 441 оценка · «Хорошее место 2026»</p>
     </section>
     <button class="btn-danger" onclick="doLogout()">Выйти из аккаунта</button>
-    <p id="mini-build" class="version-label">version 1.6.0</p>
+    <p id="mini-build" class="version-label">version 2.2.0</p>
   </div>
 </div>
 
@@ -663,7 +695,7 @@ function clearAuthErr() {
 async function doLogin(e) {
   e.preventDefault();
   clearAuthErr();
-  const username = document.getElementById('l-user').value.trim();
+  const username = normPhone(document.getElementById('l-user').value);
   const password = document.getElementById('l-pass').value;
   if (!username || !password) return;
 
@@ -697,7 +729,7 @@ async function doRegister(e) {
   const username   = document.getElementById('r-user').value.trim();
   const password   = document.getElementById('r-pass').value;
   const first_name = document.getElementById('r-name').value.trim();
-  const mobile_phone=document.getElementById('r-phone').value.trim(),last_name=document.getElementById('r-last').value.trim(),birth_date=document.getElementById('r-birth').value,sex=Number(document.querySelector('[name=sex]:checked')?.value);
+  const mobile_phone=normPhone(document.getElementById('r-phone').value),last_name=document.getElementById('r-last').value.trim(),birth_date=document.getElementById('r-birth').value,sex=Number(document.querySelector('[name=sex]:checked')?.value);
   if (!username || !password || !first_name || !last_name || !mobile_phone || !birth_date || !sex) {showAuthErr('form-register','Заполните все поля, включая дату рождения');return;}
 
   setAuthLoading('form-register', true);
@@ -861,9 +893,13 @@ function renderHall() {
       button.disabled = !['free','busy','reserved'].includes(status)&&!window.ownBookingIds?.has(pc.id);
       button.setAttribute('aria-label', `ПК ${pc.id}: ${HOST_LABELS[status]}`);
       button.innerHTML = `<span class="map-number">${pc.id}</span>${statusIcon(status)}`;
+      if(pickedSeat===pc.id)button.classList.add('picked');
       button.onclick = () => {
-        if(activeZone!==planZoneOf(pc.id))return switchZone(planZoneOf(pc.id));
-        const current=liveHostStatus(hostsData[pc.id]);if(window.openOwnBooking?.(pc.id))return;if(current==='busy')return window.showOccupied(pc.id);if(current!=='free')return toast('Этот ПК недоступен','inf');openBooking(pc.id, pc.zone, pc.group === 'vip')};
+        if(activeZone!==planZoneOf(pc.id)){haptic('select');return switchZone(planZoneOf(pc.id));}
+        const current=liveHostStatus(hostsData[pc.id]);
+        if(window.openOwnBooking?.(pc.id)){haptic('ok');return pickSeat(pc.id);}
+        if(current!=='free'){haptic(current==='busy'?'busy':'warn');denySeat(button);return current==='busy'?window.showOccupied(pc.id):toast(SEAT_DENIED[current]||SEAT_DENIED.unknown,'inf');}
+        haptic('free');pickSeat(pc.id);openBooking(pc.id, pc.zone, pc.group === 'vip')};
       map.append(button);
       if (focusedId === pc.id && !button.disabled) button.focus({preventScroll:true});
     });
@@ -904,7 +940,33 @@ function switchZone(zone) {
   if(!PLAN_ZONES[zone])return;
   activeZone=zone;updatePlanCaption();setPlanView(zone);
 }
-document.querySelectorAll('.plan-zone').forEach(z=>z.addEventListener('click',()=>{if(activeZone==='all')switchZone(z.dataset.zone)}));
+// Overview: a tap on a zone zooms in. Zoomed: a tap on empty floor returns to the overview; dragging only pans.
+(()=>{
+  const plan=document.getElementById('hall-plan');let start=null;
+  plan.addEventListener('pointerdown',e=>{start={x:e.clientX,y:e.clientY,left:plan.scrollLeft,top:plan.scrollTop}});
+  plan.addEventListener('click',e=>{
+    if(e.target.closest('.map-pc,.plan-ps5'))return;
+    if(start&&(Math.hypot(e.clientX-start.x,e.clientY-start.y)>8||Math.abs(plan.scrollLeft-start.left)+Math.abs(plan.scrollTop-start.top)>6))return;
+    if(activeZone==='all'){const z=e.target.closest('.plan-zone');if(z){haptic('select');switchZone(z.dataset.zone)}}
+    else{haptic('select');switchZone('all')}
+  });
+})();
+// Tap feedback: different haptics for free and unavailable PCs, and the picked seat stays lit.
+const SEAT_DENIED={reserved:'Этот ПК уже забронирован',broken:'Этот ПК на ремонте',unknown:'Нет связи с этим ПК'};
+let pickedSeat=null;
+function haptic(kind){
+  const h=tg?.HapticFeedback;
+  try{if(h?.impactOccurred){
+    if(kind==='free')h.impactOccurred('medium');else if(kind==='busy')h.notificationOccurred('error');
+    else if(kind==='warn')h.notificationOccurred('warning');else if(kind==='ok')h.notificationOccurred('success');else h.selectionChanged();
+    return;}}catch(e){}
+  try{navigator.vibrate?.(kind==='busy'?[16,50,16]:kind==='warn'?[10,40,10]:kind==='free'?14:6)}catch(e){}
+}
+function pickSeat(id){
+  pickedSeat=id==null?null:String(id);
+  document.querySelectorAll('#floor-map .map-pc').forEach(b=>b.classList.toggle('picked',b.dataset.hid===pickedSeat));
+}
+function denySeat(button){button.classList.remove('denied');void button.offsetWidth;button.classList.add('denied');setTimeout(()=>button.classList.remove('denied'),450)}
 addEventListener('resize',()=>setPlanView(activeZone,false));
 new ResizeObserver(()=>setPlanView(activeZone,false)).observe(document.getElementById('hall-plan'));
 
@@ -917,12 +979,20 @@ function navTo(tab) {
 
   document.getElementById('ov-tariffs').classList.toggle('open', tab === 'tariffs');
   document.getElementById('ov-profile').classList.toggle('open', tab === 'profile');
+  document.getElementById('ov-food').classList.toggle('open', tab === 'food');
 
   if (tab === 'hall') {
     document.getElementById('ov-tariffs').classList.remove('open');
     document.getElementById('ov-profile').classList.remove('open');
+    document.getElementById('ov-food').classList.remove('open');
   }
 }
+document.querySelectorAll('.seg-tabs [data-pane]').forEach(tab=>tab.addEventListener('click',()=>{
+  const bar=tab.parentElement,body=bar.parentElement;
+  bar.querySelectorAll('[data-pane]').forEach(t=>t.setAttribute('aria-selected',String(t===tab)));
+  body.querySelectorAll('.seg-pane').forEach(p=>{const on=p.dataset.pane===tab.dataset.pane;p.hidden=!on;if(on){p.classList.remove('pane-in');void p.offsetWidth;p.classList.add('pane-in')}});
+  body.scrollTop=0;haptic('select');
+}));
 
 // ═══════════════════════════════════════════════
 // BOOKING SHEET
@@ -1010,12 +1080,20 @@ function doLogout() {
 // ═══════════════════════════════════════════════
 // TOAST
 // ═══════════════════════════════════════════════
+// One notice at a time: a new message replaces the current one instead of stacking.
+let toastTimer = 0;
 function toast(msg, type = 'inf') {
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.textContent = clubText(msg);
-  document.getElementById('toasts').appendChild(el);
-  setTimeout(() => el.remove(), 3500);
+  const box = document.getElementById('toasts');
+  let el = box.querySelector('.toast');
+  if (!el) { el = document.createElement('div'); box.appendChild(el); }
+  const text = clubText(msg);
+  if (el.textContent !== text || !el.classList.contains(type)) {
+    el.className = `toast ${type}`;
+    el.textContent = text;
+    el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+  }
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.remove(), 3200);
 }
 
 // ═══════════════════════════════════════════════
@@ -1056,15 +1134,15 @@ function clearProfile() {
   try { localStorage.removeItem('1shot_v2_profile'); } catch(e){}
 }
 </script>
-<script src="auth-flow.js?v=2.1.0"></script>
-<script src="experience.js?v=1.6.0"></script>
+<script src="auth-flow.js?v=2.2.0"></script>
+<script src="experience.js?v=2.2.0"></script>
 <script src="arrival-time.js?v=1.6.0"></script>
-<link rel="stylesheet" href="desk-availability.css?v=1">
-<script src="desk-availability.js?v=1"></script>
+<link rel="stylesheet" href="desk-availability.css?v=2.2.0">
+<script src="desk-availability.js?v=2.2.0"></script>
 <script src="profile-feedback.js?v=20261008"></script>
-<script src="club-booking.js?v=20261008-ui"></script>
-<link rel="stylesheet" href="polish.css?v=1.6.0"><script src="polish.js?v=1.6.0"></script>
-<link rel="stylesheet" href="smm.css?v=2.0.0">
+<script src="club-booking.js?v=2.2.0"></script>
+<link rel="stylesheet" href="polish.css?v=1.6.0"><script src="polish.js?v=2.2.0"></script>
+<link rel="stylesheet" href="smm.css?v=2.2.0">
 <div id="tutorial-overlay" class="tutorial-overlay" hidden>
   <div class="tutorial-modal">
     <div class="tutorial-slides">
@@ -1133,8 +1211,7 @@ window.startDemoMode = function() {
   navTo('hall');
   toast('Демо-режим активирован: схема клуба доступна для ознакомления', 'ok');
 };
-window.showOccupied = function(hostId) {
-  if (!confirm(`ПК ${hostId} сейчас занят. Встать в очередь и забронировать как освободится?`)) return;
+window.joinQueue = function(hostId) {
   const queueData = { host_id: String(hostId), requested_at: Date.now(), free_since: null };
   localStorage.setItem('1shot_queue', JSON.stringify(queueData));
   window.currentQueue = queueData;

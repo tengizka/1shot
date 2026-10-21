@@ -5,7 +5,7 @@ window.clubV2=false;
  const statusNames={requested:'Ждём подтверждение клуба',waiting:'ПК пока занят · клуб уведомлён',holding:'Ваш ПК ждёт вас',checkin_pending:'Выполняем вход…',in_session:'Вы вошли · приятной игры',attention:'Бронь требует проверки',cancel_requested:'Снимаем бронь',cancelled:'Отменена',expired:'Время ожидания истекло',completed:'Завершена'};
  const terminal=new Set(['cancelled','expired','completed']);
  const sheet=document.createElement('dialog');sheet.id='club-booking';sheet.className='club-booking-dialog';
- sheet.innerHTML=`<div class="club-sheet-head"><span id="club-pc">БРОНЬ</span><button type="button" id="club-close" aria-label="Закрыть"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div><div id="club-create"><h2>Когда ждать тебя?</h2><div class="club-segments" id="club-modes"><button data-mode="instant" id="instant-mode" hidden>Войти сейчас</button><button data-mode="arrival">В течение часа</button><button data-mode="scheduled">В течение</button></div><div id="club-schedule" hidden><div class="schedule-date-header"><span class="schedule-date-label">Дата (МСК):</span> <span id="schedule-date-value"></span></div><p id="club-start" class="arrival-time"></p><div class="club-wheels"><div class="club-wheel" id="club-hours" role="listbox" tabindex="0" aria-label="Часы"></div><b>:</b><div class="club-wheel" id="club-minutes" role="listbox" tabindex="0" aria-label="Минуты"></div></div></div><p id="club-rules" class="club-note">Максимум ожидания 30 минут</p><button id="club-submit" class="btn-main">Забронировать</button></div><div id="club-mine" hidden></div><p id="club-error" role="alert"></p><a class="club-help" href="tel:+74955837811">Если нужна помощь: +7 (495) 583-78-11</a>`;
+ sheet.innerHTML=`<div class="club-sheet-head"><span id="club-pc">БРОНЬ</span><button type="button" id="club-close" aria-label="Закрыть"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div><div id="club-create"><div class="bk-hero"><span class="bk-room" id="bk-room"></span><h2 id="bk-title"></h2><p class="bk-specs" id="bk-specs"></p></div><button type="button" class="bk-now" data-mode="instant" id="instant-mode" hidden><span><b>Войти сейчас</b><small>Уже в клубе? Садись, аккаунт откроется сам</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><div class="bk-later"><p class="bk-label" id="bk-label">Забронировать</p><div class="bk-slots" id="bk-slots" role="listbox" aria-label="Когда придёшь"></div></div><p id="club-rules" class="club-note"></p><button id="club-submit" class="btn-main">Забронировать</button></div><div id="club-mine" hidden></div><p id="club-error" role="alert"></p><a class="club-help" href="tel:+74955837811">Если нужна помощь: +7 (495) 583-78-11</a>`;
  document.body.append(sheet);
  const $=id=>document.getElementById(id);
  const time=a=>a.map(n=>String(n).padStart(2,'0')).join(':');
@@ -33,53 +33,61 @@ window.clubV2=false;
   if(!['capabilities','list','account'].includes(action)){bundleCache=null;clearTimeout(pollTimer);if(!document.hidden)pollTimer=setTimeout(poll,5000);}
   return result;
  }
- function open(){window.hallMotion?.cancel();if(!sheet.open)sheet.showModal()}
- function close(){if(!state.busy)sheet.close()}
+ function open(from){
+  window.hallMotion?.cancel();sheet.classList.remove('closing');
+  const r=from?.getBoundingClientRect?.();
+  sheet.style.setProperty('--fx',r?Math.round(r.left+r.width/2-innerWidth/2)+'px':'0px');sheet.style.setProperty('--fy',r?Math.round(r.top+r.height/2-innerHeight/2)+'px':'40px');
+  if(!sheet.open){sheet.showModal();openedAt=performance.now()}
+ }
+ function close(){
+  if(state.busy||!sheet.open)return;
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){sheet.close();return}
+  sheet.classList.add('closing');setTimeout(()=>{if(sheet.classList.contains('closing')){sheet.classList.remove('closing');sheet.close()}},220);
+ }
+ sheet.addEventListener('close',()=>{sheet.classList.remove('closing');window.pickSeat?.(null)});
+ sheet.addEventListener('click',e=>{if(e.target===sheet)close()});
  const handle=sheet.querySelector('.club-sheet-head');let drag=null;
  handle.addEventListener('pointerdown',e=>{if(e.target.closest('button')||state.busy||!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;e.preventDefault();drag={id:e.pointerId,x:e.clientX,y:e.clientY,t:performance.now()};handle.setPointerCapture(e.pointerId)});
  handle.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;const dy=e.clientY-drag.y;sheet.style.transform=`translateY(${Math.max(0,Math.min(100,dy*.45))}px)`});
  const finishDrag=e=>{if(!drag||e.pointerId!==drag.id)return;const dy=e.clientY-drag.y,dx=e.clientX-drag.x,elapsed=performance.now()-drag.t;sheet.style.transform='';if(e.type==='pointerup'&&dy>100&&dy>Math.abs(dx)*1.5&&elapsed>100&&elapsed<1800)close();drag=null};
  handle.addEventListener('pointerup',finishDrag);handle.addEventListener('pointercancel',finishDrag);
- $('club-close').onclick=close;sheet.addEventListener('cancel',e=>{if(state.busy)e.preventDefault()});
- function wheels(){['hours','minutes'].forEach(name=>{
-  const el=$('club-'+name);
-  if(el){el.addEventListener('pointerdown',e=>e.stopPropagation());el.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});}
- });
- ['hours','minutes'].forEach((name,i)=>{const el=$('club-'+name);el.dataset.setting='true';el.scrollTop=state.start[i]/(i?5:1)*44;el.querySelectorAll('[role=option]').forEach((opt,n)=>opt.setAttribute('aria-selected',String(n*(i?5:1)===state.start[i])));setTimeout(()=>delete el.dataset.setting,100)})}
- function render(){
-  $('club-pc').textContent='ПК '+state.host+' · БРОНЬ';$('club-error').textContent='';
-  $('club-schedule').hidden=state.mode!=='scheduled';
-  $('club-submit').textContent=state.mode==='instant'?'Войти в свой аккаунт':'Забронировать';
-  document.querySelectorAll('[data-mode]').forEach(e=>e.setAttribute('aria-pressed',String(e.dataset.mode===state.mode)));
-  $('club-start').textContent=clubArrivalLabel(state.arrival||nextClubArrival(...state.start));
-  if($('schedule-date-value'))$('schedule-date-value').textContent=new Date(Date.now()+3*3600000).toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
-  $('club-rules').textContent='Максимум ожидания 30 минут';
-  $('club-rules').hidden=false;
+ $('club-close').onclick=close;sheet.addEventListener('cancel',e=>{e.preventDefault();close()});
+ /* Booking window: "Войти сейчас" is one tap; otherwise pick "Еду" or a time today (MSK, 15-minute grid). */
+ const ROOMS={vip1:['VIP 1','RTX 4070 · i7-13700F · 27" 2K 240 Hz'],vip2:['VIP 2','RTX 4070 · i7-13700F · 24,5" 390 Hz'],std:['STANDART','RTX 4060 · i5-13400F · 24,5" 240 Hz']};
+ function slotTimes(now=Date.now()){
+  const msk=new Date(now+3*3600000),min=msk.getUTCHours()*60+msk.getUTCMinutes(),out=[];
+  for(let m=Math.ceil((min+10)/15)*15;m<24*60;m+=15)out.push([Math.floor(m/60),m%60]);
+  return out;
  }
- document.querySelectorAll('[data-mode]').forEach(e=>e.onclick=()=>{state.mode=e.dataset.mode;state.arrival=nextClubArrival(...state.start);if(state.mode==='instant')state.forFriend=false;state.request=null;render();wheels()});
- ['hours','minutes'].forEach(name=>{
-  const el=$('club-'+name);
-  if(el){el.addEventListener('pointerdown',e=>e.stopPropagation());el.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});}
- });
- ['hours','minutes'].forEach((name,i)=>{
-  const el=$('club-'+name),count=i?12:24;let timer;
-  for(let n=0;n<count;n++){const opt=document.createElement('button');opt.type='button';opt.tabIndex=-1;opt.setAttribute('role','option');opt.textContent=String(n*(i?5:1)).padStart(2,'0');opt.onclick=()=>el.scrollTo({top:n*44,behavior:'smooth'});el.append(opt)}
-  function select(){const n=Math.max(0,Math.min(count-1,Math.round(el.scrollTop/44)));const changed=state.start[i]!==n*(i?5:1);state.start[i]=n*(i?5:1);if(changed||!state.arrival)state.arrival=nextClubArrival(...state.start);state.request=null;el.querySelectorAll('[role=option]').forEach((o,j)=>o.setAttribute('aria-selected',String(n===j)));render()}
-  el.addEventListener('scroll',()=>{if(el.dataset.setting)return;clearTimeout(timer);timer=setTimeout(select,90)});
-  el.commitSelection=select;
-  el.onkeydown=e=>{if(!['ArrowUp','ArrowDown','Home','End'].includes(e.key))return;e.preventDefault();const n=e.key==='Home'?0:e.key==='End'?count-1:state.start[i]/(i?5:1)+(e.key==='ArrowDown'?1:-1);el.scrollTop=Math.max(0,Math.min(count-1,n))*44;select()};
- });
+ function renderSlots(){
+  const box=$('bk-slots'),slots=slotTimes();
+  const chip=(key,label,sub)=>`<button type="button" role="option" data-slot="${key}" aria-selected="${state.slot===key}"><b>${label}</b>${sub?`<small>${sub}</small>`:''}</button>`;
+  if(state.slot!=='arrival'&&!slots.some(t=>time(t)===state.slot))state.slot='arrival';
+  box.innerHTML=chip('arrival','Еду','держим 30 мин')+slots.map(t=>chip(time(t),time(t),'')).join('');
+  box.querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>{state.slot=b.dataset.slot;window.haptic?.('select');render()});
+ }
+ function render(){
+  const room=ROOMS[window.planRoom?planRoom(state.host):'std']||ROOMS.std;
+  $('club-pc').textContent='БРОНЬ';$('club-error').textContent='';
+  $('bk-title').textContent='ПК '+state.host;$('bk-room').textContent=room[0];$('bk-room').dataset.room=window.planRoom?planRoom(state.host):'std';$('bk-specs').textContent=room[1];
+  $('bk-label').textContent=$('instant-mode').hidden?'Когда придёшь?':'Или забронируй';
+  if(state.slot==='arrival'){state.mode='arrival';state.arrival=null}else{state.mode='scheduled';state.arrival=nextClubArrival(...state.slot.split(':').map(Number))}
+  $('bk-slots').querySelectorAll('[data-slot]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.slot===state.slot)));
+  $('club-submit').textContent=state.mode==='arrival'?'Забронировать · еду':'Забронировать на '+state.slot;
+  $('club-rules').textContent=state.mode==='arrival'?'Держим ПК 30 минут с этого момента':'Держим ПК с '+state.slot+' до '+fmt(Date.parse(state.arrival)+30*60000)+' МСК';
+ }
  window.openClubBooking=(id)=>{
-  if(liveHostStatus(hostsData[String(id)])!=='free'){window.showOccupied?.();return}
-  state.host=String(id);state.forFriend=false;state.mode=liveHostStatus(hostsData[String(id)])==='free'?(state.protocol>=2&&!state.forFriend?'instant':'arrival'):'scheduled';state.kind='range';state.part='start';state.request=null;
-  const soon=new Date(Date.now()+600000);state.start=[Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Moscow',hour:'2-digit',hourCycle:'h23'}).format(soon)),Math.floor(soon.getUTCMinutes()/5)*5];state.end=[(state.start[0]+1)%24,state.start[1]];
-  state.arrival=nextClubArrival(...state.start);$('club-create').hidden=false;$('club-mine').hidden=true;render();open();requestAnimationFrame(wheels);
+  if(liveHostStatus(hostsData[String(id)])!=='free'){window.showOccupied?.(id);return}
+  state.host=String(id);state.forFriend=false;state.kind='range';state.request=null;state.slot='arrival';
+  $('club-create').hidden=false;$('club-mine').hidden=true;renderSlots();render();open(document.querySelector(`#floor-map [data-hid="${CSS.escape(state.host)}"]`));$('bk-slots').scrollLeft=0;
  };
- $('club-submit').onclick=async()=>{
+ let openedAt=0;
+ $('instant-mode').onclick=()=>{if(performance.now()-openedAt<350)return;state.mode='instant';submit()};
+ $('club-submit').onclick=()=>{render();submit()};
+ async function submit(){
   if(state.busy)return;if(!tg?.initData){$('club-error').textContent='Откройте приложение через Telegram';return}
   if(liveHostStatus(hostsData[state.host])!=='free'){$('club-error').textContent='ПК сейчас недоступен. Выберите свободный компьютер';return}
-  if(state.mode==='scheduled'){for(const name of ['hours','minutes'])$('club-'+name).commitSelection()}
-  if(state.mode==='scheduled'&&Date.parse(state.arrival)<=Date.now()){$('club-error').textContent='Выбранное время уже прошло. Выберите новое время';return}
+  if(state.mode==='scheduled'&&Date.parse(state.arrival)<=Date.now()+60000){renderSlots();render();$('club-error').textContent='Это время уже прошло. Выбери другое';return}
   state.busy=true;$('club-submit').disabled=true;$('club-error').textContent='';
   state.request ||= crypto.randomUUID();
   const start=state.mode==='scheduled'?state.arrival:null;
@@ -87,7 +95,7 @@ window.clubV2=false;
   try{await call(state.protocol>=2?'create_v2':'create',{for_friend:state.forFriend,host_id:state.host,mode:state.mode,duration_kind:state.kind,starts_at:start,ends_at:end,client_request_id:state.request});state.request=null;await refresh();if(state.mode==='instant')startConnecting(state.host);else showMine();fetchHosts()}
   catch(e){$('club-error').textContent=clubText(e.message)||'Не удалось отправить бронь'}
   finally{state.busy=false;$('club-submit').disabled=false}
- };
+ }
  function mine(){
   const box=$('club-mine');box.replaceChildren();
   if(state.protocol>=2&&state.account?.session&&(!state.host||state.account.session.host_id===state.host))renderSession(box);
@@ -153,6 +161,7 @@ window.clubV2=false;
  };
  function renderSessionBanner(){checkConnecting();
   const current=state.account?.session,fresh=accountFresh();sessionBanner.hidden=!current;sessionScreen.hidden=!current;
+  if($('ps-now'))$('ps-now').textContent=current?'ПК '+current.host_id:'—';
   document.getElementById('app').classList.toggle('has-session',!!current);document.getElementById('app').classList.toggle('session-mode',!!current);
   if(current){
    sessionBanner.querySelector('small').textContent='ПК '+current.host_id+(fresh?' · управление и завершение':' · данные обновляются');
@@ -178,8 +187,8 @@ window.clubV2=false;
  function setupAccount(){
   if(accountSetup)return;accountSetup=true;
   const box=document.createElement('section');box.className='account-tools';
-  box.innerHTML='<h3>Игровая статистика</h3><div id="profile-stats" class="profile-stat-grid"></div><p id="stats-period" class="club-note"></p><button type="button" id="account-toggle" aria-expanded="false" aria-controls="account-fields">Данные аккаунта<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div id="account-fields" inert><div><form id="edit-account"><label>Никнейм<input name="username" minlength="3" maxlength="30" autocomplete="username" required></label><label>Имя<input name="firstName" maxlength="45"></label><label>Фамилия<input name="lastName" maxlength="45"></label><label>Email<input name="email" type="email" maxlength="254"></label><label>Телефон<input name="mobilePhone" maxlength="20"></label><label>Дата рождения<input id="account-birthday" readonly></label><button class="btn-main">Сохранить изменения</button></form></div></div><button id="request-password" class="btn-main">Сменить / восстановить пароль через администратора</button><p id="password-result" role="status"></p><p id="account-result" role="status"></p>';
-  document.querySelector('#mini-build').before(box);document.querySelector('#mini-build').before(document.querySelector('#ov-profile .btn-danger'));
+  box.innerHTML='<div id="profile-stats" class="profile-stat-grid" hidden></div><p id="stats-period" class="club-note" hidden></p><button type="button" id="account-toggle" aria-expanded="false" aria-controls="account-fields">Данные аккаунта<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div id="account-fields" inert><div><form id="edit-account"><label>Никнейм<input name="username" minlength="3" maxlength="30" autocomplete="username" required></label><label>Имя<input name="firstName" maxlength="45"></label><label>Фамилия<input name="lastName" maxlength="45"></label><label>Email<input name="email" type="email" maxlength="254"></label><label>Телефон<input name="mobilePhone" maxlength="20"></label><label>Дата рождения<input id="account-birthday" readonly></label><button class="btn-main">Сохранить изменения</button></form></div></div><button id="request-password" class="btn-main">Сменить пароль через админа</button><p id="password-result" role="status"></p><p id="account-result" role="status"></p>';
+  const slot=$('prof-account-slot');if(slot)slot.append(box);else{document.querySelector('#mini-build').before(box);document.querySelector('#mini-build').before(document.querySelector('#ov-profile .btn-danger'))}
   const owner=()=>String(profile?.telegram_id||'')+':'+String(profile?.gizmo_user_id||'');
   accountFeedback=new ProfileFeedback($('account-result'),owner);passwordFeedback=new ProfileFeedback($('password-result'),owner);
   $('account-toggle').onclick=()=>{const open=$('account-toggle').getAttribute('aria-expanded')!=='true';$('account-toggle').setAttribute('aria-expanded',String(open));$('account-fields').classList.toggle('expanded',open);$('account-fields').inert=!open};
@@ -195,7 +204,7 @@ window.clubV2=false;
    const res=await call('account');state.account=res.account?.data||null;state.accountTime=res.account?.updated_at;
    const data=state.account;
    if(data){
-    const stats=$('profile-stats');if(stats){stats.replaceChildren();const stat=document.createElement('p');stat.textContent='Игровое время';const value=document.createElement('strong');value.textContent=Number.isFinite(data.statistics?.hours)?data.statistics.hours.toLocaleString('ru-RU',{maximumFractionDigits:1})+' ч':'Нет данных';stat.append(value);stats.append(stat);$('stats-period').textContent=data.statistics?.from&&data.statistics?.to?'Период · '+new Date(data.statistics.from).toLocaleDateString('ru-RU')+' — '+new Date(data.statistics.to).toLocaleDateString('ru-RU'):'Ожидаем статистику клуба';}
+    const stats=$('profile-stats');if(stats){stats.replaceChildren();const stat=document.createElement('p');stat.textContent='Игровое время';const value=document.createElement('strong');value.textContent=Number.isFinite(data.statistics?.hours)?data.statistics.hours.toLocaleString('ru-RU',{maximumFractionDigits:1})+' ч':'Нет данных';stat.append(value);stats.append(stat);if($('ps-hours'))$('ps-hours').textContent=Number.isFinite(data.statistics?.hours)?data.statistics.hours.toLocaleString('ru-RU',{maximumFractionDigits:1})+' ч':'—';$('stats-period').textContent=data.statistics?.from&&data.statistics?.to?'Период · '+new Date(data.statistics.from).toLocaleDateString('ru-RU')+' — '+new Date(data.statistics.to).toLocaleDateString('ru-RU'):'Ожидаем статистику клуба';}
 
     profile.username=data.username||profile.username;profile.first_name=data.firstName||res.telegram?.first_name||profile.first_name;profile.last_name=data.lastName||'';
     profile.balance=accountFresh()&&typeof data.balance==='number'?data.balance:null;fillProfile();

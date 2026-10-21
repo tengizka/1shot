@@ -15,14 +15,16 @@
   const set=v=>{value=Math.max(0,Math.min(1,v));const w=522*value;clip.setAttribute('width',w.toFixed(1));edge.setAttribute('x',(w-1.5).toFixed(1));edge.style.opacity=value>0&&value<1?1:0;
    bar.style.transform=`scaleX(${value})`;const n=Math.round(value*100);pct.textContent=String(n).padStart(3,'0');el.setAttribute('aria-valuenow',n)};
   const ease=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
-  const tween=(from,to,ms,done)=>{cancelAnimationFrame(raf);const t0=performance.now();const step=now=>{const k=Math.min(1,(now-t0)/ms);set(from+(to-from)*ease(k));if(k<1)raf=requestAnimationFrame(step);else done?.()};raf=requestAnimationFrame(step)};
+  const tween=(from,to,ms,done)=>{cancelAnimationFrame(raf);clearTimeout(raf);const t0=performance.now();const step=now=>{const k=Math.min(1,(now-t0)/ms);set(from+(to-from)*ease(k));if(k<1)raf=requestAnimationFrame(step);else done?.()};raf=requestAnimationFrame(step)};
   set(0);
   return {el,set,
    run(ms,done){tween(0,1,ms,done)},
    /* Indeterminate: creeps toward 90 % and never reaches 100 until finish(). */
    loop(){cancelAnimationFrame(raf);const t0=performance.now();const step=now=>{const s=(now-t0)/1000;set(.9*(1-Math.exp(-s/4.5)));raf=requestAnimationFrame(step)};raf=requestAnimationFrame(step)},
+   /* Endless: fills, holds for a beat, starts again. */
+   cycle(ms=1700){const again=()=>tween(0,1,ms,()=>{raf=setTimeout(again,380)});clearTimeout(raf);again()},
    finish(done){tween(value,1,420,done)},
-   stop(){cancelAnimationFrame(raf)},
+   stop(){cancelAnimationFrame(raf);clearTimeout(raf)},
    text(caption,sub){if(caption!=null)el.querySelector('.ol-caption').textContent=caption;if(sub!=null)el.querySelector('.ol-sub').textContent=sub}};
  }
  /* Full-screen dimmed overlay for long actions (connecting a session). */

@@ -12,10 +12,38 @@
   const t=String(value||'').trim();if(!/^[+\d ()-]{7,20}$/.test(t))return t;
   const d=t.replace(/\D/g,'');
   if(d.length===11&&/^[78]/.test(d))return '+7'+d.slice(1);
-  if(d.length===10)return '+7'+d;
+  if(d.length===10&&!t.startsWith('+'))return '+7'+d;
   return t;
  }
  window.normPhone=normPhone;
+
+ /* Live mask: "+7 999 123-45-67". A leading 7 or 8 is read as the country code. */
+ const fmtPhone=d=>'+7 '+d.slice(0,3)+(d.length>3?' '+d.slice(3,6):'')+(d.length>6?'-'+d.slice(6,8):'')+(d.length>8?'-'+d.slice(8,10):'');
+ function national(raw){
+  const t=String(raw||'').trim();let d=t.replace(/\D/g,'');
+  if(t.startsWith('+7'))d=d.slice(1);else if(/^[78]/.test(d)&&(d.length===11||!t.startsWith('+')&&d.length>0&&!/^9/.test(d)))d=d.slice(1);
+  return d.slice(0,10);
+ }
+ function maskPhone(input){input.value=fmtPhone(national(input.value));const end=input.value.length;try{input.setSelectionRange(end,end)}catch{}}
+ const regPhone=$('r-phone');
+ regPhone.addEventListener('input',()=>maskPhone(regPhone));
+ regPhone.addEventListener('focus',()=>{if(!regPhone.value)regPhone.value='+7 '});
+ /* Login takes a phone or a nickname: digits get the mask, the first letter switches back to the raw text. */
+ const loginId=$('l-user');let code='';
+ loginId.addEventListener('input',()=>{
+  const v=loginId.value;
+  if(!v.trim()){code='';return}
+  if(/[^\d+\s()-]/.test(v)){
+   const m=v.match(/^\+7 ([\d -]*)(.*)$/);
+   if(m)loginId.value=code+m[1].replace(/\D/g,'')+m[2];
+   code='';return;
+  }
+  const d=v.replace(/\D/g,'');
+  if(!v.startsWith('+7')&&/^[78]/.test(d)&&national(v).length<d.length)code=d[0];
+  maskPhone(loginId);
+ });
+ /* "Done" on the keyboard only hides it; the guest presses «Дальше» themselves. */
+ document.querySelectorAll('.wizard input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();i.blur()}}));
 
  function animateIn(el,dir){el.classList.remove('enter-l','enter-r');if(reduce())return;void el.offsetWidth;el.classList.add(dir<0?'enter-l':'enter-r')}
  function setButton(){const f=forms[mode],last=idx===steps(f).length-1,btn=f.querySelector('.wiz-actions .btn-main');if(!btn.disabled)btn.textContent=LABELS[mode][last?1:0]}
@@ -25,7 +53,7 @@
   const cur=list[idx];animateIn(cur,dir);
   const bar=f.querySelector('.wiz-progress');bar.innerHTML=list.map((_,i)=>`<i class="${i<idx?'done':i===idx?'now':''}"></i>`).join('');
   f.querySelector('.wiz-count').textContent=`${String(idx+1).padStart(2,'0')} / ${String(list.length).padStart(2,'0')}`;
-  setButton();clearAuthErr();
+  f.classList.toggle('on-last',idx===list.length-1);setButton();clearAuthErr();
   const input=cur.querySelector('input:not([type=hidden]):not([type=radio]),button#birthday-open');
   if(input&&!reduce())setTimeout(()=>input.focus({preventScroll:true}),dir?260:0);
   window.Telegram?.WebApp?.BackButton?.show?.();
@@ -49,9 +77,8 @@
   if(step.dataset.optional)return true;
   const text=step.querySelector('input:not([type=hidden]):not([type=radio])');
   if(text){
-   text.value=text.id==='l-user'||text.id==='r-phone'?normPhone(text.value):text.value;
-   const v=text.type==='password'?text.value:text.value.trim();
-   if(!v.trim())return fail(step,'Заполни поле, чтобы продолжить'),false;
+   const v=text.id==='l-user'||text.id==='r-phone'?normPhone(text.value):text.type==='password'?text.value:text.value.trim();
+   if(!v.trim()||text.id==='r-phone'&&v==='+7')return fail(step,'Заполни поле, чтобы продолжить'),false;
    if(text.minLength>0&&Array.from(v).length<text.minLength)return fail(step,`Минимум ${text.minLength} символов`),false;
    if(text.id==='r-user'&&!/^[\p{L}\p{N}_.-]{3,30}$/u.test(v))return fail(step,'Ник: от 3 до 30 букв, цифр, точек, дефисов или _'),false;
    if(text.id==='r-phone'&&!/^\+7\d{10}$/.test(v))return fail(step,'Проверь номер: 10 цифр после +7'),false;

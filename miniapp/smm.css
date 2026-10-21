@@ -298,3 +298,137 @@
 @media(max-height:620px){.auth-head{margin-bottom:18px}.wiz-top{margin-bottom:18px}.step-label{font-size:30px}}
 @media(prefers-reduced-motion:reduce){.enter-r,.enter-l,.shake{animation:none}#oneshot-overlay{transition:none}}
 .auth-forgot .auth-title{font-size:clamp(28px,8.6vw,40px)}
+
+/* 2.2 · Matrix shows through the start and sign-in screens. */
+#splash,#auth{background:rgba(0,0,0,.28)!important}
+#auth .step input:not([type=radio]),#auth .step #birthday-open,#auth .auth-choice .btn-outline,.wiz-back{background:rgba(0,0,0,.82)!important}
+
+/* 2.2 · Seat feedback: the picked PC glows lime, an unavailable one shakes. */
+.hall-plan .map-pc.picked{outline:2px solid var(--smm-lime);outline-offset:2px;z-index:2;animation:seatPick .5s cubic-bezier(.2,.9,.25,1),seatRing 1.2s ease-in-out .5s infinite alternate}
+.hall-plan .map-pc.denied{animation:seatDeny .42s ease}
+@keyframes seatPick{0%{scale:1}35%{scale:.86}70%{scale:1.08}100%{scale:1}}
+@keyframes seatRing{from{outline-offset:2px}to{outline-offset:5px}}
+@keyframes seatDeny{20%{translate:-3px 0}45%{translate:3px 0}70%{translate:-2px 0}}
+.hall-plan .map-pc{-webkit-tap-highlight-color:transparent}
+.hall-plan .map-pc:active{scale:.92}
+.hall-plan.zoomed{cursor:zoom-out}
+
+/* 2.2 · Booking window: a separate card that grows out of the tapped seat. */
+.club-booking-dialog{position:fixed!important;inset:0!important;margin:auto!important;width:min(calc(100vw - 24px),420px)!important;height:fit-content!important;max-height:calc(100dvh - 40px)!important;padding:18px 18px 16px!important;border:2px solid var(--smm-rule)!important;border-top:2px solid var(--smm-rule)!important;transform-origin:50% 50%}
+.club-booking-dialog[open]{animation:bkPop .46s cubic-bezier(.16,1,.3,1) both}
+.club-booking-dialog.closing{animation:bkOut .2s ease-in both}
+.club-booking-dialog::backdrop{background:rgba(0,0,0,.78)}
+.club-booking-dialog[open]::backdrop{animation:bkFade .3s ease both}
+@keyframes bkPop{from{opacity:0;transform:translate(var(--fx,0),var(--fy,40px)) scale(.14)}60%{opacity:1}to{opacity:1;transform:none}}
+@keyframes bkOut{to{opacity:0;transform:translateY(16px) scale(.94)}}
+@keyframes bkFade{from{opacity:0}}
+.club-sheet-head{padding-top:0!important;display:flex;align-items:center;justify-content:space-between;min-height:44px}
+.club-sheet-head:before{display:none}
+.club-sheet-head #club-pc{font:700 10px Unbounded,sans-serif;letter-spacing:.16em;color:var(--smm-muted)}
+#club-close{width:44px;height:44px;display:grid;place-items:center;background:#000;border:2px solid var(--smm-rule);color:#fff;cursor:pointer}
+#club-create:not([hidden]){display:flex;flex-direction:column;gap:14px}
+#club-create>*{animation:bkRise .5s cubic-bezier(.16,1,.3,1) both}
+#club-create>:nth-child(2){animation-delay:.06s}#club-create>:nth-child(3){animation-delay:.1s}#club-create>:nth-child(4){animation-delay:.14s}#club-create>:nth-child(5){animation-delay:.18s}
+@keyframes bkRise{from{opacity:0;transform:translateY(14px)}}
+.bk-hero{display:grid;grid-template-columns:1fr auto;align-items:end;gap:4px 12px;padding-bottom:14px;border-bottom:2px solid var(--smm-rule)}
+.club-booking-dialog .bk-hero h2{grid-column:1;grid-row:1;margin:0;font:700 clamp(46px,15vw,64px)/.86 ReSquare,Unbounded,sans-serif}
+.bk-room{grid-column:2;grid-row:1;align-self:end;margin-bottom:4px;padding:6px 9px;background:#fff;color:#000;font:800 10px Unbounded,sans-serif;letter-spacing:.14em}
+.bk-room[data-room="vip1"]{background:var(--smm-orange)}.bk-room[data-room="vip2"]{background:var(--smm-pink)}
+.bk-specs{grid-column:1/-1;margin:6px 0 0;font:500 10px/1.5 Unbounded,sans-serif;color:var(--smm-muted)}
+.bk-now{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:76px;padding:12px 16px;background:var(--smm-lime);color:#000;border:0;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .12s}
+.bk-now[hidden]{display:none}
+.bk-now:active{transform:scale(.98)}
+.bk-now b{display:block;font:700 26px/1 ReSquare,Unbounded,sans-serif;text-transform:uppercase}
+.bk-now small{display:block;margin-top:6px;font:600 10px/1.4 Unbounded,sans-serif}
+.bk-now svg{flex:none;width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:square}
+.bk-label{margin:4px 0 8px;font:700 10px Unbounded,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--smm-muted)}
+.bk-slots{display:flex;gap:6px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;overscroll-behavior-x:contain}
+.bk-slots::-webkit-scrollbar{display:none}
+.bk-slots button{flex:none;scroll-snap-align:start;min-width:72px;min-height:58px;padding:8px 12px;background:#000;border:2px solid var(--smm-rule);color:#fff;cursor:pointer;text-align:left;transition:background .15s,border-color .15s}
+.bk-slots button b{display:block;font:700 20px/1 ReSquare,Unbounded,sans-serif}
+.bk-slots button small{display:block;margin-top:4px;font:600 8px Unbounded,sans-serif;letter-spacing:.06em;color:var(--smm-muted)}
+.bk-slots button[aria-selected="true"]{background:#fff;border-color:#fff;color:#000}
+.bk-slots button[aria-selected="true"] small{color:#000}
+.bk-slots button[data-slot="arrival"]{min-width:104px}
+#club-rules{margin:0;font-size:10px;color:var(--smm-muted)}
+#club-submit{min-height:56px;background:#fff!important;color:#000!important}
+#club-error:empty{display:none}
+.club-help{margin-top:12px!important;padding:12px 4px 0!important;font-size:10px!important}
+#club-mine{animation:bkRise .4s cubic-bezier(.16,1,.3,1) both}
+
+/* 2.2 · No club link: dim screen, the logo keeps loading, one call button. */
+#desk-availability{position:fixed;inset:0;width:100%!important;max-width:none!important;height:100%;max-height:none!important;margin:0;padding:calc(24px + env(safe-area-inset-top)) 22px calc(24px + env(safe-area-inset-bottom))!important;border:0!important;background:transparent!important;display:none;flex-direction:column;justify-content:center;align-items:center;overflow:hidden}
+#desk-availability[open]{display:flex;animation:bkFade .35s ease both}
+#desk-availability::backdrop{background:rgba(0,0,0,.9)!important}
+#desk-availability section{flex:1;justify-content:center;gap:16px!important}
+#desk-availability h1{margin-top:14px!important;font:700 clamp(20px,6vw,26px)/1.1 ReSquare,Unbounded,sans-serif!important;text-transform:uppercase}
+#desk-availability p{max-width:300px}
+#desk-availability .da-loader .ol-meta{display:none}
+#desk-availability .da-call{display:flex!important;align-items:center;justify-content:center;gap:10px;width:min(100%,420px);min-height:58px;padding:0!important;font-size:13px!important;text-decoration:none}
+
+/* 2.2 · "Occupied" easter egg is back, in the SMM look. */
+.occupied-dialog{width:260px!important;height:fit-content!important;padding:22px 18px 16px!important;gap:10px}
+.occupied-dialog svg path:first-child{fill:#fff;stroke:none}
+.occupied-dialog svg path+path{fill:none;stroke:#000;stroke-width:2.4;stroke-linecap:square}
+.occupied-dialog p{font:700 14px/1.2 ReSquare,Unbounded,sans-serif!important;text-transform:uppercase;text-align:center}
+.occupied-dialog .btn-main{width:100%;min-height:46px!important}
+.occupied-queue{width:100%;min-height:40px;background:#000;border:2px solid var(--smm-rule);color:#fff;font:700 9px Unbounded,sans-serif;letter-spacing:.06em;cursor:pointer}
+.occupied-queue[hidden]{display:none}
+.occupied-dialog::backdrop{background:rgba(0,0,0,.78)!important;backdrop-filter:none!important}
+
+/* 2.2 · One toast at a time. */
+#toasts{gap:0!important}
+.toast{padding:14px 16px!important;font-size:12px!important}
+
+/* 2.2 · Bottom tabs: hall, price, food, profile. */
+#nav-hall{order:0!important}#nav-tariffs{order:1!important}#nav-food{order:2!important}#nav-profile{order:3!important}
+.nav-btn{position:relative}
+.nav-btn.active::before{content:"";position:absolute;top:0;left:calc(50% - 16px);width:32px;height:3px;background:var(--smm-lime)}
+#ov-food .ov-body{display:flex;flex-direction:column;gap:14px}
+.food-soon .smm-title{font-size:clamp(40px,13vw,56px)}
+
+/* 2.2 · Price with section tabs instead of one long scroll. */
+.seg-tabs{position:sticky;top:-20px;z-index:2;display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin:-20px -20px 18px;padding:12px 20px;background:#000;border-bottom:2px solid var(--smm-rule)}
+.seg-tabs button{min-height:46px;background:#000;border:2px solid var(--smm-rule);color:#9a9a9a;font:800 11px Unbounded,sans-serif;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+.seg-tabs button+button{border-left:0}
+.seg-tabs button[aria-selected="true"]{background:var(--smm-lime);border-color:var(--smm-lime);color:#000}
+.seg-pane[hidden]{display:none}
+.seg-pane.pane-in{animation:bkRise .38s cubic-bezier(.16,1,.3,1) both}
+.seg-pane[data-pane="price"] .price-row:nth-child(2){border-top:0}
+.seg-pane .smm-note{margin-top:14px}
+.promo-card{display:flex;flex-direction:column;gap:10px;padding:16px 0 18px;border-bottom:2px solid var(--smm-rule)}
+.promo-card:first-child{padding-top:0}
+.promo-card .smm-title{font-size:clamp(24px,7.4vw,30px)}
+.promo-card .promo-row{padding:9px 0}
+
+/* 2.2 · Profile, after the prototype. */
+.me-hero{display:flex;align-items:center;gap:16px;padding:4px 0 20px}
+.me-hero .prof-ava{width:76px!important;height:76px!important;border-radius:0!important;font:700 40px ReSquare,Unbounded,sans-serif;color:#000}
+.me-id{min-width:0}
+.me-hero .prof-name{font-size:clamp(28px,9vw,38px)!important;line-height:.95;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.me-hero .prof-sub{margin-top:6px;font:600 11px Unbounded,sans-serif;color:var(--smm-muted)}
+.me-stats{display:grid;grid-template-columns:1.25fr 1fr 1fr;border-top:2px solid var(--smm-rule);border-bottom:2px solid var(--smm-rule)}
+.me-stat{min-width:0;padding:14px 10px 14px 0;background:none!important;border:0!important}
+.me-stat+.me-stat{padding-left:10px;border-left:2px solid var(--smm-rule)!important}
+.me-stat span{display:block;font:700 9px Unbounded,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--smm-muted)}
+.me-stat b{display:block;margin-top:8px;font:700 22px/1 ReSquare,Unbounded,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.me-stat .bal-val{font-size:22px!important}
+#ov-profile .bal-sub{margin:10px 0 4px;font-size:10px;color:#6f6f6f}
+#prof-account-slot .account-tools{padding:6px 0 10px}
+#prof-account-slot #request-password{background:#000!important;color:#fff!important;border:2px solid var(--smm-rule)!important;min-height:52px}
+#ov-profile .club-info{margin-top:4px}
+#ov-profile .social-row{grid-template-columns:repeat(5,1fr);gap:6px}
+#ov-profile .social-row a{min-height:56px;display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;transition:border-color .15s,color .15s}
+#ov-profile .social-row a:active{border-color:var(--smm-lime);color:var(--smm-lime)}
+#ov-profile .social-row svg{width:24px;height:24px;fill:currentColor}
+#ov-profile .social-row svg.stroke{fill:none;stroke:currentColor;stroke-width:2}
+#ov-profile .social-row svg.stroke circle:last-child{fill:currentColor}
+#ov-profile .social-row small{font:700 8px Unbounded,sans-serif;color:var(--smm-lime)}
+.gis{font:800 11px Unbounded,sans-serif;letter-spacing:.02em}
+.soc-caption{margin:10px 0 0;font:500 10px/1.5 Unbounded,sans-serif;color:var(--smm-muted)}
+#ov-profile .btn-danger{margin-top:22px}
+@media(prefers-reduced-motion:reduce){.club-booking-dialog[open],#club-create>*,.seg-pane.pane-in,.hall-plan .map-pc.picked,.hall-plan .map-pc.denied{animation:none}}
+#prof-account-slot .profile-stat-grid,#prof-account-slot #stats-period{display:none!important}
+#ov-profile .me-stat.bal-card{border:0!important;padding-left:0}
+#ov-profile .me-stat+.me-stat{border-left:2px solid var(--smm-rule)!important}
+#form-register:not(.on-last) .auth-hint{display:none}
