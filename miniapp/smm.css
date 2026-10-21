@@ -534,3 +534,8 @@
 .bk-room[data-room="tv"]{background:#fff}
 .hw-card h2{font-size:clamp(34px,10.5vw,50px)}
 .hw-mesh{opacity:.32}
+
+/* 2.3.1 · Free seats are white in every room; the legend keeps one white square. */
+.hall-plan .map-pc.free:not(.my-booking)[data-room="vip1"],.hall-plan .map-pc.free:not(.my-booking)[data-room="vip2"],
+.floor-map :is(.map-pc,.seat-preview).free:not(.my-booking)[data-room="vip1"],.floor-map :is(.map-pc,.seat-preview).free:not(.my-booking)[data-room="vip2"]{background:#fff!important;border-color:#fff!important;color:#000}
+.leg-dot.free{width:10px!important;height:10px!important;background:#fff!important;box-shadow:none!important}
