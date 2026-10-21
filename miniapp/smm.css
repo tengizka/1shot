@@ -432,3 +432,7 @@
 #ov-profile .me-stat.bal-card{border:0!important;padding-left:0}
 #ov-profile .me-stat+.me-stat{border-left:2px solid var(--smm-rule)!important}
 #form-register:not(.on-last) .auth-hint{display:none}
+/* 2.2.1 · Black text on lime; tomorrow's slots are marked. */
+.club-booking-dialog .bk-now{color:#000}
+.bk-slots button[data-tomorrow="true"] small{color:var(--smm-lime)}
+.bk-slots button[data-tomorrow="true"][aria-selected="true"] small{color:#000}

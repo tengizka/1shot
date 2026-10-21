@@ -54,31 +54,33 @@ window.clubV2=false;
  $('club-close').onclick=close;sheet.addEventListener('cancel',e=>{e.preventDefault();close()});
  /* Booking window: "Войти сейчас" is one tap; otherwise pick "Еду" or a time today (MSK, 15-minute grid). */
  const ROOMS={vip1:['VIP 1','RTX 4070 · i7-13700F · 27" 2K 240 Hz'],vip2:['VIP 2','RTX 4070 · i7-13700F · 24,5" 390 Hz'],std:['STANDART','RTX 4060 · i5-13400F · 24,5" 240 Hz']};
+ /* Slots every 15 minutes for the next 24 hours (MSK); after midnight they belong to tomorrow. */
  function slotTimes(now=Date.now()){
   const msk=new Date(now+3*3600000),min=msk.getUTCHours()*60+msk.getUTCMinutes(),out=[];
-  for(let m=Math.ceil((min+10)/15)*15;m<24*60;m+=15)out.push([Math.floor(m/60),m%60]);
+  for(let m=Math.ceil((min+10)/15)*15;m<min+24*60;m+=15){const t=m%(24*60);out.push({key:time([Math.floor(t/60),t%60]),tomorrow:m>=24*60})}
   return out;
  }
  function renderSlots(){
   const box=$('bk-slots'),slots=slotTimes();
-  const chip=(key,label,sub)=>`<button type="button" role="option" data-slot="${key}" aria-selected="${state.slot===key}"><b>${label}</b>${sub?`<small>${sub}</small>`:''}</button>`;
-  if(state.slot!=='arrival'&&!slots.some(t=>time(t)===state.slot))state.slot='arrival';
-  box.innerHTML=chip('arrival','Еду','держим 30 мин')+slots.map(t=>chip(time(t),time(t),'')).join('');
+  if(!slots.some(t=>t.key===state.slot))state.slot=slots[0]?.key;
+  box.innerHTML=slots.map((t,i)=>`<button type="button" role="option" data-slot="${t.key}" data-tomorrow="${t.tomorrow}" aria-selected="${state.slot===t.key}"><b>${t.key}</b><small>${t.tomorrow?'завтра':'сегодня'}</small></button>`).join('');
   box.querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>{state.slot=b.dataset.slot;window.haptic?.('select');render()});
  }
  function render(){
   const room=ROOMS[window.planRoom?planRoom(state.host):'std']||ROOMS.std;
   $('club-pc').textContent='БРОНЬ';$('club-error').textContent='';
   $('bk-title').textContent='ПК '+state.host;$('bk-room').textContent=room[0];$('bk-room').dataset.room=window.planRoom?planRoom(state.host):'std';$('bk-specs').textContent=room[1];
-  $('bk-label').textContent=$('instant-mode').hidden?'Когда придёшь?':'Или забронируй';
-  if(state.slot==='arrival'){state.mode='arrival';state.arrival=null}else{state.mode='scheduled';state.arrival=nextClubArrival(...state.slot.split(':').map(Number))}
+  $('bk-label').textContent=$('instant-mode').hidden?'Когда придёшь?':'Или забронируй на время';
+  state.mode='scheduled';state.arrival=state.slot?nextClubArrival(...state.slot.split(':').map(Number)):null;
   $('bk-slots').querySelectorAll('[data-slot]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.slot===state.slot)));
-  $('club-submit').textContent=state.mode==='arrival'?'Забронировать · еду':'Забронировать на '+state.slot;
-  $('club-rules').textContent=state.mode==='arrival'?'Держим ПК 30 минут с этого момента':'Держим ПК с '+state.slot+' до '+fmt(Date.parse(state.arrival)+30*60000)+' МСК';
+  const day=state.arrival&&clubArrivalLabel(state.arrival).startsWith('Завтра')?'завтра ':'';
+  $('club-submit').hidden=!state.arrival;
+  $('club-submit').textContent='Забронировать · '+(state.slot||'');
+  $('club-rules').textContent=state.arrival?'Держим ПК '+day+'с '+state.slot+' до '+fmt(Date.parse(state.arrival)+30*60000)+' МСК':'';
  }
  window.openClubBooking=(id)=>{
   if(liveHostStatus(hostsData[String(id)])!=='free'){window.showOccupied?.(id);return}
-  state.host=String(id);state.forFriend=false;state.kind='range';state.request=null;state.slot='arrival';
+  state.host=String(id);state.forFriend=false;state.kind='range';state.request=null;state.slot=null;
   $('club-create').hidden=false;$('club-mine').hidden=true;renderSlots();render();open(document.querySelector(`#floor-map [data-hid="${CSS.escape(state.host)}"]`));$('bk-slots').scrollLeft=0;
  };
  let openedAt=0;
