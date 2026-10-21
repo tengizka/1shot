@@ -30,9 +30,11 @@
  regPhone.addEventListener('focus',()=>{if(!regPhone.value)regPhone.value='+7 '});
  /* Login takes a phone or a nickname: digits get the mask, the first letter switches back to the raw text. */
  const loginId=$('l-user');let code='';
- loginId.addEventListener('input',()=>{
+ loginId.addEventListener('input',e=>{
   const v=loginId.value;
   if(!v.trim()){code='';return}
+  /* Deleting down to the bare "+7" empties the field, so a nickname can be typed again. */
+  if(String(e.inputType||'').startsWith('delete')&&!/[^\d+\s()-]/.test(v)&&!national(v)){loginId.value='';code='';return}
   if(/[^\d+\s()-]/.test(v)){
    const m=v.match(/^\+7 ([\d -]*)(.*)$/);
    if(m)loginId.value=code+m[1].replace(/\D/g,'')+m[2];
@@ -95,6 +97,7 @@
   const promo=$('r-promo');if(promo)promo.value=promo.value.trim().toUpperCase();
   (mode==='login'?window.doLogin:window.doRegister)(event);
  };
+ window.authSkipPromo=event=>{const promo=$('r-promo');if(promo)promo.value='';window.authNext(event)};
  window.authBack=()=>{if(!mode)return;if(idx>0){idx--;render(-1)}else showChoice()};
  window.authForgot=()=>{forms.login.classList.remove('active');forgot.hidden=false;animateIn(forgot,1)};
  window.authForgotBack=()=>{forgot.hidden=true;mode='login';forms.login.classList.add('active');idx=Math.min(idx,1);render(-1)};

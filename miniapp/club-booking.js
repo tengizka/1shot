@@ -53,7 +53,9 @@ window.clubV2=false;
  handle.addEventListener('pointerup',finishDrag);handle.addEventListener('pointercancel',finishDrag);
  $('club-close').onclick=close;sheet.addEventListener('cancel',e=>{e.preventDefault();close()});
  /* Booking window: "Войти сейчас" is one tap; otherwise pick "Еду" or a time today (MSK, 15-minute grid). */
- const ROOMS={vip1:['VIP 1','RTX 4070 · i7-13700F · 27" 2K 240 Hz'],vip2:['VIP 2','RTX 4070 · i7-13700F · 24,5" 390 Hz'],std:['STANDART','RTX 4060 · i5-13400F · 24,5" 240 Hz']};
+ const ROOMS={vip1:['VIP 1','RTX 4070 · i7-13700F · 27" 2K 240 Hz'],vip2:['VIP 2','RTX 4070 · i7-13700F · 24,5" 390 Hz'],std:['STANDART','RTX 4060 · i5-13400F · 24,5" 240 Hz'],tv:['TV-ЗОНА','PlayStation 5 · Samsung 65" 4K · до 2 человек']};
+ const roomOf=id=>String(id)==='1'?'tv':window.planRoom?planRoom(id):'std';
+ window.hostName=id=>String(id)==='1'?'PS5':'ПК '+id;
  /* Slots every 15 minutes for the next 24 hours (MSK); after midnight they belong to tomorrow. */
  function slotTimes(now=Date.now()){
   const msk=new Date(now+3*3600000),min=msk.getUTCHours()*60+msk.getUTCMinutes(),out=[];
@@ -67,9 +69,10 @@ window.clubV2=false;
   box.querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>{state.slot=b.dataset.slot;window.haptic?.('select');render()});
  }
  function render(){
-  const room=ROOMS[window.planRoom?planRoom(state.host):'std']||ROOMS.std;
+  const room=ROOMS[roomOf(state.host)]||ROOMS.std;
+  $('instant-mode').hidden=state.protocol<2||state.host==='1';
   $('club-pc').textContent='БРОНЬ';$('club-error').textContent='';
-  $('bk-title').textContent='ПК '+state.host;$('bk-room').textContent=room[0];$('bk-room').dataset.room=window.planRoom?planRoom(state.host):'std';$('bk-specs').textContent=room[1];
+  $('bk-title').textContent=hostName(state.host);$('bk-room').textContent=room[0];$('bk-room').dataset.room=roomOf(state.host);$('bk-specs').textContent=room[1];
   $('bk-label').textContent=$('instant-mode').hidden?'Когда придёшь?':'Или забронируй на время';
   state.mode='scheduled';state.arrival=state.slot?nextClubArrival(...state.slot.split(':').map(Number)):null;
   $('bk-slots').querySelectorAll('[data-slot]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.slot===state.slot)));
@@ -81,7 +84,7 @@ window.clubV2=false;
  window.openClubBooking=(id)=>{
   if(liveHostStatus(hostsData[String(id)])!=='free'){window.showOccupied?.(id);return}
   state.host=String(id);state.forFriend=false;state.kind='range';state.request=null;state.slot=null;
-  $('club-create').hidden=false;$('club-mine').hidden=true;renderSlots();render();open(document.querySelector(`#floor-map [data-hid="${CSS.escape(state.host)}"]`));$('bk-slots').scrollLeft=0;
+  $('club-create').hidden=false;$('club-mine').hidden=true;renderSlots();render();open(state.host==='1'?$('ps5-seat'):document.querySelector(`#floor-map [data-hid="${CSS.escape(state.host)}"]`));$('bk-slots').scrollLeft=0;
  };
  let openedAt=0;
  $('instant-mode').onclick=()=>{if(performance.now()-openedAt<350)return;state.mode='instant';submit()};
@@ -106,19 +109,19 @@ window.clubV2=false;
   rows.forEach(b=>{
    const card=document.createElement('section');card.className='club-reservation';
    const add=(tag,text,cl)=>{const e=document.createElement(tag);e.textContent=text;if(cl)e.className=cl;card.append(e);return e};
-   add('h2','ПК '+b.host_id);if(b.instant&&!['attention','cancelled','expired'].includes(b.status)){add('strong','Подключаем ваш аккаунт…');box.append(card);return}add('strong',statusNames[b.status]||b.status);
+   add('h2',hostName(b.host_id));if(b.instant&&!['attention','cancelled','expired'].includes(b.status)){add('strong','Подключаем ваш аккаунт…');box.append(card);return}add('strong',statusNames[b.status]||b.status);
    add('p',b.mode==='arrival'?`Ждём до ${fmt(b.hold_until)} МСК`:`${clubArrivalLabel(b.starts_at)} → ${b.duration_kind==='open'?'Как пойдёт':clubArrivalLabel(b.ends_at)}`,'club-note');
    if(b.for_friend)add('p','Бронь старой версии · доступна отмена','club-note');
    if(b.status==='release_requested')add('p','Снимаем блокировку. Друг войдёт сам.','club-note');
-   if(b.status==='holding'&&!b.for_friend&&b.protocol>=2&&['free','reserved'].includes(liveHostStatus(hostsData[b.host_id]))){
-    const btn=add('button',b.for_friend?'Разблокировать для друга':'Войти в свой аккаунт','btn-main');btn.onclick=()=>{if(confirm(b.for_friend?'Друг уже у компьютера? Снять блокировку для его входа?':'Начать игровую сессию на ПК '+b.host_id+'?'))action(btn,b.for_friend?'release':'enter',{id:b.id})};
+   if(b.status==='holding'&&!b.for_friend&&b.protocol>=2&&b.host_id!=='1'&&['free','reserved'].includes(liveHostStatus(hostsData[b.host_id]))){
+    const btn=add('button',b.for_friend?'Разблокировать для друга':'Войти в свой аккаунт','btn-main');btn.onclick=async()=>{if(await uiConfirm(b.for_friend?'Друг уже у компьютера? Снять блокировку для его входа?':'Начать игровую сессию на ПК '+b.host_id+'?',{ok:'Войти'}))action(btn,b.for_friend?'release':'enter',{id:b.id})};
    }
    if(b.status==='holding'&&!(b.protocol>=2)&&['free','reserved'].includes(liveHostStatus(hostsData[b.host_id]))){
     add('p','Вы уже в клубе? Узнайте код в панели администратора.','club-note');
     const input=add('input','');input.inputMode='numeric';input.autocomplete='one-time-code';input.maxLength=6;input.placeholder='Код из клуба';input.setAttribute('aria-label','Шестизначный код присутствия');
     const btn=add('button','Я пришёл → Войти','btn-main');btn.onclick=()=>action(btn,'checkin',{id:b.id,code:input.value});
    }
-   if(['requested','waiting','holding','attention','checkin_pending','release_requested','in_session'].includes(b.status)){const btn=add('button','Отменить бронь','club-cancel');btn.onclick=()=>{if(confirm('Отменить бронь ПК '+b.host_id+'?'))action(btn,'cancel',{id:b.id})}}
+   if(['requested','waiting','holding','attention','checkin_pending','release_requested','in_session'].includes(b.status)){const btn=add('button','Отменить бронь','club-cancel');btn.onclick=async()=>{if(await uiConfirm('Отменить бронь '+hostName(b.host_id)+'?',{ok:'Отменить бронь',danger:true}))action(btn,'cancel',{id:b.id})}}
 
    box.append(card);
   });
@@ -145,7 +148,7 @@ window.clubV2=false;
  sessionScreen.querySelector('#btn-session-manage').onclick=()=>sessionBanner.click();
  sessionScreen.querySelector('#btn-lock-own-pc').onclick=async()=>{
   const current=state.account?.session;if(!current||!accountFresh())return;
-  if(!confirm('Заблокировать экран ПК '+current.host_id+'? Сессия и игры не завершатся; для разблокировки введите ваш пароль на ПК.'))return;
+  if(!await uiConfirm('Заблокировать экран ПК '+current.host_id+'? Сессия и игры не завершатся; для разблокировки введите ваш пароль на ПК.',{ok:'Заблокировать'}))return;
   const btn=sessionScreen.querySelector('#btn-lock-own-pc'),fb=sessionScreen.querySelector('#session-feedback');
   btn.disabled=true;fb.textContent='Блокируем экран ПК…';
   try{await command('lock',{session_key:current.key});fb.textContent='Экран ПК заблокирован. Для продолжения введите пароль на ПК.'}
@@ -154,7 +157,7 @@ window.clubV2=false;
  };
  sessionScreen.querySelector('#btn-logout-own-pc').onclick=async()=>{
   const current=state.account?.session;if(!current||!accountFresh())return;
-  if(!confirm('Завершить сеанс на ПК '+current.host_id+'? Сохраните игру перед выходом.'))return;
+  if(!await uiConfirm('Завершить сеанс на ПК '+current.host_id+'? Сохраните игру перед выходом.',{ok:'Завершить',danger:true}))return;
   const btn=sessionScreen.querySelector('#btn-logout-own-pc'),fb=sessionScreen.querySelector('#session-feedback');
   btn.disabled=true;fb.textContent='Отправляем команду выхода…';
   try{await command('logout',{session_key:current.key});fb.textContent='Команда выхода отправлена. Ждём подтверждение клуба.';await refresh()}
@@ -181,7 +184,7 @@ window.clubV2=false;
   const p=document.createElement('p');p.className='club-note';p.textContent=current.last_login?'Начало '+fmt(current.last_login)+' МСК':'Время начала сессии пока недоступно';card.append(p);
   const balance=document.createElement('p');balance.textContent=accountFresh()&&Number.isFinite(state.account.balance)?'Баланс клуба: '+state.account.balance+' ₽':'Баланс обновляется';card.append(balance);
   const exit=document.createElement('button');exit.className='btn-main';exit.textContent='Завершить мою сессию';exit.disabled=!current.key||!accountFresh();
-  exit.onclick=async()=>{if(!confirm('Выйти из аккаунта на ПК '+current.host_id+'? Сохраните игру перед выходом.'))return;exit.disabled=true;try{await command('logout',{session_key:current.key});$('club-error').textContent='Команда отправлена. Ждём подтверждение клуба.'}catch(e){$('club-error').textContent=clubText(e.message)}finally{exit.disabled=false}};
+  exit.onclick=async()=>{if(!await uiConfirm('Выйти из аккаунта на ПК '+current.host_id+'? Сохраните игру перед выходом.',{ok:'Выйти',danger:true}))return;exit.disabled=true;try{await command('logout',{session_key:current.key});$('club-error').textContent='Команда отправлена. Ждём подтверждение клуба.'}catch(e){$('club-error').textContent=clubText(e.message)}finally{exit.disabled=false}};
   card.append(exit);box.append(card);
  }
  let accountSetup=false,accountPending=false,accountFeedback,passwordFeedback;
@@ -197,8 +200,8 @@ window.clubV2=false;
   accountFeedback=new ProfileFeedback($('account-result'),owner);passwordFeedback=new ProfileFeedback($('password-result'),owner);
   $('account-toggle').onclick=()=>{const open=$('account-toggle').getAttribute('aria-expanded')!=='true';$('account-toggle').setAttribute('aria-expanded',String(open));$('account-fields').classList.toggle('expanded',open);$('account-fields').inert=!open};
   $('edit-account').addEventListener('input',()=>{const form=$('edit-account');form.dataset.dirty='1';form.dataset.revision=String(Number(form.dataset.revision||0)+1)});
-  $('edit-account').onsubmit=async e=>{e.preventDefault();if(!confirm('Сохранить данные аккаунта в клубе? Новый никнейм будет использоваться для входа на ПК.'))return;const btn=e.target.querySelector('button'),revision=e.target.dataset.revision||'0';btn.disabled=true;try{const requested=await command('profile_edit',Object.fromEntries(new FormData(e.target)));e.target.dataset.pendingId=requested.id;e.target.dataset.sentRevision=revision;accountFeedback.show(null,'Запрос отправлен в клуб')}catch(error){accountFeedback.show(null,clubText(error.message))}finally{btn.disabled=false}};
-  $('request-password').onclick=async()=>{if(!confirm('Запросить смену пароля у администратора? В клубе потребуется подтвердить личность.'))return;try{await command('password_request',{});passwordFeedback.show(null,'Администратор получил запрос. Обратитесь к нему в клубе.')}catch(error){accountFeedback.show(null,clubText(error.message))}};
+  $('edit-account').onsubmit=async e=>{e.preventDefault();if(!await uiConfirm('Сохранить данные аккаунта в клубе? Новый никнейм будет использоваться для входа на ПК.',{ok:'Сохранить'}))return;const btn=e.target.querySelector('button'),revision=e.target.dataset.revision||'0';btn.disabled=true;try{const requested=await command('profile_edit',Object.fromEntries(new FormData(e.target)));e.target.dataset.pendingId=requested.id;e.target.dataset.sentRevision=revision;accountFeedback.show(null,'Запрос отправлен в клуб')}catch(error){accountFeedback.show(null,clubText(error.message))}finally{btn.disabled=false}};
+  $('request-password').onclick=async()=>{if(!await uiConfirm('Запросить смену пароля у администратора? В клубе потребуется подтвердить личность.',{ok:'Запросить'}))return;try{await command('password_request',{});passwordFeedback.show(null,'Администратор получил запрос. Обратитесь к нему в клубе.')}catch(error){accountFeedback.show(null,clubText(error.message))}};
   refreshAccount();
  }
  async function command(kind,payload){return call('command',{kind,payload,request_id:crypto.randomUUID()})}

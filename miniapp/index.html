@@ -342,14 +342,13 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
     <p class="auth-lead">Войди в аккаунт клуба или создай новый — это займёт минуту.</p>
     <button type="button" class="auth-tab btn-main" onclick="switchAuthTab('login',this)">Войти</button>
     <button type="button" class="auth-tab btn-outline" onclick="switchAuthTab('register',this)">Регистрация</button>
-    <button type="button" class="btn-demo" id="btn-demo-mode" onclick="startDemoMode()">Демо-режим без входа</button>
   </div>
 
   <form id="form-login" class="auth-form wizard" onsubmit="authNext(event)" novalidate>
     <div class="wiz-top"><button type="button" class="wiz-back" aria-label="Назад" onclick="authBack()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button><div class="wiz-progress" aria-hidden="true"></div><span class="wiz-count"></span></div>
     <div class="step" data-title="Вход">
       <label class="step-label" for="l-user">Твой номер<br>или никнейм</label>
-      <input type="text" id="l-user" placeholder="+7 999 123-45-67" autocomplete="username" inputmode="text" enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+      <input type="text" id="l-user" placeholder="Номер или ник" autocomplete="username" inputmode="text" enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false" required>
     </div>
     <div class="step" data-title="Вход">
       <label class="step-label" for="l-pass">Пароль</label>
@@ -363,14 +362,14 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
   <form id="form-register" class="auth-form wizard" onsubmit="authNext(event)" novalidate>
     <div class="wiz-top"><button type="button" class="wiz-back" aria-label="Назад" onclick="authBack()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button><div class="wiz-progress" aria-hidden="true"></div><span class="wiz-count"></span></div>
     <div class="step"><label class="step-label" for="r-user">Придумай<br>никнейм</label><input type="text" id="r-user" placeholder="vasya_228" autocomplete="username" minlength="3" maxlength="30" enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false" required></div>
-    <div class="step"><label class="step-label" for="r-pass">Придумай<br>пароль</label><input type="password" id="r-pass" placeholder="минимум 6 символов" autocomplete="new-password" minlength="6" enterkeyhint="done" required></div>
+    <div class="step"><label class="step-label" for="r-pass">Придумай<br>пароль</label><input type="password" id="r-pass" placeholder="минимум 3 символа" autocomplete="new-password" minlength="3" enterkeyhint="done" required></div>
     <div class="step"><label class="step-label" for="r-phone">Номер<br>телефона</label><input id="r-phone" type="tel" inputmode="tel" autocomplete="tel" enterkeyhint="done" required value="+7 " placeholder="+7 999 123-45-67"></div>
     <div class="step"><label class="step-label" for="r-name">Как тебя<br>зовут?</label><input type="text" id="r-name" placeholder="Вася" autocomplete="given-name" maxlength="45" enterkeyhint="done" required></div>
     <div class="step"><label class="step-label" for="r-last">Фамилия</label><input id="r-last" autocomplete="family-name" maxlength="45" enterkeyhint="done" required placeholder="Пупкин"></div>
     <div class="step"><span class="step-label">Пол</span><fieldset class="gender-choice"><legend class="sr-repair">Пол</legend><label title="Мужчина"><input type="radio" name="sex" value="1" required aria-label="Мужчина"><svg viewBox="0 0 32 40" aria-hidden="true"><circle cx="16" cy="6" r="4"/><path d="M10 38V24H7V14h18v10h-3v14m-6-14v14"/></svg><span>Мужской</span></label><label title="Женщина"><input type="radio" name="sex" value="2" required aria-label="Женщина"><svg viewBox="0 0 32 40" aria-hidden="true"><circle cx="16" cy="6" r="4"/><path d="M12 38V28H8l4-14h8l4 14h-4v10m-4-10v10"/></svg><span>Женский</span></label></fieldset></div>
     <div class="step"><span class="step-label">Дата<br>рождения</span><button type="button" id="birthday-open">Выбрать дату рождения</button><input id="r-birth" type="hidden"></div>
-    <div class="step" data-optional="1"><label class="step-label" for="r-promo">Есть<br>промокод?</label><input id="r-promo" type="text" maxlength="32" autocomplete="off" autocapitalize="characters" enterkeyhint="done" placeholder="BLOGGER1"><p class="step-hint">1 час STANDART после подтверждения админом. Нет кода — жми «Дальше».</p></div>
-    <div class="wiz-actions"><button type="submit" class="btn-main" id="btn-reg">Дальше</button></div>
+    <div class="step" data-optional="1"><label class="step-label" for="r-promo">Есть<br>промокод?</label><input id="r-promo" type="text" maxlength="32" autocomplete="off" autocapitalize="characters" enterkeyhint="done" placeholder="BLOGGER1"></div>
+    <div class="wiz-actions"><button type="submit" class="btn-main" id="btn-reg">Дальше</button><button type="button" class="wiz-skip" id="btn-no-promo" onclick="authSkipPromo(event)">Нет промокода</button></div>
     <div class="auth-err" id="err-reg"></div>
     <p class="auth-hint">После отправки подойди к администратору с документом — он подтвердит анкету.</p>
   </form>
@@ -425,11 +424,11 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
         <div class="plan-zone vip2" data-zone="vip" style="left:120px;top:96px;width:232px;height:80px"><span>VIP 2</span></div>
         <div class="plan-zone" data-zone="z2" style="left:8px;top:184px;width:104px;height:224px"><span>Зона 200</span></div>
         <div class="plan-zone" data-zone="z1" style="left:120px;top:184px;width:232px;height:152px"><span>Зона 100</span></div>
-        <a class="ps5-phone-card plan-ps5" href="tel:+74955837811" onclick="openClubContact(event)" aria-label="TV-зона PS5 — бронирование только по телефону">
+        <button type="button" class="ps5-phone-card plan-ps5 unknown" id="ps5-seat" aria-label="TV-зона PS5">
           <svg class="console-symbol" aria-hidden="true" viewBox="0 0 32 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M10 5h12c3 0 4 3 5 6l2 7c1 4-3 5-5 2l-3-3H11l-3 3c-2 3-6 2-5-2l2-7c1-3 2-6 5-6Z"/><path d="M9 9v6m-3-3h6"/><circle cx="22" cy="10" r="1"/><circle cx="25" cy="13" r="1"/></svg>
-          <span><strong>TV-зона PS5</strong><small>Бронь только по телефону</small></span>
-          <span class="phone-cta">Позвонить <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14"/></svg></span>
-        </a>
+          <span><strong>TV-зона PS5</strong><small id="ps5-status">Нет связи</small></span>
+          <span class="phone-cta">Забронировать <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14"/></svg></span>
+        </button>
         <div id="floor-map" class="plan-seats" aria-label="Выбор компьютера"></div>
       </div></div></div>
     </section>
@@ -443,7 +442,7 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
     </button>
     <button class="nav-btn" id="nav-tariffs" onclick="navTo('tariffs')">
       <svg class="nav-ico" viewBox="0 0 24 24"><path d="M3 12.5 12.5 3H21v8.5L11.5 21Z"/><circle cx="16.5" cy="7.5" r="1.5"/></svg>
-      Прайс
+      Клуб
     </button>
     <button class="nav-btn" id="nav-food" onclick="navTo('food')">
       <svg class="nav-ico" viewBox="0 0 24 24"><path d="M6 8h11l-1.4 13H7.4Z"/><path d="M12 8V3h4M4 8h15"/></svg>
@@ -472,17 +471,14 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
 <!-- TARIFFS OVERLAY -->
 <div class="overlay" id="ov-tariffs">
   <div class="ov-head">
-    <div class="ov-title">Прайс</div>
-    <div class="ov-close" onclick="navTo('hall')">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-    </div>
+    <div class="ov-title">Клуб</div>
   </div>
-  <div class="ov-body">
-    <div class="seg-tabs" role="tablist" aria-label="Разделы прайса">
+  <div class="seg-tabs" role="tablist" aria-label="Разделы прайса">
       <button type="button" role="tab" data-pane="price" aria-selected="true">Прайс</button>
       <button type="button" role="tab" data-pane="promo" aria-selected="false">Акции</button>
       <button type="button" role="tab" data-pane="hw" aria-selected="false">Железо</button>
     </div>
+  <div class="ov-body">
     <section class="seg-pane" data-pane="price" role="tabpanel">
       <div class="price-row price-th"><span>Время</span><b>STANDART</b><b>VIP</b></div>
       <div class="price-row"><span>1 час</span><b>189 ₽</b><b>229 ₽</b></div>
@@ -516,7 +512,31 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
       </article>
     </section>
     <section class="seg-pane" data-pane="hw" role="tabpanel" hidden>
-      <img class="smm-post" src="img/post-hardware.webp" width="1080" height="1350" loading="lazy" alt="Что внутри. Основной зал, 20 PC: RTX 4060, Intel i5-13400F, 32 GB RAM, 240 Гц. VIP зал, 10 PC: RTX 4070, Intel i7-13700F, 32 GB RAM, 390 Гц. TV-зона: PS5, Samsung 65 дюймов 4K, до 2 человек. Скачаем любую игру к твоему приходу. Можно со своей едой.">
+      <div class="hw-switch" role="tablist" aria-label="Залы">
+        <button type="button" role="tab" data-hw="std" aria-selected="true">Основной</button>
+        <button type="button" role="tab" data-hw="vip" aria-selected="false">VIP</button>
+        <button type="button" role="tab" data-hw="tv" aria-selected="false">TV-зона</button>
+      </div>
+      <div class="hw-stage">
+        <article class="hw-card" data-hw="std">
+          <img class="hw-mesh" src="img/mesh.svg" alt="" aria-hidden="true">
+          <div class="hw-top"><span class="hw-count">20 PC</span><span class="hw-tag">STANDART</span></div>
+          <h2>Основной<br>зал</h2>
+          <ul class="hw-specs"><li><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="11" width="42" height="24"/><circle cx="15" cy="23" r="7"/><circle cx="33" cy="23" r="7"/></svg><span>RTX 4060</span></li><li><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="12" y="12" width="24" height="24"/><path d="M18 4v8M30 4v8M18 36v8M30 36v8M4 18h8M4 30h8M36 18h8M36 30h8"/></svg><span>Intel i5-13400F</span></li><li><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="12" width="42" height="18"/><path d="M6 30v6M18 30v6M30 30v6M42 30v6"/></svg><span>32 GB RAM</span></li><li><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="7" width="42" height="27"/><path d="M24 34v7M15 41h18"/></svg><span>Acer Nitro 24,5" · 240 Гц</span></li><li><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 4h20v22H14zM10 26h28M24 26v12M14 44l10-6 10 6"/></svg><span>DXRacer I-Master</span></li></ul>
+        </article>
+        <article class="hw-card" data-hw="vip" hidden>
+          <img class="hw-mesh" src="img/mesh.svg" alt="" aria-hidden="true">
+          <div class="hw-top"><span class="hw-count">10 PC</span><span class="hw-tag">VIP 1 · VIP 2</span></div>
+          <h2>VIP<br>зал</h2>
+          <ul class="hw-specs"><li><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="11" width="42" height="24"/><circle cx="15" cy="23" r="7"/><circle cx="33" cy="23" r="7"/></svg><span>RTX 4070</span></li><li><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="12" y="12" width="24" height="24"/><path d="M18 4v8M30 4v8M18 36v8M30 36v8M4 18h8M4 30h8M36 18h8M36 30h8"/></svg><span>Intel i7-13700F</span></li><li><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="12" width="42" height="18"/><path d="M6 30v6M18 30v6M30 30v6M42 30v6"/></svg><span>32 GB RAM</span></li><li class=vip1><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="7" width="42" height="27"/><path d="M24 34v7M15 41h18"/></svg><span>VIP 1 · MSI MAG 27" 2K · 240 Гц</span></li><li class=vip2><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="7" width="42" height="27"/><path d="M24 34v7M15 41h18"/></svg><span>VIP 2 · Acer Nitro 24,5" · 390 Гц</span></li><li><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="13" y="4" width="22" height="40" rx="11"/><path d="M24 4v12"/></svg><span>LAMZU MAYA X</span></li><li><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="13" width="42" height="22"/><path d="M10 20h4M19 20h4M28 20h4M37 20h2M10 28h28"/></svg><span>Dark Project Arena KD2 Optic</span></li><li><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 30v-6a16 16 0 0 1 32 0v6"/><rect x="6" y="28" width="9" height="14"/><rect x="33" y="28" width="9" height="14"/></svg><span>HyperX Cloud III</span></li><li><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 4h20v22H14zM10 26h28M24 26v12M14 44l10-6 10 6"/></svg><span>DXRacer Gladiator</span></li></ul>
+        </article>
+        <article class="hw-card" data-hw="tv" hidden>
+          <img class="hw-mesh" src="img/mesh.svg" alt="" aria-hidden="true">
+          <div class="hw-top"><span class="hw-count">PS5</span><span class="hw-tag">До 2 человек</span></div>
+          <h2>TV-<br>зона</h2>
+          <ul class="hw-specs"><li><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 12h20c6 0 8 5 9 10l2 10c1 7-5 9-9 4l-5-5H17l-5 5c-4 5-10 3-9-4l2-10c1-5 3-10 9-10Z"/><path d="M15 19v8M11 23h8"/><circle cx="32" cy="21" r="1.5"/><circle cx="36" cy="25" r="1.5"/></svg><span>PlayStation 5</span></li><li><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="8" width="42" height="28" rx="2"/><path d="M14 36l-4 6M34 36l4 6"/></svg><span>Samsung 65" · 4K · 60 Гц</span></li><li><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="17" cy="16" r="7"/><path d="M4 42v-4a10 10 0 0 1 10-10h6a10 10 0 0 1 10 10v4"/><path d="M31 9a7 7 0 0 1 0 14M36 28a10 10 0 0 1 8 10v4"/></svg><span>Диваны, до 2 человек</span></li></ul>
+        </article>
+      </div>
     </section>
   </div>
 </div>
@@ -525,9 +545,6 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
 <div class="overlay" id="ov-food">
   <div class="ov-head">
     <div class="ov-title">Еда</div>
-    <div class="ov-close" onclick="navTo('hall')">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-    </div>
   </div>
   <div class="ov-body food-soon">
     <span class="smm-tag">Скоро</span>
@@ -540,9 +557,6 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
 <div class="overlay" id="ov-profile">
   <div class="ov-head">
     <div class="ov-title">Профиль</div>
-    <div class="ov-close" onclick="navTo('hall')">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-    </div>
   </div>
   <div class="ov-body">
     <section class="me-hero">
@@ -573,7 +587,7 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
     </section>
     <div id="prof-password-slot"></div>
     <button class="btn-danger" onclick="doLogout()">Выйти из аккаунта</button>
-    <p id="mini-build" class="version-label">version 2.2.2</p>
+    <p id="mini-build" class="version-label">version 2.3.0</p>
   </div>
 </div>
 
@@ -900,8 +914,23 @@ function renderHall() {
       if (focusedId === pc.id && !button.disabled) button.focus({preventScroll:true});
     });
   }
+  renderPs5();
   updatePlanCaption();
 }
+// The TV-zone PS5 is booked from its own card on the plan (time slots only).
+function renderPs5(){
+  const card=document.getElementById('ps5-seat');if(!card)return;
+  const status=liveHostStatus(hostsData['1']),mine=!!window.ownBookingIds?.has('1');
+  card.className=`ps5-phone-card plan-ps5 ${status}${mine?' my-booking':''}${pickedSeat==='1'?' picked':''}`;
+  document.getElementById('ps5-status').textContent=mine?'Твоя бронь':HOST_LABELS[status]||HOST_LABELS.unknown;
+  card.setAttribute('aria-label','TV-зона PS5: '+(mine?'твоя бронь':HOST_LABELS[status]));
+}
+document.getElementById('ps5-seat').addEventListener('click',()=>{
+  const card=document.getElementById('ps5-seat'),current=liveHostStatus(hostsData['1']);
+  if(window.openOwnBooking?.('1')){haptic('ok');return pickSeat('1');}
+  if(current!=='free'){haptic(current==='busy'?'busy':'warn');denySeat(card);return current==='busy'?window.showOccupied('1'):toast(SEAT_DENIED[current]||SEAT_DENIED.unknown,'inf');}
+  haptic('free');pickSeat('1');openBooking('1','ps5',false);
+});
 function updatePlanCaption(){
   const zone=PLAN_ZONES[activeZone],ids=Object.keys(PLAN_SEATS).filter(id=>activeZone==='all'||planZoneOf(id)===activeZone);
   const fresh=ids.filter(id=>liveHostStatus(hostsData[id])!=='unknown'),free=fresh.filter(id=>liveHostStatus(hostsData[id])==='free').length;
@@ -961,6 +990,7 @@ function haptic(kind){
 function pickSeat(id){
   pickedSeat=id==null?null:String(id);
   document.querySelectorAll('#floor-map .map-pc').forEach(b=>b.classList.toggle('picked',b.dataset.hid===pickedSeat));
+  document.getElementById('ps5-seat')?.classList.toggle('picked',pickedSeat==='1');
 }
 function denySeat(button){button.classList.remove('denied');void button.offsetWidth;button.classList.add('denied');setTimeout(()=>button.classList.remove('denied'),450)}
 addEventListener('resize',()=>setPlanView(activeZone,false));
@@ -984,18 +1014,29 @@ function navTo(tab) {
   }
 }
 document.querySelectorAll('.seg-tabs [data-pane]').forEach(tab=>tab.addEventListener('click',()=>{
-  const bar=tab.parentElement,body=bar.parentElement;
+  const bar=tab.parentElement,root=bar.parentElement;
   bar.querySelectorAll('[data-pane]').forEach(t=>t.setAttribute('aria-selected',String(t===tab)));
-  body.querySelectorAll('.seg-pane').forEach(p=>{const on=p.dataset.pane===tab.dataset.pane;p.hidden=!on;if(on){p.classList.remove('pane-in');void p.offsetWidth;p.classList.add('pane-in')}});
-  body.scrollTop=0;haptic('select');
+  root.querySelectorAll('.seg-pane').forEach(p=>{const on=p.dataset.pane===tab.dataset.pane;p.hidden=!on;if(on){p.classList.remove('pane-in');void p.offsetWidth;p.classList.add('pane-in')}});
+  root.querySelector('.ov-body').scrollTop=0;haptic('select');
+}));
+// Hardware: one room at a time; the card slides in from the side of the chosen tab.
+document.querySelectorAll('.hw-switch [data-hw]').forEach(tab=>tab.addEventListener('click',()=>{
+  const tabs=[...tab.parentElement.children],from=tabs.findIndex(t=>t.getAttribute('aria-selected')==='true'),to=tabs.indexOf(tab);
+  if(from===to)return;
+  tabs.forEach(t=>t.setAttribute('aria-selected',String(t===tab)));
+  document.querySelectorAll('.hw-card').forEach(card=>{
+    const on=card.dataset.hw===tab.dataset.hw;card.hidden=!on;card.classList.remove('from-l','from-r');
+    if(on){void card.offsetWidth;card.classList.add(to>from?'from-r':'from-l')}
+  });
+  haptic('select');
 }));
 
 // ═══════════════════════════════════════════════
 // BOOKING SHEET
 // ═══════════════════════════════════════════════
 function openBooking(hostId, zone, isVip) {
-  if (isPhoneOnlyHost(hostId, zone)) { openClubContact(); return; }
   if (!profile) { toast('Сначала войди в аккаунт', 'err'); return; }
+  if (isPhoneOnlyHost(hostId, zone) && !window.clubV2) { openClubContact(); return; }
   if (window.clubV2) { openClubBooking(hostId); return; }
   if (liveHostStatus(hostsData[String(hostId)]) !== 'free') { toast('Статус изменился. Обновите зал.', 'err'); return; }
 
@@ -1066,11 +1107,7 @@ function doLogout() {
     document.getElementById('live-dot').style.display = 'none';
   };
 
-  if (tg) {
-    tg.showConfirm('Выйти из аккаунта?', ok => { if (ok) confirm(); });
-  } else if (window.confirm('Выйти из аккаунта?')) {
-    confirm();
-  }
+  uiConfirm('Выйти из аккаунта? Чтобы вернуться, понадобятся номер или ник и пароль.', {ok:'Выйти', danger:true}).then(ok => { if (ok) confirm(); });
 }
 
 // ═══════════════════════════════════════════════
@@ -1130,15 +1167,16 @@ function clearProfile() {
   try { localStorage.removeItem('1shot_v2_profile'); } catch(e){}
 }
 </script>
-<script src="auth-flow.js?v=2.2.0"></script>
+<script src="ui-confirm.js?v=2.3.0"></script>
+<script src="auth-flow.js?v=2.3.0"></script>
 <script src="experience.js?v=2.2.0"></script>
 <script src="arrival-time.js?v=1.6.0"></script>
 <link rel="stylesheet" href="desk-availability.css?v=2.2.0">
-<script src="desk-availability.js?v=2.2.0"></script>
+<script src="desk-availability.js?v=2.3.0"></script>
 <script src="profile-feedback.js?v=20261008"></script>
-<script src="club-booking.js?v=2.2.2"></script>
-<link rel="stylesheet" href="polish.css?v=1.6.0"><script src="polish.js?v=2.2.0"></script>
-<link rel="stylesheet" href="smm.css?v=2.2.2">
+<script src="club-booking.js?v=2.3.0"></script>
+<link rel="stylesheet" href="polish.css?v=1.6.0"><script src="polish.js?v=2.3.0"></script>
+<link rel="stylesheet" href="smm.css?v=2.3.0">
 <div id="tutorial-overlay" class="tutorial-overlay" hidden>
   <div class="tutorial-modal">
     <div class="tutorial-slides">

@@ -38,7 +38,7 @@
  });
  const trigger=document.getElementById('birthday-open');if(!trigger)return;
  const now=new Date(),parts=[1,1,now.getFullYear()-18];
- const dialog=document.createElement('dialog');dialog.className='birthday-dialog';dialog.innerHTML='<h3>Дата рождения</h3><div class="birth-wheels"></div><p id="birth-error" role="status"></p><button type="button" class="btn-main">Выбрать дату</button>';document.body.append(dialog);
+ const dialog=document.createElement('dialog');dialog.className='birthday-dialog';dialog.innerHTML='<h3>Дата рождения</h3><div class="birth-labels" aria-hidden="true"><span>День</span><span>Месяц</span><span>Год</span></div><div class="birth-wheels"></div><p id="birth-error" role="status"></p><button type="button" class="btn-main">Выбрать дату</button>';document.body.append(dialog);
  const wheels=[];
  function build(i){const el=wheels[i];el.replaceChildren();const min=i===2?now.getFullYear()-110:1,max=i===2?now.getFullYear():i===1?12:new Date(parts[2],parts[1],0).getDate();parts[i]=Math.min(max,Math.max(min,parts[i]));for(let n=min;n<=max;n++){const b=document.createElement('button');b.type='button';b.textContent=String(n).padStart(2,'0');b.setAttribute('role','option');b.onclick=()=>el.scrollTo({top:(n-min)*44,behavior:'smooth'});el.append(b)}el.dataset.min=min;requestAnimationFrame(()=>{el.scrollTop=(parts[i]-min)*44;mark(i)})}
  function mark(i){[...wheels[i].children].forEach((e,n)=>e.setAttribute('aria-selected',String(n+Number(wheels[i].dataset.min)===parts[i])))}

@@ -32,19 +32,19 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   await page.waitForSelector('#session-screen:not([hidden])');await page.waitForSelector('#oneshot-overlay',{state:'hidden'});
   await page.locator('#btn-session-manage').click();await page.waitForSelector('.current-session');assert.equal(await page.locator('.club-reservation input').count(),0);
   assert.equal(await page.locator('#friend-option').count(),0);assert.equal(await page.getByRole('button',{name:'Забронировать для друга',exact:true}).count(),0);
-  await page.getByRole('button',{name:'Завершить мою сессию',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#club-error').textContent.includes('Команда отправлена'));
+  await page.getByRole('button',{name:'Завершить мою сессию',exact:true}).click();await page.locator('#ui-confirm .ok').click();await page.waitForFunction(()=>document.querySelector('#club-error').textContent.includes('Команда отправлена'));
   const logout=requests.find(b=>b.action==='command'&&b.kind==='logout');assert.equal(logout.payload.session_key,'session-1');assert.ok(!('gizmo_user_id' in logout));
   await page.locator('#club-close').click();await page.locator('#nav-profile').click();await page.waitForSelector('.prof-ava img');
   assert.equal(await page.locator('#prof-name').textContent(),'Андрей');assert.match(await page.locator('#prof-balance').textContent(),/321/);assert.equal(await page.locator('#account-birthday').inputValue(),'2000-01-02');assert.equal(await page.locator('#account-birthday').getAttribute('readonly'),'');assert.equal(await page.locator('.profile-booking').count(),0);assert.equal(await page.locator('#ov-profile #club-my-bookings').count(),0);
   await page.locator('#account-toggle').click();
-  await page.locator('#edit-account [name=username]').fill('new_guest');await page.locator('#edit-account .btn-main').click();await page.waitForFunction(()=>document.querySelector('#account-result').textContent.includes('Запрос отправлен'));
+  await page.locator('#edit-account [name=username]').fill('new_guest');await page.locator('#edit-account .btn-main').click();await page.locator('#ui-confirm .ok').click();await page.waitForFunction(()=>document.querySelector('#account-result').textContent.includes('Запрос отправлен'));
   const edit=requests.find(b=>b.kind==='profile_edit');assert.equal(edit.payload.username,'new_guest');assert.ok(!('birthDate' in edit.payload));
-  await page.locator('#request-password').click();assert.ok(requests.some(b=>b.kind==='password_request'));
+  await page.locator('#request-password').click();await page.locator('#ui-confirm .ok').click();assert.ok(requests.some(b=>b.kind==='password_request'));
   rows.push({id:'scheduled-own',ends_at:new Date(Date.now()+1800000).toISOString(),host_id:'21',status:'holding',mode:'scheduled',protocol:2,starts_at:new Date().toISOString(),hold_until:new Date(Date.now()+1800000).toISOString()});
   for(const status of ['done','rejected']){
    passwordRequest={kind:'password_request',status,message:status==='done'?'Услуга предоставлена: пароль проверен в Gizmo':'Закрыта без выполнения'};await page.waitForFunction(s=>document.querySelector('#password-result')?.dataset.status===s,status);await page.evaluate(()=>navTo('hall'));await page.waitForSelector('#session-screen:not([hidden])');
    assert.equal(await page.locator('#club-booking[open]').count(),0,'session must not force a popup');
-   await page.locator('#btn-lock-own-pc').click();
+   await page.locator('#btn-lock-own-pc').click();await page.locator('#ui-confirm .ok').click();
    await page.waitForFunction(()=>document.querySelector('#session-feedback')?.textContent.includes('заблокирован'));
    const lockCmd=requests.find(b=>b.action==='command'&&b.kind==='lock');
    assert.equal(lockCmd.payload.session_key,'session-1');

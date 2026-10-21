@@ -37,7 +37,7 @@ const fs=require('node:fs'),assert=require('node:assert/strict');
     return {containers:['app','hall-area','floor-shell'].map(id=>{const e=document.getElementById(id)||document.querySelector('.'+id);return {id,h:e.scrollHeight,ch:e.clientHeight,w:e.scrollWidth,cw:e.clientWidth}}),
      plan:rect(document.getElementById('hall-plan')),all:document.querySelectorAll('.map-pc').length,
      cards:[...document.querySelectorAll(zone==='all'?'.map-pc':`.map-pc[data-zone="${zone}"]`)].map(e=>({id:e.dataset.hid,...rect(e),number:rect(e.querySelector('.map-number'))})),
-     phone:{color:getComputedStyle(document.querySelector('.ps5-phone-card')).color,decoration:getComputedStyle(document.querySelector('.ps5-phone-card')).textDecorationLine}};
+     phone:{tag:document.querySelector('.ps5-phone-card').tagName,color:getComputedStyle(document.querySelector('.ps5-phone-card')).color,decoration:getComputedStyle(document.querySelector('.ps5-phone-card')).textDecorationLine}};
    },zone);
    for(const c of report.containers)assert.ok(c.h<=c.ch+1&&c.w<=c.cw+1,JSON.stringify(c));
    assert.equal(report.all,30);assert.ok(report.cards.length>0);
@@ -48,7 +48,7 @@ const fs=require('node:fs'),assert=require('node:assert/strict');
     for(const b of report.cards)if(b.id!==c.id)assert.ok(c.right<=b.x+.5||b.right<=c.x+.5||c.bottom<=b.y+.5||b.bottom<=c.y+.5,`overlap ${c.id}/${b.id}`);
    }
    if(zone!=='all')for(const id of report.cards.map(c=>c.id)){const card=page.locator(`[data-hid="${id}"]`);await card.evaluate(e=>e.scrollIntoView({block:'nearest',inline:'nearest'}));assert.ok(await card.evaluate(e=>{const r=e.getBoundingClientRect(),v=document.getElementById('hall-plan').getBoundingClientRect();return r.top>=v.top-1&&r.bottom<=v.bottom+1&&r.left>=v.left-1&&r.right<=v.right+1}),'seat reachable '+id)}
-   assert.equal(report.phone.color,'rgb(255, 255, 255)');assert.equal(report.phone.decoration,'none');
+   assert.equal(report.phone.decoration,'none');assert.equal(report.phone.tag,'BUTTON','PS5 is bookable from its card');
   }
   for(const active of [false,true]){
    sessionVisible=active;await page.reload();await page.waitForSelector('#splash',{state:'hidden'});await page.waitForFunction(()=>window.clubV2);

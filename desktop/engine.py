@@ -74,9 +74,19 @@ class Controller:
         if after.get('state')!=0: raise UnsafeOperation('Gizmo не подтвердил снятие блокировки')
         record.update(phase='released',stamp=after.get('modifiedTime'))
         self.store.set('booking:'+b['id'],record);return True
+    def step_ps5(self,b,now):
+        # PS5 has no Gizmo client to lock: the booking is a reservation the admin sees in Desk.
+        if b['status']=='attention':return
+        if b['status'] not in ('requested','waiting','holding','cancel_requested'):
+            self.attention(b,'TV-зона PS5: вход через Gizmo не выполняется. Проверьте зону вручную');return
+        if b['status']=='cancel_requested' or now>=timestamp(b['hold_until']):
+            self.transition(b,'cancelled' if b['status']=='cancel_requested' else 'expired','Бронь TV-зоны завершена');return
+        if b['status'] in ('requested','waiting') and now>=timestamp(b['starts_at']):
+            self.transition(b,'holding','TV-зона PS5 ждёт тебя')
     def step(self,b):
         now=self.clock();key='booking:'+b['id'];record=self.store.get(key)
         if b['status'] in TERMINAL: return
+        if str(b['host_id'])=='1': return self.step_ps5(b,now)
         # Verify an already-sent login before handling expiry: never replay the POST.
         if record and record.get('phase')=='login_sent':
             h=self.fresh_host(b);sessions=self.sessions(h)
