@@ -436,3 +436,12 @@
 .club-booking-dialog .bk-now{color:#000}
 .bk-slots button[data-tomorrow="true"] small{color:var(--smm-lime)}
 .bk-slots button[data-tomorrow="true"][aria-selected="true"] small{color:#000}
+/* 2.2.2 · Hardware is the SMM post; password is a quiet row. */
+.smm-post{display:block;width:100%;height:auto;border:2px solid var(--smm-rule)}
+.prof-row{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:62px;margin-top:6px;padding:12px 0;background:none;border:0;border-bottom:2px solid var(--smm-rule);color:#fff;text-align:left;cursor:pointer;font:600 12px Unbounded,sans-serif}
+.prof-row small{display:block;margin-top:4px;font:500 10px Unbounded,sans-serif;color:var(--smm-muted)}
+.prof-row b{flex:none;font:800 10px Unbounded,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--smm-lime)}
+.prof-row:active b{color:#fff}
+#prof-password-slot #password-result:empty{display:none}
+#prof-password-slot #password-result{margin:10px 0 0;font-size:10px;color:var(--smm-lime)}
+#ov-profile .bal-sub{display:none}
