@@ -36,6 +36,7 @@
   if(!ready){showAuthErr('form-register','Регистрация пока недоступна. Обратитесь к администратору');return}
   const value=id=>document.getElementById(id).value.trim();
   const data={action:'register_application',initData:tg?.initData||'',username:value('r-user'),password:password.value,first_name:value('r-name'),last_name:value('r-last'),mobile_phone:value('r-phone'),birth_date:value('r-birth'),sex:Number(document.querySelector('[name=sex]:checked')?.value)};
+  const promo=document.getElementById('r-promo')?.value.trim().toUpperCase();if(promo)data.promo_code=promo;
   if(!data.password.trim()||!data.username||!data.first_name||!data.last_name||!data.mobile_phone||!data.birth_date||!data.sex){showAuthErr('form-register','Заполните все поля анкеты');return}
   busy=true;setAuthLoading('form-register',true);
   try{

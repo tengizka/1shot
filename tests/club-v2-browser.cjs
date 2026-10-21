@@ -26,8 +26,10 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   });
   await page.goto('https://club.test/');await page.waitForSelector('#splash',{state:'hidden'});await page.waitForSelector('.map-pc.free');await page.waitForFunction(()=>window.clubV2);await page.evaluate(()=>switchZone('vip'));await page.waitForTimeout(500);
   await page.locator('[data-hid="11"]').click();assert.equal(await page.locator('[data-mode="instant"]').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('[data-kind="hour"]').count(),0);
-  await page.locator('#club-submit').click();await page.waitForSelector('.club-reservation');assert.equal(requests.find(b=>b.action==='create_v2').mode,'instant');
-  await page.waitForSelector('.current-session');assert.equal(await page.locator('.club-reservation input').count(),0);
+  await page.locator('#club-submit').click();await page.waitForSelector('#oneshot-overlay.open');assert.equal(requests.find(b=>b.action==='create_v2').mode,'instant');
+  assert.equal(await page.locator('#club-booking').evaluate(d=>d.open),false,'sheet closes while the logo loader runs');
+  await page.waitForSelector('#session-screen:not([hidden])');await page.waitForSelector('#oneshot-overlay',{state:'hidden'});
+  await page.locator('#btn-session-manage').click();await page.waitForSelector('.current-session');assert.equal(await page.locator('.club-reservation input').count(),0);
   assert.equal(await page.locator('#friend-option').count(),0);assert.equal(await page.getByRole('button',{name:'Забронировать для друга',exact:true}).count(),0);
   await page.getByRole('button',{name:'Завершить мою сессию',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#club-error').textContent.includes('Команда отправлена'));
   const logout=requests.find(b=>b.action==='command'&&b.kind==='logout');assert.equal(logout.payload.session_key,'session-1');assert.ok(!('gizmo_user_id' in logout));

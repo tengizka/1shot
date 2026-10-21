@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#000000">
 <title>1SHOT · Карта клуба</title>
 <script src="hall-map.js?v=20261008-ui"></script>
+<script src="oneshot-loader.js?v=2.1.0"></script>
 <link rel="preload" href="../assets/fonts/unbounded/unbounded-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/unbounded/unbounded-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../assets/fonts/unbounded.css">
@@ -325,62 +326,63 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
 
 <!-- SPLASH -->
 <div id="splash" class="screen active">
-  <svg class="splash-logo" viewBox="0 0 522 138" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="logo-piece-0"><rect x="0" y="-2" width="59" height="142"/></clipPath><clipPath id="logo-piece-1"><rect x="58" y="-2" width="59" height="142"/></clipPath><clipPath id="logo-piece-2"><rect x="116" y="-2" width="59" height="142"/></clipPath><clipPath id="logo-piece-3"><rect x="174" y="-2" width="59" height="142"/></clipPath><clipPath id="logo-piece-4"><rect x="232" y="-2" width="59" height="142"/></clipPath><clipPath id="logo-piece-5"><rect x="290" y="-2" width="59" height="142"/></clipPath><clipPath id="logo-piece-6"><rect x="348" y="-2" width="59" height="142"/></clipPath><clipPath id="logo-piece-7"><rect x="406" y="-2" width="59" height="142"/></clipPath><clipPath id="logo-piece-8"><rect x="464" y="-2" width="59" height="142"/></clipPath></defs><g class="logo-fragment" style="--piece-x:150px;--piece-y:80px;--piece-r:30deg;--piece-delay:0.120s"><g clip-path="url(#logo-piece-0)"><path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/></g></g><g class="logo-fragment" style="--piece-x:-172px;--piece-y:-93px;--piece-r:-37deg;--piece-delay:0.185s"><g clip-path="url(#logo-piece-1)"><path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/></g></g><g class="logo-fragment" style="--piece-x:194px;--piece-y:-106px;--piece-r:44deg;--piece-delay:0.250s"><g clip-path="url(#logo-piece-2)"><path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/></g></g><g class="logo-fragment" style="--piece-x:-216px;--piece-y:119px;--piece-r:-51deg;--piece-delay:0.315s"><g clip-path="url(#logo-piece-3)"><path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/></g></g><g class="logo-fragment" style="--piece-x:238px;--piece-y:-132px;--piece-r:58deg;--piece-delay:0.380s"><g clip-path="url(#logo-piece-4)"><path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/></g></g><g class="logo-fragment" style="--piece-x:-260px;--piece-y:-145px;--piece-r:-65deg;--piece-delay:0.445s"><g clip-path="url(#logo-piece-5)"><path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/></g></g><g class="logo-fragment" style="--piece-x:282px;--piece-y:158px;--piece-r:72deg;--piece-delay:0.510s"><g clip-path="url(#logo-piece-6)"><path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/></g></g><g class="logo-fragment" style="--piece-x:-304px;--piece-y:-171px;--piece-r:-79deg;--piece-delay:0.575s"><g clip-path="url(#logo-piece-7)"><path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/></g></g><g class="logo-fragment" style="--piece-x:326px;--piece-y:-184px;--piece-r:86deg;--piece-delay:0.640s"><g clip-path="url(#logo-piece-8)"><path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/></g></g></svg>
-  <div class="splash-tag">КИБЕРХАУС</div>
+  <div class="splash-loader" id="splash-loader"></div>
+  <div class="splash-tag">КОМПЬЮТЕРНЫЙ КЛУБ</div>
   <div class="splash-made">made by tengizka</div>
 </div>
 
 <!-- AUTH -->
 <div id="auth" class="screen">
-  <svg class="auth-logo" viewBox="0 0 522 138" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <div class="auth-head"><svg class="auth-logo" viewBox="0 0 522 138" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path fill-rule="evenodd" clip-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z" fill="white"/>
-  </svg>
+  </svg><span class="auth-descr">КОМПЬЮТЕРНЫЙ КЛУБ</span></div>
 
-  <div class="auth-tabs">
-    <button class="auth-tab active" onclick="switchAuthTab('login',this)">Вход</button>
-    <button class="auth-tab" onclick="switchAuthTab('register',this)">Регистрация</button>
+  <div class="auth-tabs auth-choice auth-step-in" id="auth-choice">
+    <h1 class="auth-title">Привет.<br>Ты с нами?</h1>
+    <p class="auth-lead">Войди в аккаунт клуба или создай новый — это займёт минуту.</p>
+    <button type="button" class="auth-tab btn-main" onclick="switchAuthTab('login',this)">Войти</button>
+    <button type="button" class="auth-tab btn-outline" onclick="switchAuthTab('register',this)">Регистрация</button>
+    <button type="button" class="btn-demo" id="btn-demo-mode" onclick="startDemoMode()">Демо-режим без входа</button>
   </div>
 
-  <form id="form-login" class="auth-form active" onsubmit="doLogin(event)">
-    <div class="field">
-      <label>Номер телефона или никнейм</label>
-      <input type="text" id="l-user" placeholder="vasya_228" autocomplete="username" required>
+  <form id="form-login" class="auth-form wizard" onsubmit="authNext(event)" novalidate>
+    <div class="wiz-top"><button type="button" class="wiz-back" aria-label="Назад" onclick="authBack()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button><div class="wiz-progress" aria-hidden="true"></div><span class="wiz-count"></span></div>
+    <div class="step" data-title="Вход">
+      <label class="step-label" for="l-user">Твой номер<br>или никнейм</label>
+      <input type="text" id="l-user" placeholder="+7 999 123-45-67" autocomplete="username" inputmode="text" required>
+      <p class="step-hint">Номер можно ввести с +7, 7, 8 или без кода — мы поймём.</p>
     </div>
-    <div class="field">
-      <label>Пароль</label>
-      <input type="password" id="l-pass" placeholder="••••••" autocomplete="current-password" required>
+    <div class="step" data-title="Вход">
+      <label class="step-label" for="l-pass">Пароль</label>
+      <input type="password" id="l-pass" placeholder="••••" autocomplete="current-password" required>
+      <button type="button" class="step-link" onclick="authForgot()">Забыли пароль?</button>
     </div>
-    <button type="submit" class="btn-main" id="btn-login">Войти</button>
+    <div class="wiz-actions"><button type="submit" class="btn-main" id="btn-login">Дальше</button></div>
     <div class="auth-err" id="err-login"></div>
-    <div class="demo-auth-box">
-      <div class="demo-divider"><span>или</span></div>
-      <button type="button" class="btn-demo" id="btn-demo-mode" onclick="startDemoMode()">Демо-режим без входа</button>
-      <p class="auth-hint">Ознакомительный режим: просмотр схемы зала без клубного пароля</p>
-    </div>
-    <p class="auth-hint">Используй номер телефона или никнейм и пароль от своего аккаунта в клубе 1SHOT</p>
   </form>
 
-  <form id="form-register" class="auth-form" onsubmit="doRegister(event)">
-    <div class="field">
-      <label>Придумай никнейм</label>
-      <input type="text" id="r-user" placeholder="vasya_228" autocomplete="username" required>
-    </div>
-    <div class="field">
-      <label>Придумай пароль</label>
-      <input type="password" id="r-pass" placeholder="минимум 6 символов" autocomplete="new-password" minlength="6" required>
-    </div>
-    <div class="field"><label>Номер телефона</label><input id="r-phone" type="tel" autocomplete="tel" maxlength="20" required placeholder="+7 999 123-45-67"></div>
-    <div class="field">
-      <label>Имя</label>
-      <input type="text" id="r-name" placeholder="Вася" maxlength="45" required>
-    </div>
-    <div class="field"><label>Фамилия</label><input id="r-last" autocomplete="family-name" maxlength="45" required></div>
-    <fieldset class="gender-choice"><legend>Пол</legend><label title="Мужчина"><input type="radio" name="sex" value="1" required aria-label="Мужчина"><svg viewBox="0 0 32 40" aria-hidden="true"><circle cx="16" cy="6" r="4"/><path d="M10 38V24H7V14h18v10h-3v14m-6-14v14"/></svg></label><label title="Женщина"><input type="radio" name="sex" value="2" required aria-label="Женщина"><svg viewBox="0 0 32 40" aria-hidden="true"><circle cx="16" cy="6" r="4"/><path d="m11 14-5 15h7v9m6 0v-9h7l-5-15Z"/></svg></label></fieldset>
-    <div class="field"><label>Дата рождения</label><button type="button" id="birthday-open">Выбрать дату рождения</button><input id="r-birth" type="hidden"></div>
-    <button type="submit" class="btn-main" id="btn-reg">Зарегистрироваться</button>
+  <form id="form-register" class="auth-form wizard" onsubmit="authNext(event)" novalidate>
+    <div class="wiz-top"><button type="button" class="wiz-back" aria-label="Назад" onclick="authBack()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button><div class="wiz-progress" aria-hidden="true"></div><span class="wiz-count"></span></div>
+    <div class="step"><label class="step-label" for="r-user">Придумай<br>никнейм</label><input type="text" id="r-user" placeholder="vasya_228" autocomplete="username" minlength="3" maxlength="30" required><p class="step-hint">С ним ты будешь входить за компьютерами клуба.</p></div>
+    <div class="step"><label class="step-label" for="r-pass">Придумай<br>пароль</label><input type="password" id="r-pass" placeholder="минимум 6 символов" autocomplete="new-password" minlength="6" required></div>
+    <div class="step"><label class="step-label" for="r-phone">Номер<br>телефона</label><input id="r-phone" type="tel" autocomplete="tel" maxlength="20" required placeholder="+7 999 123-45-67"></div>
+    <div class="step"><label class="step-label" for="r-name">Как тебя<br>зовут?</label><input type="text" id="r-name" placeholder="Вася" autocomplete="given-name" maxlength="45" required></div>
+    <div class="step"><label class="step-label" for="r-last">Фамилия</label><input id="r-last" autocomplete="family-name" maxlength="45" required placeholder="Пупкин"></div>
+    <div class="step"><span class="step-label">Пол</span><fieldset class="gender-choice"><legend class="sr-repair">Пол</legend><label title="Мужчина"><input type="radio" name="sex" value="1" required aria-label="Мужчина"><svg viewBox="0 0 32 40" aria-hidden="true"><circle cx="16" cy="6" r="4"/><path d="M10 38V24H7V14h18v10h-3v14m-6-14v14"/></svg><span>Мужской</span></label><label title="Женщина"><input type="radio" name="sex" value="2" required aria-label="Женщина"><svg viewBox="0 0 32 40" aria-hidden="true"><circle cx="16" cy="6" r="4"/><path d="M12 38V28H8l4-14h8l4 14h-4v10m-4-10v10"/></svg><span>Женский</span></label></fieldset></div>
+    <div class="step"><span class="step-label">Дата<br>рождения</span><button type="button" id="birthday-open">Выбрать дату рождения</button><input id="r-birth" type="hidden"><p class="step-hint">Нужна для доступа в зал 18+.</p></div>
+    <div class="step" data-optional="1"><label class="step-label" for="r-promo">Есть<br>промокод?</label><input id="r-promo" type="text" maxlength="32" autocomplete="off" autocapitalize="characters" placeholder="Например, BLOGGER1"><p class="step-hint">По промокоду — 1 час в STANDART после подтверждения администратором. Нет кода — просто нажми «Дальше».</p></div>
+    <div class="wiz-actions"><button type="submit" class="btn-main" id="btn-reg">Дальше</button></div>
     <div class="auth-err" id="err-reg"></div>
-    <p class="auth-hint">После регистрации используй этот никнейм за компами клуба</p>
+    <p class="auth-hint">После отправки подойди к администратору с документом — он подтвердит анкету.</p>
   </form>
+
+  <section class="auth-forgot" id="auth-forgot" hidden>
+    <div class="wiz-top"><button type="button" class="wiz-back" aria-label="Назад" onclick="authForgotBack()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button></div>
+    <span class="smm-tag">Сброс пароля</span>
+    <h1 class="auth-title">Подойди<br>к администратору</h1>
+    <p class="auth-lead">Он подтвердит новый пароль из 3 цифр. Если ты заходишь через Telegram, бот пришлёт новый пароль в чат. Без Telegram администратор назовёт его лично.</p>
+    <button type="button" class="btn-main" onclick="authForgotBack()">Понятно</button>
+  </section>
 </div>
 
 <!-- APP -->
@@ -623,6 +625,7 @@ Promise.race([splashFontReady, new Promise(resolve => setTimeout(resolve, 600))]
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) { finishSplash(); return; }
   requestAnimationFrame(() => {
     splash.classList.add('splash-started');
+    window.oneshotLoader?.build(document.getElementById('splash-loader'),{caption:'Загружаем клуб'}).run(2300);
     splashFallback = setTimeout(finishSplash, 3500);
   });
 });
@@ -1053,6 +1056,7 @@ function clearProfile() {
   try { localStorage.removeItem('1shot_v2_profile'); } catch(e){}
 }
 </script>
+<script src="auth-flow.js?v=2.1.0"></script>
 <script src="experience.js?v=1.6.0"></script>
 <script src="arrival-time.js?v=1.6.0"></script>
 <link rel="stylesheet" href="desk-availability.css?v=1">

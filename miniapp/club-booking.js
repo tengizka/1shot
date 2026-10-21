@@ -84,7 +84,7 @@ window.clubV2=false;
   state.request ||= crypto.randomUUID();
   const start=state.mode==='scheduled'?state.arrival:null;
   const end=start?new Date(Date.parse(start)+30*60000).toISOString():null;
-  try{await call(state.protocol>=2?'create_v2':'create',{for_friend:state.forFriend,host_id:state.host,mode:state.mode,duration_kind:state.kind,starts_at:start,ends_at:end,client_request_id:state.request});state.request=null;await refresh();if(state.mode==='instant'){showMine();$('club-pc').textContent='ПОДКЛЮЧЕНИЕ'}else showMine();fetchHosts()}
+  try{await call(state.protocol>=2?'create_v2':'create',{for_friend:state.forFriend,host_id:state.host,mode:state.mode,duration_kind:state.kind,starts_at:start,ends_at:end,client_request_id:state.request});state.request=null;await refresh();if(state.mode==='instant')startConnecting(state.host);else showMine();fetchHosts()}
   catch(e){$('club-error').textContent=clubText(e.message)||'Не удалось отправить бронь'}
   finally{state.busy=false;$('club-submit').disabled=false}
  };
@@ -115,6 +115,14 @@ window.clubV2=false;
 
  }
  async function action(btn,name,data){if(state.busy)return;state.busy=true;btn.disabled=true;$('club-error').textContent='';try{await call(name,data);await refresh();mine()}catch(e){$('club-error').textContent=clubText(e.message)}finally{state.busy=false;btn.disabled=false}}
+ /* Instant entry: dim the app, fill the 1SHOT logo until the club confirms the session, then reveal the session screen. */
+ let connecting=null;
+ function startConnecting(host){connecting={host:String(host),since:Date.now()};if(sheet.open)sheet.close();window.oneshotLoader?.show('Подключаем ПК '+host,'Входим в твой аккаунт. Не закрывай приложение');if(!window.oneshotLoader)showMine()}
+ function checkConnecting(){if(!connecting)return;const c=connecting,session=accountFresh()&&state.account?.session;
+  if(session&&String(session.host_id)===c.host){connecting=null;window.oneshotLoader?.hide(true);return}
+  const row=state.rows.find(b=>b.host_id===c.host&&b.instant);
+  if((row&&['attention','cancelled','expired'].includes(row.status))||Date.now()-c.since>120000){connecting=null;window.oneshotLoader?.hide(false);state.host=c.host;showMine()}}
+ window.clubConnecting=()=>!!connecting;
  function showMine(){$('club-create').hidden=true;$('club-mine').hidden=false;$('club-pc').textContent='МОИ БРОНИ';$('club-error').textContent='';mine();open()}
 
  window.openOwnBooking=id=>{if(accountFresh()&&state.account?.session?.host_id===String(id)){state.host=String(id);showMine();return true}if(state.rows.some(b=>b.host_id===String(id)&&!terminal.has(b.status))){state.host=String(id);showMine();return true}return false};
@@ -143,7 +151,7 @@ window.clubV2=false;
   catch(e){fb.textContent=clubText(e.message)}
   finally{btn.disabled=false}
  };
- function renderSessionBanner(){
+ function renderSessionBanner(){checkConnecting();
   const current=state.account?.session,fresh=accountFresh();sessionBanner.hidden=!current;sessionScreen.hidden=!current;
   document.getElementById('app').classList.toggle('has-session',!!current);document.getElementById('app').classList.toggle('session-mode',!!current);
   if(current){

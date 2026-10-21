@@ -22,9 +22,12 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
    if(url.pathname.endsWith('/hosts'))return route.fulfill({contentType:'application/json',body:'{"hosts":[]}'});return route.abort();
   });
   await page.goto('https://club.test/');await page.waitForSelector('#splash',{state:'hidden'});await page.getByRole('button',{name:'Регистрация',exact:true}).click();
-  for(const [id,value] of [['r-user','new_guest'],['r-pass','x'],['r-name','Test'],['r-last','Guest'],['r-phone','+79991234567']])await page.locator('#'+id).fill(value);
-  await page.locator('.gender-choice label').first().click();await page.evaluate(()=>document.getElementById('r-birth').value='2000-01-01');await page.locator('#btn-reg').click();
-  await page.waitForSelector('#registration-wait:not([hidden])');assert.match(await page.locator('#registration-wait').innerText(),/очн/);assert.equal(await page.locator('#r-pass').inputValue(),'');assert.equal(calls.filter(c=>c.action==='register_application').length,1);assert.equal(calls.find(c=>c.action==='register_application').password,'x');
+  // One field per step: fill the visible step, then «Дальше»; the last step sends the form.
+  for(const [id,value] of [['r-user','new_guest'],['r-pass','x'],['r-phone','8 (999) 123-45-67'],['r-name','Test'],['r-last','Guest']]){await page.locator('#'+id).fill(value);await page.locator('#btn-reg').click()}
+  await page.locator('.gender-choice label').first().click();await page.locator('#btn-reg').click();
+  await page.evaluate(()=>document.getElementById('r-birth').value='2000-01-01');await page.locator('#btn-reg').click();
+  await page.locator('#r-promo').fill('blogger1');await page.locator('#btn-reg').click();
+  await page.waitForSelector('#registration-wait:not([hidden])');assert.match(await page.locator('#registration-wait').innerText(),/очн/);assert.equal(await page.locator('#r-pass').inputValue(),'');assert.equal(calls.filter(c=>c.action==='register_application').length,1);assert.equal(calls.find(c=>c.action==='register_application').password,'x');const sent=calls.find(c=>c.action==='register_application');assert.equal(sent.mobile_phone,'+79991234567','phone normalised to +7');assert.equal(sent.promo_code,'BLOGGER1','promo code sent upper-case');
   await page.reload();await page.waitForSelector('#registration-wait:not([hidden])');assert.ok(calls.some(c=>c.action==='capabilities'&&c.registration_pending===true));assert.equal(calls.filter(c=>c.action==='registration_status').length,0);
   registration={id:'request-1',status:'processing'};await page.evaluate(()=>window.dispatchEvent(new Event('club:resume')));await page.waitForFunction(()=>document.querySelector('#registration-wait').textContent.includes('Администратор проверяет'));
   registration={id:'request-1',status:'done',profile:{telegram_id:123,gizmo_user_id:7,username:'new_guest'}};await page.evaluate(()=>window.dispatchEvent(new Event('club:resume')));await page.waitForFunction(()=>JSON.parse(localStorage.getItem('1shot_v2_profile')||'null')?.gizmo_user_id===7);
