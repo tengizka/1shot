@@ -79,10 +79,21 @@ window.clubV2=false;
   const day=state.arrival&&clubArrivalLabel(state.arrival).startsWith('Завтра')?'завтра ':'';
   $('club-submit').hidden=!state.arrival;
   $('club-submit').textContent='Забронировать · '+(state.slot||'');
-  $('club-rules').textContent=state.arrival?'Держим ПК '+day+'с '+state.slot+' до '+fmt(Date.parse(state.arrival)+30*60000)+' МСК':'';
+  const swap=state.replace?' · прошлая бронь снимется':'';
+  $('club-rules').textContent=(state.arrival?'Держим ПК '+day+'с '+state.slot+' до '+fmt(Date.parse(state.arrival)+30*60000)+' МСК':'')+swap;
  }
- window.openClubBooking=(id)=>{
+ /* One PC per guest: picking another one swaps the booking; the old one is cancelled after the new one is accepted. */
+ const SWAPPABLE=['requested','waiting','holding'];
+ window.openClubBooking=async(id)=>{
   if(liveHostStatus(hostsData[String(id)])!=='free'){window.showOccupied?.(id);return}
+  const others=state.rows.filter(b=>!terminal.has(b.status)&&b.status!=='in_session'&&b.host_id!==String(id));
+  if(others.some(b=>!SWAPPABLE.includes(b.status))){window.pickSeat?.(null);toast('Клуб ещё обрабатывает прошлую бронь. Подожди немного','inf');return}
+  state.replace=null;
+  if(others.length){
+   const prev=others[0];
+   if(!await uiConfirm(`Снять бронь ${hostName(prev.host_id)}? Держать можно только один ПК. Прошлая бронь снимется, как только клуб примет бронь ${hostName(id)}.`,{ok:'Выбрать '+hostName(id)})){window.pickSeat?.(null);return}
+   state.replace=others.map(b=>b.id);
+  }
   state.host=String(id);state.forFriend=false;state.kind='range';state.request=null;state.slot=null;
   $('club-create').hidden=false;$('club-mine').hidden=true;renderSlots();render();open(state.host==='1'?$('ps5-seat'):document.querySelector(`#floor-map [data-hid="${CSS.escape(state.host)}"]`));$('bk-slots').scrollLeft=0;
  };
@@ -97,7 +108,7 @@ window.clubV2=false;
   state.request ||= crypto.randomUUID();
   const start=state.mode==='scheduled'?state.arrival:null;
   const end=start?new Date(Date.parse(start)+30*60000).toISOString():null;
-  try{await call(state.protocol>=2?'create_v2':'create',{for_friend:state.forFriend,host_id:state.host,mode:state.mode,duration_kind:state.kind,starts_at:start,ends_at:end,client_request_id:state.request});state.request=null;await refresh();if(state.mode==='instant')startConnecting(state.host);else showMine();fetchHosts()}
+  try{await call(state.protocol>=2?'create_v2':'create',{for_friend:state.forFriend,host_id:state.host,mode:state.mode,duration_kind:state.kind,starts_at:start,ends_at:end,client_request_id:state.request});state.request=null;if(state.replace){const old=state.replace;state.replace=null;for(const bid of old){try{await call('cancel',{id:bid})}catch(e){toast('Новая бронь есть, но прошлую снять не вышло. Отмени её в «Моих бронях»','err')}}}await refresh();if(state.mode==='instant')startConnecting(state.host);else showMine();fetchHosts()}
   catch(e){$('club-error').textContent=clubText(e.message)||'Не удалось отправить бронь'}
   finally{state.busy=false;$('club-submit').disabled=false}
  }
