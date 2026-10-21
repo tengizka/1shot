@@ -186,3 +186,44 @@
 .queue-banner{background:#000!important;border:2px solid var(--smm-blue)!important;color:#fff!important}
 .gender-choice label{border:2px solid var(--smm-rule)!important}
 .gender-choice label:has(input:checked){border-color:var(--smm-lime)!important}
+
+/* 2.1 · Schematic hall plan (360×416 units, zoomed by scale + scroll). */
+.floor-shell{padding:10px!important;gap:0}
+.floor-caption{display:flex;align-items:center;gap:10px;padding:0 2px 8px!important}
+.floor-caption #map-filter-label{color:#fff;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.floor-caption #seat-count{margin-right:auto}
+#map-back{min-height:36px;padding:0 10px;background:#000;border:2px solid var(--smm-lime);color:var(--smm-lime);font:700 10px Unbounded,sans-serif;letter-spacing:.06em;cursor:pointer}
+.zone-tabs{display:flex!important;gap:6px!important;overflow-x:auto;scrollbar-width:none}
+.zone-tabs::-webkit-scrollbar{display:none}
+.zone-tabs .ztab{flex:none;min-width:0!important;padding:10px 14px!important;font-size:11px!important}
+.hall-plan{position:relative;flex:1;min-height:0;overflow:auto;scrollbar-width:none;overscroll-behavior:contain;touch-action:pan-x pan-y}
+.hall-plan::-webkit-scrollbar{display:none}
+.plan-sizer{position:relative}
+.plan-layer{position:absolute;left:0;top:0;width:360px;height:416px;transform-origin:0 0}
+.plan-zone{position:absolute;border:2px solid var(--smm-rule);cursor:zoom-in}
+.hall-plan.zoomed .plan-zone{cursor:default}
+.plan-zone span{position:absolute;left:7px;top:5px;font:600 7px/1 Unbounded,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--smm-muted)}
+.plan-zone.vip1{border-color:var(--smm-orange)}.plan-zone.vip1 span{color:var(--smm-orange)}
+.plan-zone.vip2{border-color:var(--smm-pink)}.plan-zone.vip2 span{color:var(--smm-pink)}
+.plan-seats{position:absolute;inset:0;pointer-events:none}
+.hall-plan .map-pc{position:absolute!important;width:32px!important;height:32px!important;min-width:0!important;min-height:0!important;padding:0!important;margin:0!important;transform:none!important;display:grid!important;place-items:center;gap:0!important;pointer-events:auto;
+  background:#0a0a0a;border:1.5px solid #222;color:#666;font:700 11px/1 ReSquare,Unbounded,sans-serif;overflow:hidden;cursor:pointer;transition:background-color .2s,border-color .2s}
+.hall-plan .map-pc .map-number{font:700 11px/1 ReSquare,Unbounded,sans-serif!important;margin:0!important}
+.hall-plan .map-pc .map-symbol{position:absolute;right:2px;top:2px;width:8px;height:8px;stroke:currentColor;stroke-width:2.4;fill:none}
+.hall-plan .map-pc.free{background:#fff;border-color:#fff;color:#000}
+.hall-plan .map-pc.free[data-room="vip1"]{background:var(--smm-orange);border-color:var(--smm-orange)}
+.hall-plan .map-pc.free[data-room="vip2"]{background:var(--smm-pink);border-color:var(--smm-pink)}
+.hall-plan .map-pc.busy{background:var(--smm-busy);border-color:var(--smm-rule);color:#5c5c5c}
+.hall-plan .map-pc.reserved{background:#000;border:1.5px dashed #fff;color:#cfcfcf}
+.hall-plan .map-pc.broken{background:#000;border-color:#1e1e1e;color:#444}
+.hall-plan .map-pc.unknown{background:#050505;border:1.5px dashed #2f2f2f;color:#666}
+.hall-plan .map-pc.connecting{background:#000;border-color:var(--smm-lime);color:var(--smm-lime)}
+.hall-plan .map-pc.my-booking,.hall-plan .map-pc[data-room].my-booking{background:var(--smm-lime);border-color:var(--smm-lime);color:#000}
+.hall-plan .map-pc:focus-visible{outline:2px solid var(--smm-lime)!important;outline-offset:1px!important}
+.hall-plan .map-pc:disabled{cursor:default}
+.hall-plan:not(.zoomed) .map-pc{cursor:zoom-in}
+.plan-ps5{position:absolute!important;left:120px;top:344px;width:232px;height:64px;min-height:0!important;padding:0 10px!important;gap:8px!important;border:2px solid var(--smm-rule)!important;background:#000!important;color:#fff;text-decoration:none;display:flex!important;align-items:center}
+.plan-ps5 .console-symbol{width:18px!important;height:14px!important}
+.plan-ps5 strong{font-size:9px!important}.plan-ps5 small{font-size:5.5px!important;color:#999}
+.plan-ps5 .phone-cta{font-size:6px!important}.plan-ps5 .phone-cta svg{width:7px;height:7px}
+.leg-dot.mine{background:var(--smm-lime)}

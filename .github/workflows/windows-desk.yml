@@ -30,7 +30,7 @@ jobs:
         run: |
           node --test tests/hall.test.cjs
           node tests/hall-layout.cjs
-          node tests/hall-swipe.cjs
+          node tests/hall-zoom.cjs
           node tests/profile-feedback-browser.cjs
           node tests/club-v2-browser.cjs
           node tests/guest-passwords-browser.cjs

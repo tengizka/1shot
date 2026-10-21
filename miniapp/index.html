@@ -399,32 +399,39 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
 
   <div class="hall-heading"><h1>Выбери свой ПК</h1><span class="free-indicator"><i class="live-dot" id="live-dot" style="display:none" aria-hidden="true"></i><span id="free-count">Свободно: —</span></span></div>
   <div class="zone-tabs-wrap"><div class="zone-tabs" id="zone-tabs">
-    <button class="ztab active" data-zone="vip" aria-pressed="true" onclick="switchZone('vip',this)">VIP</button>
-    <button class="ztab" data-zone="standard" aria-pressed="false" onclick="switchZone('standard',this)">STANDART</button>
+    <button class="ztab active" data-zone="all" aria-pressed="true" onclick="switchZone('all')">Весь зал</button>
+    <button class="ztab" data-zone="vip" aria-pressed="false" onclick="switchZone('vip')">VIP</button>
+    <button class="ztab" data-zone="z1" aria-pressed="false" onclick="switchZone('z1')">100</button>
+    <button class="ztab" data-zone="z2" aria-pressed="false" onclick="switchZone('z2')">200</button>
+    <button class="ztab" data-zone="z34" aria-pressed="false" onclick="switchZone('z34')">300 · 400</button>
   </div></div>
   <div class="legend-bar">
     <div class="leg-item"><div class="leg-dot free"></div>Свободен</div>
     <div class="leg-item"><div class="leg-dot busy"></div>Занят</div>
+    <div class="leg-item"><div class="leg-dot mine"></div>Твоя бронь</div>
     <div class="leg-item"><svg class="legend-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Бронь</div>
     <div class="leg-item"><svg class="legend-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3a6 6 0 0 0-7 8L2 16a3 3 0 0 0 4 4l5-5a6 6 0 0 0 8-7l-4 4-3-3 4-4Z"/></svg><span class="sr-repair">Ремонт</span></div>
     <div class="refresh-txt" id="refresh-time">Получаем статусы компьютеров…</div>
   </div>
   <div class="hall-area" id="hall-area">
     <div class="hall-loading" id="hall-loading" role="status">Получаем статусы компьютеров…</div>
-    <section class="floor-shell" aria-label="Компьютеры выбранной зоны">
-      <div class="floor-caption"><span id="map-filter-label">VIP</span><span id="seat-count">10 ПК</span></div>
-      <div class="seat-viewport" id="seat-viewport" aria-label="Компьютеры: листайте влево или вправо"><div class="floor-map" id="floor-map" aria-label="Выбор компьютера"></div></div>
-      <div class="seat-pagination">
-        <button id="seat-prev" type="button" onclick="changeSeatPage(-1)" aria-label="Предыдущие компьютеры"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5m7-7-7 7 7 7"/></svg></button>
-        <span id="seat-page" role="status">1 / 1</span>
-        <button id="seat-next" type="button" onclick="changeSeatPage(1)" aria-label="Следующие компьютеры"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></button>
-      </div>
+    <section class="floor-shell" aria-label="Схема зала">
+      <div class="floor-caption"><span id="map-filter-label">Весь зал</span><span id="seat-count">30 ПК</span><button type="button" id="map-back" onclick="switchZone('all')" hidden>← Весь зал</button></div>
+      <div class="hall-plan" id="hall-plan"><div class="plan-sizer" id="plan-sizer"><div class="plan-layer" id="plan-layer">
+        <div class="plan-zone" data-zone="z34" style="left:8px;top:8px;width:104px;height:56px"><span>Зона 400</span></div>
+        <div class="plan-zone" data-zone="z34" style="left:8px;top:72px;width:104px;height:104px"><span>Зона 300</span></div>
+        <div class="plan-zone vip1" data-zone="vip" style="left:120px;top:8px;width:232px;height:80px"><span>VIP 1</span></div>
+        <div class="plan-zone vip2" data-zone="vip" style="left:120px;top:96px;width:232px;height:80px"><span>VIP 2</span></div>
+        <div class="plan-zone" data-zone="z2" style="left:8px;top:184px;width:104px;height:224px"><span>Зона 200</span></div>
+        <div class="plan-zone" data-zone="z1" style="left:120px;top:184px;width:232px;height:152px"><span>Зона 100</span></div>
+        <a class="ps5-phone-card plan-ps5" href="tel:+74955837811" onclick="openClubContact(event)" aria-label="TV-зона PS5 — бронирование только по телефону">
+          <svg class="console-symbol" aria-hidden="true" viewBox="0 0 32 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M10 5h12c3 0 4 3 5 6l2 7c1 4-3 5-5 2l-3-3H11l-3 3c-2 3-6 2-5-2l2-7c1-3 2-6 5-6Z"/><path d="M9 9v6m-3-3h6"/><circle cx="22" cy="10" r="1"/><circle cx="25" cy="13" r="1"/></svg>
+          <span><strong>TV-зона PS5</strong><small>Бронь только по телефону</small></span>
+          <span class="phone-cta">Позвонить <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14"/></svg></span>
+        </a>
+        <div id="floor-map" class="plan-seats" aria-label="Выбор компьютера"></div>
+      </div></div></div>
     </section>
-    <a class="ps5-phone-card" href="tel:+74955837811" onclick="openClubContact(event)" aria-label="PS5 — бронирование только по телефону">
-      <svg class="console-symbol" aria-hidden="true" viewBox="0 0 32 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M10 5h12c3 0 4 3 5 6l2 7c1 4-3 5-5 2l-3-3H11l-3 3c-2 3-6 2-5-2l2-7c1-3 2-6 5-6Z"/><path d="M9 9v6m-3-3h6"/><circle cx="22" cy="10" r="1"/><circle cx="25" cy="13" r="1"/></svg>
-      <span><strong>PlayStation 5</strong><small>Бронь только по телефону</small></span>
-      <span class="phone-cta">Позвонить <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14"/></svg></span>
-    </a>
   </div>
 
   <!-- Bottom nav -->
@@ -813,8 +820,17 @@ async function fetchHosts() {
 // ═══════════════════════════════════════════════
 // RENDER HALL
 // ═══════════════════════════════════════════════
-let activeZone = 'vip';
-let seatPage = 0;
+// Schematic plan of the real hall (360×416 units). Tap a zone to zoom; in a zone, tap a PC to book.
+const PLAN_SEATS={11:[140,40],12:[180,40],13:[220,40],14:[260,40],15:[300,40],21:[140,128],22:[180,128],23:[220,128],24:[260,128],25:[300,128],
+ 402:[24,32],401:[64,32],304:[24,96],303:[64,96],302:[24,136],301:[64,136],
+ 204:[24,208],205:[24,248],206:[24,288],207:[24,328],208:[24,368],201:[64,288],202:[64,328],203:[64,368],
+ 104:[184,208],105:[184,248],106:[184,288],101:[256,208],102:[256,248],103:[256,288]};
+const PLAN_ZONES={all:{title:'Весь зал',vb:[0,0,360,416]},vip:{title:'VIP 1 · VIP 2',vb:[114,2,244,180]},z1:{title:'Зона 100',vb:[114,178,244,164]},z2:{title:'Зона 200',vb:[2,178,116,236]},z34:{title:'Зоны 300 · 400',vb:[2,2,116,180]}};
+const PLAN_MIN_SEAT=46,PLAN_SEAT=32;
+function planZoneOf(id){const n=Number(id);return n<30?'vip':n<200?'z1':n<300?'z2':'z34'}
+function planRoom(id){const n=Number(id);return n<20?'vip1':n<30?'vip2':'std'}
+let activeZone = 'all';
+let planScale = 1, planAnim = 0;
 function statusIcon(status) {
   const paths = status==='reserved' ? '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>'
     : status==='broken' ? '<path d="M14 3a6 6 0 0 0-7 8L2 16a3 3 0 0 0 4 4l5-5a6 6 0 0 0 8-7l-4 4-3-3 4-4Z"/>' : '';
@@ -825,70 +841,69 @@ function renderHall() {
   const fresh = HALL_LAYOUT.filter(pc=>pc.id!=='1' && liveHostStatus(hostsData[pc.id])!=='unknown');
   const free = fresh.filter(pc=>liveHostStatus(hostsData[pc.id])==='free').length;
   document.getElementById('free-count').textContent = `Свободно: ${fresh.length ? free : '—'}`;
-  const seats = getZoneSeats(activeZone);
-  const zonePages=getZonePages(activeZone);
-  const pages = zonePages.length;
-  seatPage = Math.max(0, Math.min(seatPage, pages - 1));
-  const renderKey=activeZone+':'+seatPage+':'+seats.map(pc=>pc.id+liveHostStatus(hostsData[pc.id])+!!window.ownBookingIds?.has(pc.id)+!!window.instantHostIds?.has(pc.id)).join('|');
-  if(map.dataset.renderKey===renderKey&&map.children.length)return;map.dataset.renderKey=renderKey;
-  const viewport=document.getElementById('seat-viewport'),pageKey=activeZone+':'+seatPage;
-  const scroll=map.dataset.page===pageKey?viewport.scrollTop:0;map.dataset.page=pageKey;
-  const focusedId = map.contains(document.activeElement) ? document.activeElement.dataset.hid : null;
-  map.replaceChildren();
-  const groups = new Map();
-  zonePages[seatPage].forEach(pc => {
-    const status = window.instantHostIds?.has(pc.id)?'connecting':liveHostStatus(hostsData[pc.id]);
-    const button = document.createElement('button');
-    button.type = 'button'; button.className = `map-pc ${status}`;
-    if(window.ownBookingIds?.has(pc.id))button.classList.add('my-booking');
-    button.style.gridRow=pc.row;button.style.gridColumn=pc.column;
-    button.dataset.hid = pc.id;button.dataset.room=pc.group==='vip'?(pc.zone==='10'?'vip1':'vip2'):'std';button.dataset.zoneLabel=pc.group==='vip'?(pc.zone==='10'?'VIP 1':'VIP 2'):`Зона ${pc.zone}`;
-    button.disabled = !['free','busy','reserved'].includes(status)&&!window.ownBookingIds?.has(pc.id);
-    button.setAttribute('aria-label', `ПК ${pc.id}: ${HOST_LABELS[status]}`);
-    button.innerHTML = `<span class="map-monitor">${statusIcon(status)}</span><span class="seat-prefix">ПК</span><span class="map-number">${pc.id}</span><span class="seat-status">${status==='broken'?'':HOST_LABELS[status]}</span>`;
-    button.onclick = () => {const current=liveHostStatus(hostsData[pc.id]);if(window.openOwnBooking?.(pc.id))return;if(current==='busy')return window.showOccupied(pc.id);if(current!=='free')return toast('Этот ПК недоступен','inf');openBooking(pc.id, pc.zone, pc.group === 'vip')};
-    if (!groups.has(pc.zone)) {
-      const section=document.createElement('section'); section.className='seat-zone';section.dataset.room=pc.group==='vip'?(pc.zone==='10'?'vip1':'vip2'):'std';
-      const title=document.createElement('div'); title.className='seat-zone-title';title.textContent=activeZone==='vip'?(pc.zone==='10'?'VIP 1':'VIP 2'):`Зона ${pc.zone}`;
-      const grid=document.createElement('div');grid.className='seat-zone-grid';const layout=getPhysicalZones(activeZone).find(z=>z.zone===pc.zone);grid.style.setProperty('--seat-columns',layout.columns);grid.style.setProperty('--seat-rows',layout.rows.length);section.style.setProperty('--seat-weight',layout.rows.length);
-      section.append(title,grid);map.append(section);groups.set(pc.zone,grid);
-    }
-    groups.get(pc.zone).append(button);
-    if (focusedId === pc.id && !button.disabled) button.focus({preventScroll:true});
-  });
-  viewport.scrollTop=scroll;
-  map.style.setProperty('--zone-count', groups.size);
-  document.getElementById('map-filter-label').textContent = activeZone.toUpperCase();
-  document.getElementById('seat-count').textContent = `${seats.length} компьютеров`;
-  const position = hallPageIndex(), total = hallPages().length;
-  document.getElementById('seat-page').textContent = `${activeZone.toUpperCase()} · ${position + 1} / ${total}`;
-  document.getElementById('seat-prev').disabled = position === 0;
-  document.getElementById('seat-next').disabled = position >= total - 1;
-}
-function hallPages() {
-  return ['vip','standard'].flatMap(zone => getZonePages(zone).map((_,page)=>({zone,page})));
-}
-function hallPageIndex() { return hallPages().findIndex(p=>p.zone===activeZone&&p.page===seatPage); }
-function goToHallPage(index, offset=0) {
-  const pages=hallPages(), previous=hallPageIndex();
-  if(index<0||index>=pages.length||index===previous)return false;
-  const update=()=>{
-    activeZone=pages[index].zone;seatPage=pages[index].page;
-    document.querySelectorAll('.ztab').forEach(t=>{
-      const selected=t.dataset.zone===activeZone;
-      t.classList.toggle('active',selected);t.setAttribute('aria-pressed',String(selected));
+  const seats = HALL_LAYOUT.filter(pc=>PLAN_SEATS[pc.id]);
+  const renderKey=seats.map(pc=>pc.id+liveHostStatus(hostsData[pc.id])+!!window.ownBookingIds?.has(pc.id)+!!window.instantHostIds?.has(pc.id)).join('|');
+  if(map.dataset.renderKey!==renderKey||!map.children.length){
+    map.dataset.renderKey=renderKey;
+    const focusedId = map.contains(document.activeElement) ? document.activeElement.dataset.hid : null;
+    map.replaceChildren();
+    seats.forEach(pc => {
+      const status = window.instantHostIds?.has(pc.id)?'connecting':liveHostStatus(hostsData[pc.id]);
+      const [x,y]=PLAN_SEATS[pc.id];
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = `map-pc ${status}`;
+      if(window.ownBookingIds?.has(pc.id))button.classList.add('my-booking');
+      button.style.left=x+'px';button.style.top=y+'px';
+      button.dataset.hid = pc.id;button.dataset.room=planRoom(pc.id);button.dataset.zone=planZoneOf(pc.id);
+      button.disabled = !['free','busy','reserved'].includes(status)&&!window.ownBookingIds?.has(pc.id);
+      button.setAttribute('aria-label', `ПК ${pc.id}: ${HOST_LABELS[status]}`);
+      button.innerHTML = `<span class="map-number">${pc.id}</span>${statusIcon(status)}`;
+      button.onclick = () => {
+        if(activeZone!==planZoneOf(pc.id))return switchZone(planZoneOf(pc.id));
+        const current=liveHostStatus(hostsData[pc.id]);if(window.openOwnBooking?.(pc.id))return;if(current==='busy')return window.showOccupied(pc.id);if(current!=='free')return toast('Этот ПК недоступен','inf');openBooking(pc.id, pc.zone, pc.group === 'vip')};
+      map.append(button);
+      if (focusedId === pc.id && !button.disabled) button.focus({preventScroll:true});
     });
-    renderHall();
-  };
-  if(window.hallMotion)window.hallMotion.change(update,Math.sign(index-previous),offset);
-  else update();
-  return true;
+  }
+  updatePlanCaption();
+}
+function updatePlanCaption(){
+  const zone=PLAN_ZONES[activeZone],ids=Object.keys(PLAN_SEATS).filter(id=>activeZone==='all'||planZoneOf(id)===activeZone);
+  const fresh=ids.filter(id=>liveHostStatus(hostsData[id])!=='unknown'),free=fresh.filter(id=>liveHostStatus(hostsData[id])==='free').length;
+  document.getElementById('map-filter-label').textContent=zone.title;
+  document.getElementById('seat-count').textContent=`${ids.length} ПК`+(fresh.length?` · свободно ${free}`:'');
+  document.getElementById('map-back').hidden=activeZone==='all';
+  document.querySelectorAll('.ztab').forEach(t=>{const on=t.dataset.zone===activeZone;t.classList.toggle('active',on);t.setAttribute('aria-pressed',String(on))});
+  document.getElementById('hall-plan').classList.toggle('zoomed',activeZone!=='all');
+}
+function planTarget(zone){
+  const plan=document.getElementById('hall-plan'),bw=plan.clientWidth,bh=plan.clientHeight,[x,y,w,h]=PLAN_ZONES[zone].vb;
+  let s=Math.min(bw/w,bh/h);if(zone!=='all')s=Math.max(s,PLAN_MIN_SEAT/PLAN_SEAT);
+  return {s,left:Math.max(0,(x+w/2)*s-bw/2),top:Math.max(0,(y+h/2)*s-bh/2)};
+}
+function applyPlan(s,left,top){
+  const plan=document.getElementById('hall-plan'),sizer=document.getElementById('plan-sizer'),layer=document.getElementById('plan-layer');
+  const w=360*s,h=416*s;planScale=s;
+  sizer.style.width=w+'px';sizer.style.height=h+'px';
+  sizer.style.marginLeft=Math.max(0,(plan.clientWidth-w)/2)+'px';sizer.style.marginTop=Math.max(0,(plan.clientHeight-h)/2)+'px';
+  layer.style.transform=`scale(${s})`;plan.scrollLeft=left;plan.scrollTop=top;
+}
+function setPlanView(zone,animate=true){
+  const plan=document.getElementById('hall-plan');if(!plan.clientWidth)return;
+  const to=planTarget(zone),from={s:planScale,left:plan.scrollLeft,top:plan.scrollTop};
+  cancelAnimationFrame(planAnim);
+  if(!animate||matchMedia('(prefers-reduced-motion: reduce)').matches){applyPlan(to.s,to.left,to.top);return}
+  const t0=performance.now(),d=380,ease=x=>1-Math.pow(1-x,3);
+  const step=now=>{const k=ease(Math.min(1,(now-t0)/d));applyPlan(from.s+(to.s-from.s)*k,from.left+(to.left-from.left)*k,from.top+(to.top-from.top)*k);if(k<1)planAnim=requestAnimationFrame(step)};
+  planAnim=requestAnimationFrame(step);
 }
 function switchZone(zone) {
-  if(!['vip','standard'].includes(zone))return;
-  goToHallPage(hallPages().findIndex(p=>p.zone===zone));
+  if(!PLAN_ZONES[zone])return;
+  activeZone=zone;updatePlanCaption();setPlanView(zone);
 }
-function changeSeatPage(direction) { goToHallPage(hallPageIndex()+Math.sign(direction)); }
+document.querySelectorAll('.plan-zone').forEach(z=>z.addEventListener('click',()=>{if(activeZone==='all')switchZone(z.dataset.zone)}));
+addEventListener('resize',()=>setPlanView(activeZone,false));
+new ResizeObserver(()=>setPlanView(activeZone,false)).observe(document.getElementById('hall-plan'));
 
 // ═══════════════════════════════════════════════
 // BOTTOM NAV
@@ -1038,7 +1053,6 @@ function clearProfile() {
   try { localStorage.removeItem('1shot_v2_profile'); } catch(e){}
 }
 </script>
-<script src="hall-swipe.js?v=20261008-ui"></script>
 <script src="experience.js?v=1.6.0"></script>
 <script src="arrival-time.js?v=1.6.0"></script>
 <link rel="stylesheet" href="desk-availability.css?v=1">
