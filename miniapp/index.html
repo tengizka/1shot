@@ -9,6 +9,7 @@
 <link rel="preload" href="../assets/fonts/unbounded/unbounded-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/unbounded/unbounded-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../assets/fonts/unbounded.css">
+<link rel="stylesheet" href="../assets/fonts/resquare.css">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root {
@@ -399,7 +400,7 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
   <div class="hall-heading"><h1>Выбери свой ПК</h1><span class="free-indicator"><i class="live-dot" id="live-dot" style="display:none" aria-hidden="true"></i><span id="free-count">Свободно: —</span></span></div>
   <div class="zone-tabs-wrap"><div class="zone-tabs" id="zone-tabs">
     <button class="ztab active" data-zone="vip" aria-pressed="true" onclick="switchZone('vip',this)">VIP</button>
-    <button class="ztab" data-zone="standard" aria-pressed="false" onclick="switchZone('standard',this)">STANDARD</button>
+    <button class="ztab" data-zone="standard" aria-pressed="false" onclick="switchZone('standard',this)">STANDART</button>
   </div></div>
   <div class="legend-bar">
     <div class="leg-item"><div class="leg-dot free"></div>Свободен</div>
@@ -464,7 +465,44 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
     </div>
   </div>
-  <div class="ov-body"><p class="rate-intro"><strong>Твой темп. Твоё время.</strong><br>Игровое время оплачивается в клубе. Здесь — только бронирование места.</p><article class="rate-card"><span class="rate-badge">ОСНОВНОЙ ЗАЛ</span><div class="rate-eyebrow">ВРЕМЯ ИГРАТЬ</div><h2 class="rate-title">STANDARD</h2><div class="rate-start">189 ₽ <small>/ 1 час</small></div><div class="rate-packages"><div class="rate-package"><span>3 ч</span><b>499 ₽</b></div><div class="rate-package"><span>5 ч</span><b>699 ₽</b></div><div class="rate-package"><span>12 ч</span><b>1 390 ₽</b></div></div><div class="rate-special"><div>Утро <span>08:00–13:00</span></div><b>399 ₽</b></div><div class="rate-special"><div>Ночь <span>22:00–08:00</span></div><b>899 ₽</b></div></article><article class="rate-card vip-rate"><span class="rate-badge">ПРЕМИУМ</span><div class="rate-eyebrow">ВРЕМЯ ИГРАТЬ</div><h2 class="rate-title">VIP</h2><div class="rate-start">229 ₽ <small>/ 1 час</small></div><div class="rate-packages"><div class="rate-package"><span>3 ч</span><b>599 ₽</b></div><div class="rate-package"><span>5 ч</span><b>799 ₽</b></div><div class="rate-package"><span>12 ч</span><b>1 599 ₽</b></div></div><div class="rate-special"><div>Утро <span>08:00–13:00</span></div><b>499 ₽</b></div><div class="rate-special"><div>Ночь <span>22:00–08:00</span></div><b>999 ₽</b></div></article><article class="rate-card ps5-rate"><div class="rate-eyebrow">КОНСОЛЬ</div><h2 class="rate-title">PS5</h2><div class="rate-start">299 ₽ <small>/ 1 час</small></div><p>Бронь по телефону</p></article><p class="tr-note">Цены из текущего прайса приложения.<br>Актуальные условия уточняйте у администратора.</p><a class="call-club" href="tel:+74955837811" onclick="openClubContact(event)">Позвонить в клуб <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14"/></svg></span></a></div>
+  <div class="ov-body">
+    <article class="rate-card smm-price">
+      <div class="smm-head"><span class="smm-tag smm-tag-white">Прайс</span><span class="smm-note">Время оплачивается в клубе, здесь только бронь места</span></div>
+      <div class="price-row price-th"><span>Тариф</span><b>Основной</b><b>VIP</b></div>
+      <div class="price-row"><span>1 час</span><b>189 ₽</b><b>229 ₽</b></div>
+      <div class="price-row"><span>3 часа</span><b>499 ₽</b><b>599 ₽</b></div>
+      <div class="price-row"><span>5 часов</span><b>699 ₽</b><b>799 ₽</b></div>
+      <div class="price-row"><span>12 часов</span><b>1399 ₽</b><b>1599 ₽</b></div>
+      <div class="price-row price-morning"><span>Утро<small>8:00–13:00</small></span><b>399 ₽</b><b>499 ₽</b></div>
+      <div class="price-row price-night"><span>Ночь<small>22:00–8:00</small></span><b>899 ₽</b><b>999 ₽</b></div>
+      <div class="price-row price-one"><span>TV-зона PS5, 1 час<small>бронь только по телефону</small></span><b>299 ₽</b></div>
+    </article>
+    <article class="rate-card smm-promos">
+      <span class="smm-tag">Акция</span>
+      <h2 class="smm-title">Пополни<br>и играй больше</h2>
+      <p class="smm-text">Бонусные часы за пополнение баланса одним чеком, 1 раз в месяц. Можно не на кассе.</p>
+      <div class="promo-row"><b>700 ₽</b><span>1 ч PC</span></div>
+      <div class="promo-row"><b>1000 ₽</b><span>2 ч PC / 1 ч VIP / 1 ч TV</span></div>
+      <div class="promo-row"><b>2000 ₽</b><span>4 ч PC / 2 ч VIP / 2 ч TV</span></div>
+      <div class="promo-row"><b>3000 ₽</b><span>6 ч PC / 3 ч VIP / 3 ч TV</span></div>
+      <span class="smm-tag">Подарок</span>
+      <h2 class="smm-title">Час за отзыв</h2>
+      <p class="smm-text">Отзыв на Яндекс Картах или в 2ГИС: после модерации дарим 1 час в основном зале. Один отзыв на гостя.</p>
+      <span class="smm-tag smm-tag-pink">День рождения</span>
+      <h2 class="smm-title">3 часа имениннику</h2>
+      <p class="smm-text">И по 1 часу друзьям, до 5 человек. Часы в основном зале, в день рождения и 3 дня после. Нужен оригинал паспорта, прав или свидетельства о рождении. Госуслуги не подходят.</p>
+    </article>
+    <article class="rate-card smm-hardware">
+      <span class="smm-tag smm-tag-white">Железо</span>
+      <div class="hw-row"><b>STANDART</b><span>20 PC · RTX 4060 · i5-13400F · 32 GB · Acer Nitro 24,5" 240 Hz · DXRacer I-Master</span></div>
+      <div class="hw-row hw-vip1"><b>VIP 1</b><span>5 PC · RTX 4070 · i7-13700F · MSI MAG 27" 240 Hz 2K · DXRacer Gladiator</span></div>
+      <div class="hw-row hw-vip2"><b>VIP 2</b><span>5 PC · RTX 4070 · i7-13700F · Acer Nitro 24,5" 390 Hz · DXRacer Gladiator</span></div>
+      <div class="hw-row"><b>TV-зона</b><span>PlayStation 5 · Samsung 65" 4K 60 Hz · диваны, до 2 человек</span></div>
+      <p class="smm-text">Периферия VIP: LAMZU MAYA X, Dark Project Arena KD2 Optic, HyperX Cloud III. CS2 и Dota 2 уже стоят, любую игру скачаем к приходу.</p>
+    </article>
+    <a class="call-club" href="tel:+74955837811" onclick="openClubContact(event)">Позвонить в клуб <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14"/></svg></span></a>
+    <p class="smm-foot"><span>+7 (495) 583-78-11</span><span>Мытищи, ул. Мира, 37 · 24/7</span></p>
+  </div>
 </div>
 
 <!-- PROFILE OVERLAY -->
@@ -492,6 +530,11 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
       <div class="bal-sub" id="balance-note">Баланс клуба пока не подключён</div>
     </div>
 
+    <section class="club-info" aria-label="О клубе">
+      <a class="info-link" href="https://yandex.ru/profile/204221279175" target="_blank" rel="noopener"><span>Яндекс Карты · 5,0<small>441 оценка · «Хорошее место 2026» · есть парковка</small></span><b aria-hidden="true">→</b></a>
+      <div class="info-link"><span>Мытищи, ул. Мира, 37 · 24/7<small>Остановка «17-й микрорайон», около 185 м</small></span></div>
+      <div class="social-row"><a href="https://t.me/oneshotmira17" target="_blank" rel="noopener">Telegram</a><a href="https://www.instagram.com/1shotmira" target="_blank" rel="noopener">Instagram</a><a href="https://vk.ru/1shotmira" target="_blank" rel="noopener">VK</a></div>
+    </section>
     <button class="btn-danger" onclick="doLogout()">Выйти из аккаунта</button>
     <p id="mini-build" class="version-label">version 1.6.0</p>
   </div>
@@ -500,7 +543,7 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
 <!-- Build: floor-plan-20260925-2 -->
 <dialog id="club-contact" class="contact-dialog" aria-labelledby="contact-title">
   <button type="button" class="contact-close" onclick="closeClubContact()" aria-label="Закрыть"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button>
-  <div class="rate-eyebrow">1SHOT · КИБЕРХАУС</div>
+  <div class="rate-eyebrow">1SHOT · Мытищи, ул. Мира, 37</div>
   <h2 id="contact-title">На связи с клубом</h2>
   <p class="club-phone">+7 (495) 583-78-11</p>
   <a class="btn-main" href="tel:+74955837811" target="_blank" rel="noopener">Открыть звонилку <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14"/></svg></a>
@@ -799,14 +842,14 @@ function renderHall() {
     button.type = 'button'; button.className = `map-pc ${status}`;
     if(window.ownBookingIds?.has(pc.id))button.classList.add('my-booking');
     button.style.gridRow=pc.row;button.style.gridColumn=pc.column;
-    button.dataset.hid = pc.id;button.dataset.zoneLabel=pc.group==='vip'?`Ряд ${pc.zone}`:`Зона ${pc.zone}`;
+    button.dataset.hid = pc.id;button.dataset.room=pc.group==='vip'?(pc.zone==='10'?'vip1':'vip2'):'std';button.dataset.zoneLabel=pc.group==='vip'?(pc.zone==='10'?'VIP 1':'VIP 2'):`Зона ${pc.zone}`;
     button.disabled = !['free','busy','reserved'].includes(status)&&!window.ownBookingIds?.has(pc.id);
     button.setAttribute('aria-label', `ПК ${pc.id}: ${HOST_LABELS[status]}`);
     button.innerHTML = `<span class="map-monitor">${statusIcon(status)}</span><span class="seat-prefix">ПК</span><span class="map-number">${pc.id}</span><span class="seat-status">${status==='broken'?'':HOST_LABELS[status]}</span>`;
     button.onclick = () => {const current=liveHostStatus(hostsData[pc.id]);if(window.openOwnBooking?.(pc.id))return;if(current==='busy')return window.showOccupied(pc.id);if(current!=='free')return toast('Этот ПК недоступен','inf');openBooking(pc.id, pc.zone, pc.group === 'vip')};
     if (!groups.has(pc.zone)) {
-      const section=document.createElement('section'); section.className='seat-zone';
-      const title=document.createElement('div'); title.className='seat-zone-title';title.textContent=activeZone==='vip'?`Ряд ${pc.zone}`:`Зона ${pc.zone}`;
+      const section=document.createElement('section'); section.className='seat-zone';section.dataset.room=pc.group==='vip'?(pc.zone==='10'?'vip1':'vip2'):'std';
+      const title=document.createElement('div'); title.className='seat-zone-title';title.textContent=activeZone==='vip'?(pc.zone==='10'?'VIP 1':'VIP 2'):`Зона ${pc.zone}`;
       const grid=document.createElement('div');grid.className='seat-zone-grid';const layout=getPhysicalZones(activeZone).find(z=>z.zone===pc.zone);grid.style.setProperty('--seat-columns',layout.columns);grid.style.setProperty('--seat-rows',layout.rows.length);section.style.setProperty('--seat-weight',layout.rows.length);
       section.append(title,grid);map.append(section);groups.set(pc.zone,grid);
     }
@@ -876,7 +919,7 @@ function openBooking(hostId, zone, isVip) {
   document.getElementById('booking-error').hidden = true;
 
   const zoneLabel = zone === 'ps5' ? 'PS5'
-    : isVip ? `VIP · Ряд ${zone}`
+    : isVip ? (zone === '10' ? 'VIP 1 · MSI MAG 27" 240 Hz 2K' : 'VIP 2 · Acer Nitro 24,5" 390 Hz')
     : `Зона ${zone}`;
 
   document.getElementById('sh-pc-num').textContent = hostId === '1' ? 'PS5' : `ПК ${hostId}`;
@@ -1003,6 +1046,7 @@ function clearProfile() {
 <script src="profile-feedback.js?v=20261008"></script>
 <script src="club-booking.js?v=20261008-ui"></script>
 <link rel="stylesheet" href="polish.css?v=1.6.0"><script src="polish.js?v=1.6.0"></script>
+<link rel="stylesheet" href="smm.css?v=2.0.0">
 <div id="tutorial-overlay" class="tutorial-overlay" hidden>
   <div class="tutorial-modal">
     <div class="tutorial-slides">

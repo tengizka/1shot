@@ -1,0 +1,188 @@
+/* 2.0 · 1SHOT SMM look. Loaded last: black ground, square corners, 2px rules,
+   ReSquare for headings and numbers, one accent per element, no gradients.
+   VIP 1 is orange, VIP 2 is pink, STANDART is white; lime marks actions and your own seats. */
+:root{
+  --smm-lime:#A3FF10;--smm-pink:#E93E97;--smm-orange:#FF8A1F;--smm-amber:#FFB10B;--smm-blue:#3E5CE9;
+  --smm-rule:#2A2A2B;--smm-muted:#9A9A9A;--smm-busy:#141414;
+  --smm-display:'ReSquare','Unbounded',sans-serif;
+  --accent:var(--smm-lime);--free:#fff;--busy:#555;--border:var(--smm-rule);--t2:var(--smm-muted);--t3:#6f6f6f
+}
+
+/* Flat and square everywhere; only live indicators and spinners stay round. */
+*:not(.spinner):not(.live-dot):not(.desk-availability-pulse){border-radius:0!important}
+*,*::before,*::after{background-image:none!important;box-shadow:none!important;text-shadow:none!important}
+.sheet-bg,.club-booking-dialog::backdrop,.contact-dialog::backdrop,.tutorial-overlay,#desk-availability::backdrop{backdrop-filter:none!important}
+
+/* Matrix glyphs stay behind every screen. */
+#matrix-rain{opacity:.55}
+.screen{background:rgba(0,0,0,.6)}
+.overlay,#ov-profile{background:#000!important}
+
+/* Type */
+:is(.hall-heading h1,.ov-title,.sh-pc,.club-booking-dialog h2,#session-screen h1,.session-host,.bal-val,.prof-name,.club-phone,.contact-dialog h2,.tutorial-slide h3,#desk-availability h1,.smm-title,.empty-title){font-family:var(--smm-display);font-weight:700;text-transform:uppercase;letter-spacing:0}
+.hall-heading h1{font-size:clamp(24px,7vw,32px);line-height:.95}
+.ov-title{font-size:26px;line-height:1}
+.splash-tag{color:#fff}
+
+/* Controls */
+.btn-main,#session-screen .btn-main,.club-booking-dialog .btn-main{background:var(--smm-lime)!important;color:#000!important;border:0!important;font-weight:800;letter-spacing:.1em;text-transform:uppercase;min-height:50px}
+.btn-main:disabled{background:#2a2a2a!important;color:#777!important}
+#edit-account .btn-main,.btn-lock-pc{background:#fff!important;color:#000!important}
+.btn-danger,#ov-profile .btn-danger{background:#000!important;color:var(--smm-pink)!important;border:2px solid var(--smm-pink)!important;font-weight:800;letter-spacing:.08em}
+.btn-logout-pc{background:var(--smm-pink)!important;color:#000!important;border:0!important}
+.btn-manage,.btn-demo,.btn-tutorial-skip{background:#000;border:2px solid var(--smm-rule)!important;color:#fff}
+.auth-tabs{background:#000;border:2px solid var(--smm-rule);padding:4px}
+.auth-tab{color:#9a9a9a}
+.auth-tab.active{background:#fff!important;color:#000!important;border:0!important}
+.field label{color:var(--smm-muted)}
+.field input,#birthday-open{background:#000;border:2px solid var(--smm-rule);color:#fff}
+.field input:focus{border-color:var(--smm-lime)}
+.auth-err,.booking-error{background:#000!important;border:2px solid var(--smm-pink)!important;color:#fff!important}
+.ztab,.ztab.vip{background:#000;border:2px solid var(--smm-rule)!important;color:#fff;font-weight:700;letter-spacing:.12em}
+.ztab.active,.ztab.vip.active{background:#fff!important;color:#000!important;border-color:#fff!important}
+.balance-chip{background:var(--smm-lime)!important;border:0!important;color:#000!important;font-weight:800;letter-spacing:.06em}
+#free-count{color:var(--smm-lime)!important;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.free-indicator .live-dot{background:var(--smm-lime)!important}
+.club-my-bookings{background:#000!important;border:2px solid var(--smm-lime)!important;color:#fff!important}
+.my-session-banner{background:#000!important;border:2px solid var(--smm-lime)!important;color:#fff!important}
+.my-session-banner strong{font-family:var(--smm-display);color:var(--smm-lime)}
+
+/* Legend */
+.leg-dot{border-radius:0!important;width:9px;height:9px}
+.leg-dot.free{background:#fff;box-shadow:11px 0 0 var(--smm-orange),22px 0 0 var(--smm-pink)!important;margin-right:22px}
+.leg-dot.busy{background:#333}
+.legend-icon{stroke:#fff}
+.refresh-txt{color:#8a8a8a}
+
+/* Hall shell and zones */
+.floor-shell{background:rgba(0,0,0,.88);border:2px solid var(--smm-rule)}
+.floor-caption{color:var(--smm-muted)}
+.floor-map .seat-zone{background:#000!important;border:2px solid var(--smm-rule)!important}
+.seat-zone-title{font-family:var(--smm-display);font-size:11px!important;letter-spacing:.08em!important;color:#fff!important}
+.seat-zone-title:after{background:var(--smm-rule)!important;height:2px!important}
+.seat-zone[data-room="vip1"]{border-color:var(--smm-orange)!important}
+.seat-zone[data-room="vip1"] .seat-zone-title{color:var(--smm-orange)!important}
+.seat-zone[data-room="vip1"] .seat-zone-title:after{background:var(--smm-orange)!important}
+.seat-zone[data-room="vip2"]{border-color:var(--smm-pink)!important}
+.seat-zone[data-room="vip2"] .seat-zone-title{color:var(--smm-pink)!important}
+.seat-zone[data-room="vip2"] .seat-zone-title:after{background:var(--smm-pink)!important}
+
+/* PC cards: free seats are filled with their room colour, busy ones go dark. */
+.floor-map :is(.map-pc,.seat-preview){background:#0a0a0a!important;border:2px solid var(--smm-rule)!important;color:#fff}
+.floor-map :is(.map-pc,.seat-preview) .map-number{font-family:var(--smm-display);font-weight:700}
+.floor-map :is(.map-pc,.seat-preview) .seat-status{text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.floor-map :is(.map-pc,.seat-preview) .map-monitor{background:transparent!important;border:2px solid currentColor!important;color:inherit}
+.floor-map :is(.map-pc,.seat-preview) .map-monitor::after{border-color:currentColor!important}
+.floor-map :is(.map-pc,.seat-preview) .map-symbol{stroke:currentColor!important;filter:none}
+.floor-map :is(.map-pc,.seat-preview).free{background:#fff!important;border-color:#fff!important;color:#000}
+.floor-map :is(.map-pc,.seat-preview).free[data-room="vip1"]{background:var(--smm-orange)!important;border-color:var(--smm-orange)!important}
+.floor-map :is(.map-pc,.seat-preview).free[data-room="vip2"]{background:var(--smm-pink)!important;border-color:var(--smm-pink)!important}
+.floor-map :is(.map-pc,.seat-preview).free .seat-status{color:#000}
+.floor-map :is(.map-pc,.seat-preview).busy{background:var(--smm-busy)!important;border-color:var(--smm-rule)!important;color:#5c5c5c}
+.floor-map :is(.map-pc,.seat-preview).busy .seat-status{color:#6f6f6f}
+.floor-map :is(.map-pc,.seat-preview).reserved{background:#000!important;border:2px dashed #fff!important;color:#cfcfcf}
+.floor-map :is(.map-pc,.seat-preview).reserved .map-symbol{stroke:#fff!important}
+.floor-map :is(.map-pc,.seat-preview).broken{background:#000!important;border-color:#1e1e1e!important;color:#444}
+.floor-map :is(.map-pc,.seat-preview).unknown{background:#0a0a0a!important;border-color:#1e1e1e!important;color:#777}
+.floor-map :is(.map-pc,.seat-preview).my-booking,.floor-map :is(.map-pc,.seat-preview)[data-room].my-booking{background:var(--smm-lime)!important;border-color:var(--smm-lime)!important;color:#000}
+.floor-map :is(.map-pc,.seat-preview)[data-room].my-booking .seat-status{color:#000}
+.floor-map .map-pc.connecting{background:#000!important;border-color:var(--smm-lime)!important;color:var(--smm-lime)}
+.seat-zone-grid :is(.map-pc,.seat-preview):first-child::before{color:inherit!important;opacity:.75}
+:is(.map-pc,.seat-preview):focus-visible{outline:2px solid var(--smm-lime)!important;outline-offset:2px!important}
+.seat-pagination button{background:#000;border:2px solid var(--smm-rule)}
+.seat-pagination span{font-family:var(--smm-display);letter-spacing:.08em;color:#fff}
+.ps5-phone-card{background:#000!important;border:2px solid var(--smm-rule)!important}
+.ps5-phone-card strong{font-family:var(--smm-display);font-size:14px!important;text-transform:uppercase}
+.phone-cta{color:var(--smm-lime)}
+.hall-loading{background:#000!important;border:2px solid var(--smm-rule)!important}
+
+/* Bottom nav */
+.bottom-nav{background:#000!important;border-top:2px solid var(--smm-rule)}
+.nav-btn{color:#6f6f6f;font-weight:700;letter-spacing:.1em}
+.nav-btn.active{color:var(--smm-lime)}
+.nav-ico{stroke-linecap:square;stroke-linejoin:miter;stroke-width:2}
+#nav-hall.active::before{background:var(--smm-lime)!important;height:3px!important}
+
+/* Overlays */
+.ov-head{border-bottom:2px solid var(--smm-rule)}
+.ov-close{width:44px!important;height:44px!important;background:#000!important;border:2px solid var(--smm-rule)!important}
+.rate-card{border:0!important;padding:0!important;margin:0 0 30px!important;background:none!important;overflow:visible!important}
+.smm-tag{display:inline-block;align-self:flex-start;padding:7px 11px;background:var(--smm-lime);color:#000;font-weight:800;font-size:11px;letter-spacing:.14em;text-transform:uppercase;line-height:1.2}
+.smm-tag-white{background:#fff}.smm-tag-pink{background:var(--smm-pink)}
+.smm-head{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
+.smm-note{font-size:11px;line-height:1.6;color:var(--smm-muted)}
+.price-row{display:grid;grid-template-columns:minmax(0,1.25fr) repeat(2,minmax(0,1fr));gap:8px;align-items:center;padding:13px 0;border-bottom:2px solid var(--smm-rule);font-size:12px}
+.price-row b{font-family:var(--smm-display);font-weight:700;font-size:clamp(20px,6vw,26px);text-align:right;white-space:nowrap}
+.price-row small{display:block;font-size:10px;color:var(--smm-muted);margin-top:3px}
+.price-th{padding-top:0;align-items:end}.price-th span{font-size:10px;color:var(--smm-muted);letter-spacing:.14em;text-transform:uppercase}.price-th b{font-size:16px}
+.price-morning{color:var(--smm-amber)}.price-night{color:var(--smm-lime)}
+.price-one{grid-template-columns:minmax(0,1fr) auto}
+.smm-promos{display:flex;flex-direction:column;gap:12px;padding-top:24px!important;border-top:2px solid var(--smm-rule)!important}
+.smm-promos .smm-tag:not(:first-child){margin-top:22px}
+.smm-title{font-size:clamp(28px,9vw,38px);line-height:.92;margin:0}
+.smm-text{font-size:11px;line-height:1.6;color:#d9d9d9;margin:0}
+.promo-row{display:grid;grid-template-columns:104px minmax(0,1fr);gap:12px;align-items:center;padding:11px 0;border-bottom:2px solid var(--smm-rule);font-size:11px}
+.promo-row:first-of-type{border-top:2px solid var(--smm-rule)}
+.promo-row b{font-family:var(--smm-display);font-size:22px;color:var(--smm-lime)}
+.smm-hardware{display:flex;flex-direction:column;gap:0;padding-top:24px!important;border-top:2px solid var(--smm-rule)!important}
+.smm-hardware .smm-tag{margin-bottom:14px}
+.hw-row{display:grid;grid-template-columns:84px minmax(0,1fr);gap:10px;padding:12px 0;border-bottom:2px solid var(--smm-rule);font-size:10px;line-height:1.55}
+.hw-row:first-of-type{border-top:2px solid var(--smm-rule)}
+.hw-row b{font-family:var(--smm-display);font-size:15px;text-transform:uppercase}
+.hw-row span{color:#d9d9d9}
+.hw-vip1 b{color:var(--smm-orange)}.hw-vip2 b{color:var(--smm-pink)}
+.smm-hardware .smm-text{margin-top:12px;color:var(--smm-muted)}
+.call-club{background:#000;border:2px solid var(--smm-rule)!important;color:#fff}
+.call-club span{color:var(--smm-lime)}
+.smm-foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:18px 4px 6px;font-size:10px}
+.smm-foot span:last-child{color:var(--smm-muted)}
+
+/* Profile */
+.prof-card,.bal-card,.info-card,#ov-profile .bal-card,#ov-profile .prof-card{background:#000!important;border:2px solid var(--smm-rule)!important}
+.prof-ava{background:var(--smm-lime)!important;border:0!important}
+.prof-ava svg{stroke:#000!important}
+.bal-lbl{color:var(--smm-muted)}
+.bal-val{color:var(--smm-lime)!important;font-size:40px!important}
+#account-toggle{border-bottom:2px solid var(--smm-rule)!important}
+.club-info{margin:6px 0 18px;border-top:2px solid var(--smm-rule)}
+.info-link{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 0;border-bottom:2px solid var(--smm-rule);color:#fff;text-decoration:none;font-size:12px;line-height:1.5}
+.info-link small{display:block;font-size:10px;color:var(--smm-muted)}
+.info-link b{color:var(--smm-lime)}
+.social-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:14px 0;border-bottom:2px solid var(--smm-rule)}
+.social-row a{display:grid;place-items:center;min-height:44px;border:2px solid var(--smm-rule);color:#fff;text-decoration:none;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.version-label{color:#555}
+
+/* Booking dialog (club-booking.js) and the legacy sheet */
+.club-booking-dialog,.booking-sheet{background:#000!important;border:0!important;border-top:2px solid var(--smm-lime)!important}
+.club-sheet-head:before{background:#444!important}
+.club-booking-dialog h2{font-size:28px;line-height:.95}
+.club-segments,#club-modes{background:#000!important;border:2px solid var(--smm-rule)!important}
+.club-segments button,#club-modes button{background:#000!important;color:#bdbdbd!important;border:0!important}
+.club-segments button[aria-pressed="true"],#club-modes button[aria-pressed="true"]{background:var(--smm-lime)!important;color:#000!important}
+.club-wheel{border-color:var(--smm-rule)!important}
+.club-wheel [aria-selected="true"]{color:var(--smm-lime)!important;font-family:var(--smm-display)}
+.club-wheels::before,.club-wheels::after{background:#000!important}
+.current-session,.profile-booking,.club-reservation.current-session{background:#000!important;border:2px solid var(--smm-lime)!important;color:#fff!important}
+.club-reservation{border:2px solid var(--smm-rule)!important;background:#000!important}
+.club-cancel{background:#000!important;border:2px solid var(--smm-pink)!important;color:var(--smm-pink)!important}
+.club-help{border-top:2px solid var(--smm-rule)!important}
+.dur-btn{background:#000!important;border:2px solid var(--smm-rule)!important;color:#fff!important}
+.dur-btn.sel{background:var(--smm-lime)!important;color:#000!important;border-color:var(--smm-lime)!important}
+
+/* Session screen */
+.session-eyebrow{color:var(--smm-lime)!important;font-weight:700}
+.session-host{font-size:64px!important;color:#fff}
+#session-screen dl>div{border:2px solid var(--smm-rule)!important;background:#000}
+#session-screen dd{font-family:var(--smm-display);font-size:20px!important}
+.session-feedback{color:var(--smm-lime)!important}
+
+/* Dialogs, toasts, tutorial */
+.contact-dialog,.occupied-dialog,.birthday-dialog,.tutorial-modal,#desk-availability{background:#000!important;border:2px solid var(--smm-rule)!important;color:#fff}
+.contact-dialog .rate-eyebrow{color:var(--smm-lime)}
+.tutorial-dots .dot{background:#333!important}.tutorial-dots .dot.active{background:var(--smm-lime)!important}
+.toast{border:0!important;font-weight:600}
+.toast.inf,.toast.ok{background:var(--smm-lime)!important;color:#000!important}
+.toast.err{background:var(--smm-pink)!important;color:#000!important}
+.queue-banner{background:#000!important;border:2px solid var(--smm-blue)!important;color:#fff!important}
+.gender-choice label{border:2px solid var(--smm-rule)!important}
+.gender-choice label:has(input:checked){border-color:var(--smm-lime)!important}

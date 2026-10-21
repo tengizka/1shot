@@ -1,0 +1,4 @@
+/* ReSquare: 1SHOT SMM display face for headings and numbers. */
+@font-face{font-family:'ReSquare';font-style:normal;font-weight:400;font-display:swap;src:url(./resquare/ReSquare-Regular.ttf) format('truetype')}
+@font-face{font-family:'ReSquare';font-style:normal;font-weight:500;font-display:swap;src:url(./resquare/ReSquare-Medium.ttf) format('truetype')}
+@font-face{font-family:'ReSquare';font-style:normal;font-weight:700;font-display:swap;src:url(./resquare/ReSquare-Bold.ttf) format('truetype')}

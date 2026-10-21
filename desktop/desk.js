@@ -84,10 +84,10 @@ function hall(s){
  const map=$('desk-map'),fresh=s.last_sync&&Date.now()/1000-s.last_sync<30;
  if(!map.children.length){
   for(const group of ['vip','standard']){
-   const section=document.createElement('section');section.className='desk-zone';const heading=document.createElement('h3');heading.textContent=group==='vip'?'VIP · РЯДЫ 10 / 20':'STANDARD · ЗОНЫ 100 / 200 / 300 / 400';section.append(heading);
+   const section=document.createElement('section');section.className='desk-zone';const heading=document.createElement('h3');heading.textContent=group==='vip'?'VIP 1 · VIP 2':'STANDART · ЗОНЫ 100 / 200 / 300 / 400';section.append(heading);
    const grid=document.createElement('div');grid.className='desk-zone-grid physical-grid '+group;
    for(const pc of getZoneSeats(group)){const layouts=getPhysicalZones(group),zi=layouts.findIndex(z=>z.zone===pc.zone);const row=pc.row+layouts.slice(0,zi).reduce((n,z)=>n+z.rows.length+1,0);
-    const btn=document.createElement('button');btn.style.gridRow=row;btn.style.gridColumn=pc.column;btn.dataset.hostId=pc.id;
+    const btn=document.createElement('button');btn.style.gridRow=row;btn.style.gridColumn=pc.column;btn.dataset.hostId=pc.id;btn.dataset.room=group==='vip'?(pc.zone==='10'?'vip1':'vip2'):'std';
     const number=document.createElement('b');number.textContent=pc.id;const state=document.createElement('span');btn.append(number,state);const phone=document.createElement('i');phone.className='miniapp-booking';phone.hidden=true;phone.setAttribute('aria-hidden','true');phone.innerHTML='<svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 18h4"/></svg>';btn.append(phone);btn.onclick=()=>selectHost(pc.id);grid.append(btn);
    }
    section.append(grid);map.append(section);
