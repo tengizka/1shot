@@ -1,9 +1,9 @@
 /* Stable local editor: polling cannot replace an unsaved draft. */
 (() => {
  const section=document.createElement('section');section.className='surface reminder-settings';
- section.innerHTML='<h2>Напоминания</h2><p class="note">После запуска Desk интервал отсчитывается заново. Пропущенные сигналы не накапливаются.</p><form id="reminder-form"><div id="reminder-editors"></div><div class="actions"><button type="button" id="reminder-add">Добавить</button><button type="submit">Сохранить напоминания</button><button type="button" id="reminder-reload">Отменить изменения</button></div></form><p id="reminder-message" role="status"></p>';
- $('panel-sound').append(section);
- let revision=null,latest=null,dirty=false,busy=false,historyKey='';
+ section.innerHTML='<h3>Напоминания</h3><p class="note">После запуска Desk интервал отсчитывается заново. Пропущенные сигналы не накапливаются.</p><form id="reminder-form"><div id="reminder-editors"></div><div class="actions"><button type="button" id="reminder-add">Добавить</button><button type="submit">Сохранить напоминания</button><button type="button" id="reminder-reload">Отменить изменения</button></div></form><p id="reminder-message" role="status"></p>';
+ (document.querySelector('.settings-pane[data-settings="alerts"]')||$('panel-sound')).append(section);
+ let revision=null,latest=null,dirty=false,busy=false;
  const fields=$('reminder-editors'),form=$('reminder-form'),message=$('reminder-message');
  function row(item){
   const box=document.createElement('fieldset');box.dataset.id=item.id;
@@ -29,8 +29,6 @@
  window.renderReminders=s=>{
   if(s.reminders){latest=s.reminders.config;if(!busy&&!dirty&&revision!==latest.revision)load()}
   if(s.reminder_error)message.textContent=s.reminder_error;
-  const rows=s.reminders?.history||[],key=JSON.stringify(rows);if(key===historyKey)return;historyKey=key;
-  $('reminder-history').hidden=!rows.length;
-  $('reminder-cards').replaceChildren(...rows.slice(-5).reverse().map(event=>{const card=document.createElement('article');card.className='notice-card';const text=document.createElement('strong');text.textContent=event.text;const time=document.createElement('small');time.textContent=new Date(event.occurred_at*1000).toLocaleString('ru-RU',{timeZone:'Europe/Moscow'})+' МСК';card.append(text,time);return card}));
+  // Fired reminders appear once as on-screen notices (Python side); nothing piles up here.
  };
 })();

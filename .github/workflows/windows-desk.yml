@@ -4,6 +4,11 @@ on:
     branches: [arena/01a0d663-1shot]
     paths: ['miniapp/**', 'index.html', 'tests/**', 'desktop/**', 'tests/test_*.py', 'tests/*browser.cjs', 'tests/*powershell.ps1', 'release/registration/**', '.github/workflows/windows-desk.yml']
   workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish a GitHub release (desk-vX.Y.Z) that Desk can self-update from'
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -69,6 +74,8 @@ jobs:
         run: python -m unittest discover -s tests -p test_registration_approval.py
       - name: Test guest-selected password grants
         run: python -m unittest discover -s tests -p test_guest_passwords.py
+      - name: Test on-screen notices and self-update
+        run: python -m unittest tests.test_toast tests.test_updater
       - name: Stage registration frontend without publishing it
         shell: pwsh
         run: |
@@ -87,7 +94,7 @@ jobs:
       - name: Generate release identity
         run: python -m desktop.write_metadata
       - name: Build portable app
-        run: python -m PyInstaller --noconfirm --clean --windowed --name 1SHOT-Desk --paths . --icon desktop/assets/app.ico --version-file desktop/version-info.txt --add-data "desktop/assets;desktop/assets" --add-data "desktop/brand.js;desktop" --add-data "desktop/index.html;desktop" --add-data "desktop/desk.js;desktop" --add-data "desktop/reminders.js;desktop" --add-data "desktop/rota.js;desktop" --add-data "desktop/admin-tools.js;desktop" --add-data "desktop/registrations.js;desktop" --add-data "desktop/guest-passwords.js;desktop" --add-data "desktop/desk.css;desktop" --add-data "desktop/polish.css;desktop" --add-data "desktop/polish.js;desktop" --add-data "desktop/smm.css;desktop" --add-data "assets/fonts;assets/fonts" --collect-all webview --exclude-module webview.platforms.winforms --exclude-module webview.platforms.edgechromium --exclude-module clr --exclude-module pythonnet desktop/launcher.py
+        run: python -m PyInstaller --noconfirm --clean --windowed --name 1SHOT-Desk --paths . --icon desktop/assets/app.ico --version-file desktop/version-info.txt --add-data "desktop/assets;desktop/assets" --add-data "desktop/*.js;desktop" --add-data "desktop/*.css;desktop" --add-data "desktop/index.html;desktop" --add-data "assets/fonts;assets/fonts" --collect-all webview --exclude-module webview.platforms.winforms --exclude-module webview.platforms.edgechromium --exclude-module clr --exclude-module pythonnet desktop/launcher.py
       - name: Launch packaged Qt UI and verify JS bridge (no club connections)
         shell: pwsh
         run: |
@@ -112,9 +119,48 @@ jobs:
         run: |
           Copy-Item desktop/env.example dist/1SHOT-Desk/env.example
           Copy-Item desktop/README.md dist/1SHOT-Desk/README.md
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          $version = python -c "from desktop.version import VERSION; print(VERSION)"
+          & $iscc "/DAppVersion=$version" desktop\installer\1shot-desk.iss
+          if ($LASTEXITCODE -ne 0) { throw "Installer build failed" }
+          $hash = (Get-FileHash -Algorithm SHA256 dist\1SHOT-Desk-Setup.exe).Hash.ToLowerInvariant()
+          "$hash  1SHOT-Desk-Setup.exe" | Set-Content -NoNewline -Encoding ascii dist\1SHOT-Desk-Setup.exe.sha256
+          "DESK_VERSION=$version" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
       - uses: actions/upload-artifact@v4
         with:
           name: 1SHOT-Desk-Windows
           path: dist/1SHOT-Desk/
           retention-days: 30
           if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 1SHOT-Desk-Setup
+          path: |
+            dist/1SHOT-Desk-Setup.exe
+            dist/1SHOT-Desk-Setup.exe.sha256
+          retention-days: 30
+          if-no-files-found: error
+  release:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    needs: [browser-regression, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: 1SHOT-Desk-Setup
+          path: setup
+      - name: Publish release for self-update
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(python3 -c "from desktop.version import VERSION; print(VERSION)")
+          TAG="desk-v$VERSION"
+          if gh release view "$TAG" >/dev/null 2>&1; then echo "Release $TAG already exists; bump desktop/version.py"; exit 1; fi
+          gh release create "$TAG" setup/1SHOT-Desk-Setup.exe setup/1SHOT-Desk-Setup.exe.sha256 --target "$GITHUB_SHA" --title "1SHOT Desk $VERSION" --notes "Установщик 1SHOT Desk $VERSION. Уже установленный Desk обновится сам: Настройки → Обновление."

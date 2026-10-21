@@ -13,6 +13,8 @@ from .sound import Sound
 from .notifications import NotificationGate
 from .reminders import Reminders
 from .services import Cloud,Gizmo,LegacyBridge
+from .toast import Toaster,describe
+from .updater import Updater
 from .version import VERSION, AUTHOR, APP_TITLE, APP_ID
 
 ROOT=Path(getattr(sys,'_MEIPASS',Path(__file__).resolve().parents[1]))
@@ -40,6 +42,7 @@ class App:
         try:self.reminders=Reminders(self.store)
         except Exception:self.reminder_error='Не удалось прочитать напоминания. Настройки сохранены без изменений'
         self.rows=[];self.alerts={};self.notified_cursor=0;self.muted_until=0;self.window=None;self.tray=None;self.exiting=False
+        self.toaster=None;self.updater=Updater(HOME,VERSION)
     def alarm(self,kind=None):self.sound.play(kind)
     def sound_settings(self,settings):return self.sound.configure(settings)
     def reminder_settings(self,items,revision):
@@ -57,13 +60,49 @@ class App:
             try:
                 events=self.reminders.tick()
                 if events:
-                    if self.tray:
-                        try:self.tray.notify(' · '.join(e['text'] for e in events)[:240],'1SHOT · Напоминание')
-                        except Exception:pass
+                    # One notice per batch: several reminders due together do not stack up.
+                    self.toast('reminder',events[0]['text'][:60],'Ещё '+str(len(events)-1)+': '+', '.join(e['text'] for e in events[1:])[:80] if len(events)>1 else 'Напоминание Desk')
                     audible=next((e for e in events if e['sound']!='none'),None)
                     if audible and self.sound.settings['enabled']:self.sound.play_preset(audible['sound'])
                 self.reminder_error=''
             except Exception:self.reminder_error='Не удалось обработать напоминание. Проверьте локальное хранилище или звук'
+    def toast(self,kind,title,text):
+        # One-shot on-screen notice in the 1SHOT style; the tray balloon is only a fallback.
+        from datetime import datetime,timezone,timedelta
+        stamp=(datetime.now(timezone.utc)+timedelta(hours=3)).strftime('%H:%M')+' МСК'
+        try:
+            if getattr(self,'toaster',None):self.toaster.show(kind,title,text,stamp);return
+        except Exception:pass
+        if getattr(self,'tray',None):
+            try:self.tray.notify(text[:200],title[:60])
+            except Exception:pass
+    def update_loop(self):
+        if self.stop.wait(30):return
+        while True:
+            try:
+                if self.updater.snapshot()['phase'] in ('downloading','ready','installing'):raise StopIteration
+                state=self.updater.check()
+                if state.get('phase')=='available' and self.store.get('update.notified')!=state.get('latest'):
+                    self.store.set('update.notified',state.get('latest'))
+                    self.toast('update','Версия '+str(state.get('latest')),'Настройки → Обновление')
+            except (Exception,StopIteration):pass
+            if self.stop.wait(6*3600):return
+    def check_update(self):
+        try:return self.updater.check()
+        except Exception:return {'phase':'error','error':'Не удалось проверить обновления'}
+    def download_update(self):
+        state=self.updater.snapshot()
+        if state['phase']=='downloading':return state
+        threading.Thread(target=self.updater.download,daemon=True).start()
+        return dict(state,phase='downloading',progress=0)
+    def install_update(self):
+        try:
+            if self.updater.snapshot()['phase']!='ready':return {'error':'Обновление ещё не скачано'}
+            self.updater.launch()
+        except Exception as error:return {'error':str(error) or 'Не удалось запустить установщик'}
+        # The installer replaces the files and starts Desk again; stop the agent cleanly first.
+        threading.Timer(0.6,self.quit,kwargs={'confirmed':True}).start()
+        return {'ok':True}
     def minimize(self):self.window.minimize()
     def maximize(self):
         self.maximized=not self.maximized
@@ -240,7 +279,7 @@ class App:
 
     def snapshot(self):
         with self.lock:
-            return {'reminders':self.reminders.snapshot() if self.reminders else None,'reminder_error':self.reminder_error,'password_grants':self.password_grants,'password_ready':self.password_ready and self.online,'registrations':self.registrations,'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':self.error,'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'notifications':list(self.store.get('alerts',{}).values())[-5:],'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'rota':self.store.get('rota.config',{}),'duty_admin':self.current_duty_admin(self.store.get('rota.config',{})),'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
+            return {'reminders':self.reminders.snapshot() if self.reminders else None,'reminder_error':self.reminder_error,'password_grants':self.password_grants,'password_ready':self.password_ready and self.online,'registrations':self.registrations,'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':self.error,'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'update':self.updater.snapshot(),'version':VERSION,'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'rota':self.store.get('rota.config',{}),'duty_admin':self.current_duty_admin(self.store.get('rota.config',{})),'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
     def acknowledge(self):
         with self.lock:self.store.set('alerts',{})
         self.sound.stop()
@@ -283,9 +322,7 @@ class App:
             try:
                 notices=self.notifications.consume(self.store.get('alerts',{}))
                 if notices:
-                    if self.tray:
-                        try:self.tray.notify('Новое событие клуба. Подробности в панели.','1SHOT Desk')
-                        except Exception:pass
+                    for event in notices[-3:]:self.toast(*describe(event,self.rows))
                     if self.sound.settings['enabled']:
                         kind='attention' if any(e.get('kind')=='attention' for e in notices) else notices[-1].get('kind')
                         self.alarm(kind)
@@ -303,12 +340,13 @@ class App:
     def close(self):
         if self.exiting:return True
         self.window.hide();return False
-    def quit(self,*_):
+    def quit(self,*_,confirmed=False):
         if self.exiting or not self.exit_prompt.acquire(blocking=False):return
         try:
             import ctypes
-            if sys.platform=='win32' and ctypes.windll.user32.MessageBoxW(None,'Завершить работу агента? Активные сессии продолжатся, но новые команды и автоматическое снятие броней остановятся до следующего запуска.','1SHOT Desk',0x24)!=6:return
+            if not confirmed and sys.platform=='win32' and ctypes.windll.user32.MessageBoxW(None,'Завершить работу агента? Активные сессии продолжатся, но новые команды и автоматическое снятие броней остановятся до следующего запуска.','1SHOT Desk',0x24)!=6:return
             self.exiting=True;self.stop.set();self.sound.stop()
+            if getattr(self,'toaster',None):self.toaster.close_all()
             # Never let a tray callback's stop/join prevent Qt from receiving destroy.
             self.window.destroy()
             if self.tray:threading.Thread(target=self.tray.stop,daemon=True).start()
@@ -319,6 +357,14 @@ class App:
         icon=Image.open(ROOT/'desktop'/'assets'/'tray-icon.png').convert('RGBA')
         self.tray=pystray.Icon('1SHOT',icon,f'1SHOT Desk v{VERSION} · {AUTHOR}',pystray.Menu(pystray.MenuItem('Открыть',self.reveal,default=True),pystray.MenuItem('Выход',self.quit)))
         threading.Thread(target=self.tray.run,daemon=True).start()
+        import webview
+        def factory(html,x,y,width,height):
+            return webview.create_window('1SHOT',html=html,x=x,y=y,width=width,height=height,min_size=(width,height),resizable=False,frameless=True,easy_drag=False,shadow=False,focus=False,on_top=True,background_color='#000000')
+        def screen():
+            s=webview.screens[0] if webview.screens else None
+            return (s.width,s.height) if s else (1920,1080)
+        self.toaster=Toaster(factory,screen,ROOT)
+        threading.Thread(target=self.update_loop,daemon=True).start()
         threading.Thread(target=self.reminder_loop,daemon=True).start();threading.Thread(target=self.work,daemon=True).start();threading.Thread(target=self.sync_loop,daemon=True).start()
 
 def main():
@@ -328,13 +374,16 @@ def main():
     from dotenv import load_dotenv
     load_dotenv(HOME/'.env')
     required=('GIZMO_BASE_URL','GIZMO_LOGIN','GIZMO_PASSWORD','AGENT_SECRET')
-    missing=[key for key in required if not os.getenv(key)]
-    if not (os.getenv('CLUB_API_URL') or os.getenv('SUPABASE_URL')):missing.append('CLUB_API_URL (или SUPABASE_URL для старого сервера)')
+    # The installer drops env.example as .env: placeholders count as not filled in.
+    missing=[key for key in required if not os.getenv(key) or 'YOUR-' in os.getenv(key,'')]
+    if not (os.getenv('CLUB_API_URL') or (os.getenv('SUPABASE_URL') and 'YOUR-' not in os.getenv('SUPABASE_URL'))):missing.append('CLUB_API_URL (или SUPABASE_URL для старого сервера)')
     if missing:
         message='Заполните '+str(HOME/'.env')+'\nНе заданы: '+', '.join(missing)
         if sys.platform=='win32':
             import ctypes
-            ctypes.windll.user32.MessageBoxW(None,message,'Настройка 1SHOT Desk',0x10)
+            ctypes.windll.user32.MessageBoxW(None,message+'\n\nФайл откроется в Блокноте. Сохраните его и запустите Desk снова.','Настройка 1SHOT Desk',0x40)
+            try:os.startfile(str(HOME/'.env')) if (HOME/'.env').exists() else None
+            except OSError:pass
         else:print(message)
         return
     # Prevent two local instances from sharing the ownership journal.

@@ -17,6 +17,7 @@ desktop/assets/fonts/
 desktop/assets/hall-map.js
 
 desktop/assets/arrival-time.js
+desktop/assets/oneshot-loader.js
 
 # Local club backup archives
 *.dump
