@@ -329,3 +329,10 @@ body.pick-mode .desk-pc:not(:disabled){outline:1px dashed var(--lime);outline-of
 .sound-presets button[aria-checked="true"] small{color:#000}
 #sound-result:empty{display:none}
 nav .exit span{white-space:normal}
+
+/* 3.1 · Booking slots: every half hour for the next 24 hours */
+.menu-slots{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;max-height:232px;overflow:auto;padding-right:2px}
+.menu-slots button{min-height:36px;padding:0;font:700 13px var(--display);letter-spacing:.02em}
+.menu-slots button[aria-pressed="true"]{background:var(--lime);border-color:var(--lime);color:#000}
+.slot-day{grid-column:1/-1;margin-top:4px;font:700 8.5px var(--text);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.slot-day:first-child{margin-top:0}
