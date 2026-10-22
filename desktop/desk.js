@@ -14,14 +14,17 @@ function panel(name){
 document.querySelectorAll('[data-panel]').forEach(e=>e.onclick=()=>panel(e.dataset.panel));
 async function invoke(method,...args){try{const result=await window.pywebview.api[method](...args);if(!['booking_guest','find_account','search_accounts','select_account','check_update','download_update'].includes(method))await refresh();return result}catch{$('error').textContent='Не удалось выполнить команду. Проверьте связь с агентом';return null}}
 /* The list always shows every booking; a picked PC only highlights its own and owns the «+». */
-function selectHost(id){
- selectedHost=id==null?null:String(id);if(view!=='hall')panel('hall');
- document.querySelectorAll('#desk-map [data-host-id]').forEach(b=>b.classList.toggle('selected',b.dataset.hostId===selectedHost));
- markSelected(true);
+let picked=new Set();
+// Left click picks a PC, Ctrl+click or a drag frame picks several (company booking); right click opens actions.
+function selectHosts(ids,scroll=true){
+ picked=new Set(ids.map(String));selectedHost=picked.size?[...picked].at(-1):null;if(view!=='hall')panel('hall');
+ document.querySelectorAll('#desk-map [data-host-id]').forEach(b=>b.classList.toggle('selected',picked.has(b.dataset.hostId)));
+ markSelected(scroll);
 }
+function selectHost(id){selectHosts(id==null?[]:[id])}
 function markSelected(scroll=false){
- setDeskText($('add-booking-label'),selectedHost?'Бронь · '+hostName(selectedHost):'Бронь');
- let first=null;for(const card of $('grid').children){const on=!!selectedHost&&card.booking?.host_id===selectedHost;card.classList.toggle('focus',on);if(on&&!first)first=card}
+ setDeskText($('add-booking-label'),picked.size>1?'Бронь · '+picked.size+' ПК':selectedHost?'Бронь · '+hostName(selectedHost):'Бронь');
+ let first=null;for(const card of $('grid').querySelectorAll('.card[data-booking-id]')){const on=picked.has(card.booking?.host_id);card.classList.toggle('focus',on);if(on&&!first)first=card}
  if(scroll&&first)first.scrollIntoView({block:'nearest',behavior:'smooth'});
 }
 // Second tap confirms: no system dialogs anywhere in Desk.
@@ -36,9 +39,15 @@ function reconcileDeskChildren(parent,nodes){
  const wanted=new Set(nodes);for(const child of [...parent.children])if(!wanted.has(child))child.remove();
  nodes.forEach((node,i)=>{if(parent.children[i]!==node)parent.insertBefore(node,parent.children[i]||null)});
 }
+// Clipboard: browser API, then the old execCommand path, then Windows clip.exe through Desk.
+async function deskCopy(value){
+ const text=String(value);
+ try{await navigator.clipboard.writeText(text);return true}catch{}
+ try{const area=document.createElement('textarea');area.value=text;area.style.cssText='position:fixed;opacity:0;left:-999px';document.body.append(area);area.select();const ok=document.execCommand('copy');area.remove();if(ok)return true}catch{}
+ try{const r=await window.pywebview?.api?.copy_text?.(text);return !!r?.ok}catch{return false}
+}
 async function copyDeskText(value,status){
- try{await navigator.clipboard.writeText(String(value));setDeskText(status,'Скопировано')}
- catch{setDeskText(status,'Не удалось скопировать. Выделите текст и нажмите Ctrl+C')}
+ setDeskText(status,await deskCopy(value)?'Скопировано':'Не удалось скопировать. Выделите текст и нажмите Ctrl+C');
 }
 
 /* Compact booking row: PC, guest, time and status on two lines; guest data folds out. */
@@ -92,12 +101,29 @@ function makeBookingCard(){
  };
  return card;
 }
+// Company bookings: admin bookings with the same start and name are shown as one block.
+const groupKey=b=>b.admin_created&&b.guest_name?b.starts_at+'|'+b.guest_name:null;
+function makeGroup(key){
+ const box=document.createElement('section');box.className='booking-group';box.dataset.key=key;
+ box.innerHTML='<div class="group-head"><span class="tag">Компания</span><h3></h3><p class="time"></p></div><p class="group-pcs"></p><div class="group-body"></div><div class="actions"><button type="button" class="btn-cancel group-cancel" aria-label="Отменить бронь компании">Отменить всех</button></div>';
+ box.querySelector('.group-cancel').onclick=e=>armTap(e.currentTarget,'Точно всех?',async()=>{for(const card of box.querySelectorAll('.card[data-booking-id]'))await invoke('cancel_booking',card.booking.id)});
+ return box;
+}
 function bookings(s){
  const grid=$('grid');
- const rows=s.rows.filter(b=>!b.instant||b.status==='attention').sort((a,b)=>Date.parse(a.starts_at)-Date.parse(b.starts_at));
+ const rows=s.rows.filter(b=>!b.instant||b.status==='attention').sort((a,b)=>Date.parse(a.starts_at)-Date.parse(b.starts_at)||Number(a.host_id)-Number(b.host_id));
  setDeskText($('booking-total'),rows.length||'');
- const existing=new Map([...grid.children].map(card=>[card.dataset.bookingId,card]));
- const nodes=rows.map(b=>{const card=existing.get(String(b.id))||makeBookingCard();card.update(b);return card});
+ const existing=new Map([...grid.querySelectorAll('.card[data-booking-id]')].map(card=>[card.dataset.bookingId,card]));
+ const groups=new Map([...grid.querySelectorAll('.booking-group')].map(g=>[g.dataset.key,g]));
+ const count={};rows.forEach(b=>{const k=groupKey(b);if(k)count[k]=(count[k]||0)+1});
+ const nodes=[],members=new Map();
+ for(const b of rows){
+  const card=existing.get(String(b.id))||makeBookingCard();card.update(b);
+  const k=groupKey(b);
+  if(k&&count[k]>1){let g=groups.get(k);if(!g){g=makeGroup(k);groups.set(k,g)}if(!members.has(k)){members.set(k,[]);nodes.push(g)}members.get(k).push(card)}
+  else nodes.push(card);
+ }
+ for(const [k,cards] of members){const g=groups.get(k),b=cards[0].booking;setDeskText(g.querySelector('h3'),b.guest_name);setDeskText(g.querySelector('.time'),clubArrivalLabel(b.starts_at));setDeskText(g.querySelector('.group-pcs'),cards.length+' ПК · '+cards.map(c=>c.booking.host_id).join(' · '));reconcileDeskChildren(g.querySelector('.group-body'),cards)}
  if(!nodes.length){const empty=grid.querySelector('.empty')||document.createElement('div');empty.className='empty';setDeskText(empty,'Броней пока нет');nodes.push(empty)}
  reconcileDeskChildren(grid,nodes);markSelected();
 }
@@ -109,7 +135,7 @@ const PLAN_SEATS={11:[140,40],12:[180,40],13:[220,40],14:[260,40],15:[300,40],21
  104:[184,208],105:[184,248],106:[184,288],101:[256,208],102:[256,248],103:[256,288]};
 const PLAN_ZONES=[['Зона 400',8,8,104,56,''],['Зона 300',8,72,104,104,''],['VIP 1',120,8,232,80,'vip1'],['VIP 2',120,96,232,80,'vip2'],['Зона 200',8,184,104,224,''],['Зона 100',120,184,232,152,'']];
 const planRoom=id=>{const n=Number(id);return n<20?'vip1':n<30?'vip2':'std'};
-function buildPlan(container,{picker=false,onPick}={}){
+function buildPlan(container,{picker=false,onPick,onMenu}={}){
  const layer=document.createElement('div');layer.className='plan-layer';
  for(const [title,x,y,w,h,room] of PLAN_ZONES){const z=document.createElement('div');z.className='plan-zone'+(room?' '+room:'');z.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${h}px`;const t=document.createElement('span');t.textContent=title;z.append(t);layer.append(z)}
  const buttons=new Map();
@@ -117,9 +143,9 @@ function buildPlan(container,{picker=false,onPick}={}){
   const btn=document.createElement('button');btn.type='button';btn.className='desk-pc unknown';btn.style.left=x+'px';btn.style.top=y+'px';btn.dataset.room=planRoom(id);
   if(picker){btn.textContent=id}
   else{btn.dataset.hostId=id;const number=document.createElement('b');number.textContent=id;const state=document.createElement('span');state.className='pc-state';const phone=document.createElement('i');phone.className='miniapp-booking';phone.hidden=true;phone.setAttribute('aria-hidden','true');btn.append(number,state,phone)}
-  btn.onclick=()=>onPick?.(id,btn);btn.oncontextmenu=e=>{e.preventDefault();onPick?.(id,btn)};layer.append(btn);buttons.set(id,btn);
+  btn.onclick=e=>onPick?.(id,btn,e);btn.oncontextmenu=e=>{e.preventDefault();(onMenu||onPick)?.(id,btn,e)};layer.append(btn);buttons.set(id,btn);
  }
- if(!picker){const ps5=document.createElement('button');ps5.type='button';ps5.className='desk-ps5 unknown';ps5.dataset.hostId='1';ps5.innerHTML='<svg viewBox="0 0 32 24" aria-hidden="true"><path d="M10 5h12c3 0 4 3 5 6l2 7c1 4-3 5-5 2l-3-3H11l-3 3c-2 3-6 2-5-2l2-7c1-3 2-6 5-6Z"/><path d="M9 9v6m-3-3h6"/></svg><span><strong>TV-зона PS5</strong><small class="pc-state"></small></span><i class="miniapp-booking" hidden aria-hidden="true"></i>';ps5.onclick=()=>onPick?.('1',ps5);layer.append(ps5);buttons.set('1',ps5)}
+ if(!picker){const ps5=document.createElement('button');ps5.type='button';ps5.className='desk-ps5 unknown';ps5.dataset.hostId='1';ps5.innerHTML='<svg viewBox="0 0 32 24" aria-hidden="true"><path d="M10 5h12c3 0 4 3 5 6l2 7c1 4-3 5-5 2l-3-3H11l-3 3c-2 3-6 2-5-2l2-7c1-3 2-6 5-6Z"/><path d="M9 9v6m-3-3h6"/></svg><span><strong>TV-зона PS5</strong><small class="pc-state"></small></span><i class="miniapp-booking" hidden aria-hidden="true"></i>';ps5.onclick=e=>onPick?.('1',ps5,e);ps5.oncontextmenu=e=>{e.preventDefault();(onMenu||onPick)?.('1',ps5,e)};layer.append(ps5);buttons.set('1',ps5)}
  container.replaceChildren(layer);
  const fit=()=>{const w=container.clientWidth,h=container.clientHeight;if(!w||!h)return;const s=Math.min(w/360,h/416);layer.style.transform=`translate(${Math.max(0,(w-360*s)/2)}px,${Math.max(0,(h-416*s)/2)}px) scale(${s})`};
  new ResizeObserver(fit).observe(container);fit();
@@ -129,7 +155,15 @@ window.buildDeskPlan=buildPlan;
 const STATE_SHORT={free:'',busy:'',reserved:'бронь',broken:'ремонт',unknown:'',connecting:'вход'};
 function hall(s){
  const map=$('desk-map'),fresh=s.last_sync&&Date.now()/1000-s.last_sync<30;
- if(!map.children.length)buildPlan(map,{onPick:id=>{selectHost(id);window.openHostMenu?.(id,pickMode?'book':'main');setPickMode(false)}});
+ if(!map.children.length){buildPlan(map,{
+  onPick:(id,btn,e)=>{
+   if(pickMode){selectHosts([id]);setPickMode(false);window.openHostMenu?.(id,'book');return}
+   window.closeHostMenu?.();
+   if(e?.ctrlKey||e?.metaKey){const next=new Set(picked);next.has(id)?next.delete(id):next.add(id);selectHosts([...next],false)}
+   else selectHosts(picked.size===1&&picked.has(id)?[]:[id]);
+  },
+  onMenu:id=>{if(picked.has(id)&&picked.size>1)window.openHostMenu?.(id,'group',[...picked]);else{selectHosts([id],false);window.openHostMenu?.(id,'main')}}
+ });setupFrameSelect(map)}
  const hosts=new Map((s.hosts||[]).map(h=>[h.host_id,h]));let free=0,busy=0,booked=0;
  for(const btn of map.querySelectorAll('[data-host-id]')){
   const id=btn.dataset.hostId,connecting=s.rows.some(b=>b.instant&&b.host_id===id&&['requested','holding','checkin_pending'].includes(b.status));
@@ -141,7 +175,7 @@ function hall(s){
   if(btn.title!==title){btn.title=title;btn.setAttribute('aria-label',title)}
   const attention=s.rows.some(b=>b.host_id===id&&b.status==='attention');btn.classList.toggle('attention',attention);
   btn.classList.toggle('has-rental',(s.rentals||[]).some(r=>r.host===id));
-  btn.classList.toggle('selected',id===selectedHost);
+  btn.classList.toggle('selected',picked.has(id));
   if(btn.dataset.status===status)continue;
   btn.dataset.status=status;btn.classList.remove('free','busy','reserved','broken','unknown','connecting');btn.classList.add(status);
   setDeskText(btn.querySelector('.pc-state'),id==='1'?HOST_LABELS[status]:STATE_SHORT[status]??'');
@@ -157,7 +191,7 @@ async function refresh(){
   setDeskText($('gizmo-connection'),gizmoOk?'GIZMO · НА СВЯЗИ':'GIZMO · НЕТ СВЯЗИ');$('gizmo-connection').className=gizmoOk?'online':'offline';
   setDeskText($('error'),[s.error,s.sync_error,s.password_sync_error,!s.protocol_ready?'Сервис аккаунтов пока недоступен. Проверьте сообщение об ошибке выше.':''].filter(Boolean).join('\n'));
   const bookingKey=JSON.stringify(s.rows)+selectedHost;if(refresh.bookingKey!==bookingKey){bookings(s);refresh.bookingKey=bookingKey}
-  const hallKey=JSON.stringify(s.hosts)+gizmoOk+selectedHost+JSON.stringify((s.rentals||[]).map(r=>r.host))+JSON.stringify(s.rows.map(b=>[b.host_id,b.status,b.instant,b.admin_created,b.username,b.guest_name]));if(refresh.hallKey!==hallKey){hall(s);refresh.hallKey=hallKey}
+  const hallKey=JSON.stringify(s.hosts)+gizmoOk+[...picked]+JSON.stringify((s.rentals||[]).map(r=>r.host))+JSON.stringify(s.rows.map(b=>[b.host_id,b.status,b.instant,b.admin_created,b.username,b.guest_name]));if(refresh.hallKey!==hallKey){hall(s);refresh.hallKey=hallKey}
   const requests=s.password_requests||[];setDeskText($('requests-count'),requests.length);$('requests-count').toggleAttribute('data-zero',!requests.length);
   const resetKey=JSON.stringify(requests);if(refresh.resetKey!==resetKey){renderResetRequests(requests);refresh.resetKey=resetKey}
   window.renderGuestPasswords?.(s);
@@ -219,5 +253,22 @@ setTimeout(()=>$('desk-splash').classList.add('done'),2500);setTimeout(()=>$('de
 
 let pickMode=false;
 function setPickMode(on){pickMode=on;$('pick-hint').hidden=!on;document.body.classList.toggle('pick-mode',on)}
-$('add-booking').onclick=()=>{if(selectedHost){window.openHostMenu?.(selectedHost,'book');return}setPickMode(!pickMode)};
+$('add-booking').onclick=()=>{if(picked.size>1){window.openHostMenu?.(selectedHost,'group',[...picked]);return}if(selectedHost){window.openHostMenu?.(selectedHost,'book');return}setPickMode(!pickMode)};
+// Drag on empty floor draws a frame; every PC it touches is picked (Ctrl adds to the current pick).
+function setupFrameSelect(map){
+ let start=null,frame=null;
+ map.addEventListener('mousedown',e=>{if(e.button!==0||e.target.closest('[data-host-id]'))return;start={x:e.clientX,y:e.clientY,add:e.ctrlKey||e.metaKey};e.preventDefault()});
+ addEventListener('mousemove',e=>{
+  if(!start)return;const w=Math.abs(e.clientX-start.x),h=Math.abs(e.clientY-start.y);if(!frame&&w+h<6)return;
+  if(!frame){frame=document.createElement('div');frame.className='sel-frame';document.body.append(frame)}
+  Object.assign(frame.style,{left:Math.min(e.clientX,start.x)+'px',top:Math.min(e.clientY,start.y)+'px',width:w+'px',height:h+'px'});
+ });
+ addEventListener('mouseup',e=>{
+  if(!start)return;const s0=start;start=null;
+  if(!frame){if(!s0.add){window.closeHostMenu?.();selectHosts([],false)}return}
+  const r=frame.getBoundingClientRect();frame.remove();frame=null;
+  const hit=[...map.querySelectorAll('[data-host-id]')].filter(b=>{const q=b.getBoundingClientRect();return q.right>r.left&&q.left<r.right&&q.bottom>r.top&&q.top<r.bottom}).map(b=>b.dataset.hostId);
+  selectHosts(s0.add?[...new Set([...picked,...hit])]:hit,false);
+ });
+}
 document.querySelector('nav .exit').onclick=e=>armTap(e.currentTarget.querySelector('span'),'Точно выйти?',()=>invoke('quit'));

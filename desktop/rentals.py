@@ -15,6 +15,7 @@ ITEMS = {
     'pad': 'Коврик Logitech G740',
 }
 LIMIT = 100
+HISTORY = 500
 
 
 class Rentals:
@@ -42,8 +43,14 @@ class Rentals:
 
     def returned(self, rental_id):
         rows = self.list()
-        left = [r for r in rows if r['id'] != rental_id]
-        if len(left) == len(rows):
+        done = next((r for r in rows if r['id'] == rental_id), None)
+        if done is None:
             raise ValueError('Аренда уже закрыта')
-        self.store.set('rentals', left)
+        # History first, then the active list: a crash in between can only duplicate a line, never lose it.
+        history = [h for h in self.history() if h['id'] != rental_id]
+        self.store.set('rentals.history', (history + [dict(done, returned_at=self.clock())])[-HISTORY:])
+        self.store.set('rentals', [r for r in rows if r['id'] != rental_id])
         return True
+
+    def history(self):
+        return [dict(h) for h in self.store.get('rentals.history', []) if h.get('item') in ITEMS]

@@ -336,3 +336,40 @@ nav .exit span{white-space:normal}
 .menu-slots button[aria-pressed="true"]{background:var(--lime);border-color:var(--lime);color:#000}
 .slot-day{grid-column:1/-1;margin-top:4px;font:700 8.5px var(--text);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .slot-day:first-child{margin-top:0}
+
+/* 3.2 · Time slots read in Unbounded */
+.menu-slots button{font:700 12px var(--text)!important;letter-spacing:0}
+/* 3.2 · Menu info: two equal columns, long names cut */
+.menu-info{grid-template-columns:repeat(2,minmax(0,1fr))}
+.info-row{min-width:0;overflow:hidden}
+.menu-tile.danger{border-color:#3a1424;color:var(--pink)}.menu-tile.danger:hover:not(:disabled){background:var(--pink);border-color:var(--pink);color:#000}
+.menu-group{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.menu-group span{padding:4px 7px;background:#fff;color:#000;font:700 11px var(--display)}
+.menu-group small{width:100%;font-size:9px;color:var(--muted)}
+/* 3.2 · Frame selection */
+.sel-frame{position:fixed;z-index:50;border:2px solid var(--lime);background:rgba(163,255,16,.08);pointer-events:none}
+.desk-plan{user-select:none;cursor:crosshair}
+.desk-plan .desk-pc,.desk-plan .desk-ps5{cursor:pointer}
+/* 3.2 · Company block in the bookings list */
+.booking-group{display:flex;flex-direction:column;gap:6px;padding:10px;border:2px solid var(--lime);background:rgba(7,16,0,.9)}
+.group-head{display:flex;align-items:baseline;gap:8px}
+.group-head .tag{background:var(--lime);color:#000;padding:3px 6px;font:800 7.5px var(--text);letter-spacing:.12em;text-transform:uppercase}
+.group-head h3{font-size:16px}.group-head .time{margin-left:auto;font-size:9.5px;color:#cfcfcf;white-space:nowrap}
+.group-pcs{font:700 12px var(--display);color:var(--lime)}
+.group-body{display:flex;flex-direction:column;gap:6px}
+.group-body .card{background:#000!important}
+/* 3.2 · Rental history */
+.history-toggle{align-self:center;display:inline-flex;align-items:center;gap:8px;margin-top:6px;color:var(--muted);border-color:var(--rule)}
+.history-toggle[aria-expanded="true"]{color:#fff;border-color:#fff}
+.rental-history{display:flex;flex-direction:column;gap:8px;padding:14px;border:2px solid var(--rule);background:rgba(0,0,0,.9)}
+.rental-history h3{margin-top:6px;font-size:13px;color:var(--lime)}
+.rental-history h3:first-child{margin-top:0}
+.history-day{display:flex;flex-direction:column}
+.history-row{display:grid;grid-template-columns:24px minmax(140px,1.2fr) minmax(0,1fr) auto;gap:12px;align-items:center;padding:8px 0;border-bottom:2px solid var(--rule);font-size:10.5px}
+.history-row .rental-icon{width:20px;height:20px}
+.history-row strong{font-weight:700}
+.history-row .who{color:#cfcfcf;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.history-row .when{color:var(--muted);white-space:nowrap}
+.rental-history .empty{color:var(--muted)}
+.info-row b{font-size:11px}
+.host-menu[data-view="group"] .menu-state{display:none}

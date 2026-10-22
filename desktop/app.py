@@ -98,6 +98,26 @@ class App:
         try:
             with self.lock:return {'ok':self.rentals.returned(rental_id)}
         except ValueError as error:return {'error':str(error)}
+    def logout_host(self,host,user_id):
+        # Ends the player's Gizmo session on this PC; only if that player is still the one on it.
+        try:
+            with self.operations:
+                sessions=[x for x in self.gizmo.sessions() if str(x.get('hostNumber'))==str(host)]
+                if not sessions or int(sessions[0].get('userId',-1))!=int(user_id):return {'error':'На ПК уже другой гость. Обновите данные'}
+                self.gizmo.request('POST',f'users/{int(user_id)}/logout')
+                self.host_rows=self.bridge.collect_hosts();self.last_sync=time.time()
+            return {'ok':True}
+        except Exception as error:return {'error':str(error)[:160] or 'Gizmo не подтвердил выход'}
+    def copy_text(self,text):
+        # Clipboard fallback for the Qt web view: Windows clip.exe understands UTF-16 with BOM.
+        try:
+            text=str(text)[:500]
+            if sys.platform=='win32':
+                import subprocess
+                subprocess.run(['clip'],input=text.encode('utf-16'),check=True,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0),timeout=5)
+                return {'ok':True}
+            return {'error':'Буфер обмена недоступен'}
+        except Exception:return {'error':'Не удалось скопировать'}
     def preview_sound(self,preset):
         try:self.sound.play_preset(preset);return {'ok':True}
         except ValueError as error:return {'error':str(error)}
@@ -256,7 +276,7 @@ class App:
 
     def snapshot(self):
         with self.lock:
-            return {'rentals':self.rentals.list(),'rental_items':RENTAL_ITEMS,'password_grants':self.password_grants,'password_ready':self.password_ready and self.online,'registrations':self.registrations,'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':self.error,'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'update':self.updater.snapshot(),'version':VERSION,'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
+            return {'rentals':self.rentals.list(),'rental_history':self.rentals.history()[-200:],'rental_items':RENTAL_ITEMS,'password_grants':self.password_grants,'password_ready':self.password_ready and self.online,'registrations':self.registrations,'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':self.error,'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'update':self.updater.snapshot(),'version':VERSION,'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
     def acknowledge(self):
         with self.lock:self.store.set('alerts',{})
         self.sound.stop()

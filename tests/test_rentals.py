@@ -21,6 +21,8 @@ class RentalsTest(unittest.TestCase):
         self.assertEqual([r['id'] for r in self.rentals.list()], [b['id']])
         with self.assertRaises(ValueError):
             self.rentals.returned(a['id'])
+        history = Rentals(self.store).history()
+        self.assertEqual([(h['id'], h['returned_at']) for h in history], [(a['id'], 1000)])
 
     def test_validation(self):
         self.assertEqual(len(ITEMS), 6)

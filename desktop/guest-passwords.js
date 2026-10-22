@@ -36,7 +36,7 @@
     try{const r=await invoke('authorize_guest_password','password_request',id,user.id,user.username,true,privileged);setDeskText($('account-message'),r?.ok?'Разрешение выдано. Пароль вводит владелец на телефоне.':r?.error||'Нет подтверждения');if(r?.ok)$('reset-user').hidden=true}finally{busy=false}
    };
   }
-  if(!ready)setDeskText($('account-message'),'Восстановление пока недоступно: требуется обновлённый сервер и связь с Desk');
+  if(!ready&&selectedResetRequest)setDeskText($('account-message'),'Разрешение по заявке пока недоступно: сервер клуба не обновлён');
   const submit=$('reset-user').querySelector('button');if(selectedResetRequest)setDeskText(submit,'Разрешить ввод пароля на телефоне');submit.disabled=(!!selectedResetRequest&&!ready)||busy;
   for(const card of $('password-requests').querySelectorAll('.reset-request')){
    const active=(s.password_grants||[]).some(g=>g.source_id===card.dataset.requestId);

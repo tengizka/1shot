@@ -32,7 +32,28 @@
  $('rental-host').oninput=$('rental-who').oninput=sync;
  $('rental-add').onclick=()=>{const form=$('rental-form');form.hidden=!form.hidden;if(!form.hidden){$('rental-message').textContent='';$('rental-host').focus()}};
  $('rental-form').onsubmit=async e=>{e.preventDefault();if($('rental-submit').disabled)return;$('rental-submit').disabled=true;const r=await invoke('add_rental',picked,$('rental-host').value.trim()||null,$('rental-who').value.trim());if(r?.ok){picked=null;$('rental-host').value=$('rental-who').value='';$('rental-items').querySelectorAll('.rental-pick').forEach(x=>x.setAttribute('aria-checked','false'));$('rental-form').hidden=true}else setDeskText($('rental-message'),r?.error||'Нет ответа');sync()};
+ // History: returned items grouped by day (MSK), newest first.
+ const day=at=>new Date(at*1000).toLocaleDateString('ru-RU',{timeZone:'Europe/Moscow',day:'numeric',month:'long',weekday:'short'});
+ const span=(a,b)=>{const m=Math.max(0,Math.round((b-a)/60));return m<60?m+' мин':Math.floor(m/60)+' ч '+String(m%60).padStart(2,'0')+' мин'};
+ let historyKey='';
+ function renderHistory(rows,items){
+  const key=JSON.stringify(rows.map(r=>r.id));if(key===historyKey)return;historyKey=key;
+  const box=$('rental-history');box.replaceChildren();
+  if(!rows.length){const p=document.createElement('p');p.className='empty';p.textContent='Пока ничего не возвращали';box.append(p);return}
+  let current='';let list=null;
+  for(const r of [...rows].sort((a,b)=>b.returned_at-a.returned_at)){
+   const d=day(r.returned_at);if(d!==current){current=d;const h=document.createElement('h3');h.textContent=d;list=document.createElement('div');list.className='history-day';box.append(h,list)}
+   const row=document.createElement('div');row.className='history-row';row.dataset.kind=kind(r.item);
+   row.innerHTML=rentalIcon(r.item)+'<strong></strong><span class="who"></span><span class="when"></span>';
+   row.querySelector('strong').textContent=items[r.item]||r.item;
+   row.querySelector('.who').textContent=[r.host?hostName(r.host):'',r.who].filter(Boolean).join(' · ');
+   row.querySelector('.when').textContent=time(r.at)+' → '+time(r.returned_at)+' · '+span(r.at,r.returned_at);
+   list.append(row);
+  }
+ }
+ $('rental-history-toggle').onclick=e=>{const box=$('rental-history'),open=box.hidden;box.hidden=!open;e.currentTarget.setAttribute('aria-expanded',String(open));if(open)box.scrollIntoView({block:'start',behavior:'smooth'})};
  window.renderRentals=s=>{
+  renderHistory(s.rental_history||[],s.rental_items||{});
   const items=s.rental_items||{},rows=s.rentals||[];setupForm(items);
   setDeskText($('rentals-count'),rows.length);$('rentals-count').toggleAttribute('data-zero',!rows.length);
   const list=$('rental-list'),existing=new Map([...list.children].map(n=>[n.dataset.id,n]));

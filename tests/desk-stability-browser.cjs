@@ -26,7 +26,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   await page.evaluate(async()=>{observer.disconnect();state.rows[0].status='attention';await refresh()});
   assert.equal(await page.evaluate(()=>getSelection().toString()),'ПК 11');assert.match(await first.getAttribute('class'),/attention/);
   await first.getByRole('button',{name:'Копировать телефон'}).click();await first.getByRole('button',{name:'Копировать номер брони'}).click();assert.deepEqual(await page.evaluate(()=>copied),['+79990000001','a']);
-  await page.evaluate(()=>window.failCopy=true);await first.getByRole('button',{name:'Копировать номер брони'}).click();assert.match(await first.innerText(),/Ctrl\+C/);
+  await page.evaluate(()=>{window.failCopy=true;document.execCommand=()=>false});await first.getByRole('button',{name:'Копировать номер брони'}).click();assert.match(await first.innerText(),/Ctrl\+C/);
   await page.locator('[data-panel="accounts"]').click();await page.locator('#account-search').fill('Иванова');await page.waitForSelector('#account-options button');
   await page.evaluate(()=>{const input=document.querySelector('#account-search');input.focus();input.setSelectionRange(2,5);window.option=document.querySelector('#account-options button')});
   await page.evaluate(async()=>{state.rows[1].status='waiting';state.password_requests.push({id:'reset-b',gizmo_user_id:8,telegram_id:101});await refresh()});
