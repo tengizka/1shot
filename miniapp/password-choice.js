@@ -1,4 +1,4 @@
-/* STAGED. Only signed owner status from the existing capabilities/state poll. */
+/* Guest sets the password after the admin allows it in Desk. Only signed owner status from the existing capabilities/state poll. */
 (()=>{
  const panel=document.createElement('section');panel.id='guest-password-panel';panel.hidden=true;
  const title=document.createElement('h3'),note=document.createElement('p'),form=document.createElement('form'),label=document.createElement('label'),input=document.createElement('input'),button=document.createElement('button');
@@ -24,7 +24,7 @@
  form.onsubmit=async event=>{
   event.preventDefault();if(busy||grant?.status!=='authorized'||hasAttempt(grant.id))return;
   const password=input.value;if(!password.trim()||Array.from(password).length<grant.minimum_length||Array.from(password).length>64){note.textContent='Проверьте длину пароля';return}
-  const selected={...grant};if(!confirm('Установить этот пароль для '+selected.username+'?'))return;
+  const selected={...grant};if(!await uiConfirm('Установить этот пароль для '+selected.username+'?',{ok:'Установить'}))return;
   attempted.add(selected.id);try{sessionStorage.setItem(key(selected.id),'1')}catch{}
   busy=true;button.disabled=true;input.value='';form.hidden=true;
   try{const result=await apiFetch(`${SUPA}/club-auth`,{method:'POST',body:JSON.stringify({action:'password_submit',initData:tg?.initData||'',grant_id:selected.id,request_id:crypto.randomUUID(),password})});accept({...selected,status:result.status})}

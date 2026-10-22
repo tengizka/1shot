@@ -1,4 +1,4 @@
-/* STAGED: load before club-booking.js only after migration/functions/Desk cutover. No timer. */
+/* Registration as an application: the admin confirms the guest in person in Desk. Loads before club-booking.js. No timer. */
 (()=>{
  const form=document.getElementById('form-register'),password=document.getElementById('r-pass'),button=document.getElementById('btn-reg');
  password.minLength=1;password.maxLength=64;button.textContent='Отправить анкету';
@@ -6,7 +6,7 @@
  const title=document.createElement('h2'),message=document.createElement('p'),login=document.createElement('button');login.type='button';login.className='btn-main';login.textContent='У меня уже есть аккаунт';
  const retry=document.createElement('button');retry.type='button';retry.className='btn-main';retry.textContent='Заполнить новую анкету';box.append(title,message,login,retry);document.querySelector('#auth .auth-tabs').before(box);
  let ready=false,busy=false,dismissed=null,current=null;
- const messages={awaiting_admin:['Анкета отправлена','Подойдите к администратору клуба с документом. Аккаунт появится только после очной проверки.'],processing:['Администратор проверяет анкету','Не отправляйте её повторно.'],attention:['Нужна дополнительная проверка','Обратитесь к администратору. Новое создание аккаунта заблокировано до сверки.'],rejected:['Анкета отклонена','Уточните причину у администратора. Если аккаунт уже существует — используйте вход.'],expired:['Срок анкеты истёк','Можно заполнить новую анкету.']};
+ const messages={awaiting_admin:['Анкета отправлена','Подойди к администратору с документом — он подтвердит анкету.'],processing:['Проверяем анкету','Повторно отправлять не нужно.'],attention:['Нужна проверка','Подойди к администратору.'],rejected:['Анкета отклонена','Уточни у администратора. Если аккаунт уже есть — войди.'],expired:['Анкета устарела','Заполни новую.']};
  const visible=value=>{box.hidden=!value;form.hidden=value;document.querySelector('#auth .auth-tabs').hidden=value;document.getElementById('form-login').hidden=value};
  login.onclick=()=>{dismissed=current?.id;visible(false);switchAuthTab('login',document.querySelector('.auth-tab'))};
  retry.onclick=()=>{dismissed=current?.id;visible(false);switchAuthTab('register',document.querySelectorAll('.auth-tab')[1])};

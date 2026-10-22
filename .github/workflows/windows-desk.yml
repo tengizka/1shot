@@ -75,14 +75,11 @@ jobs:
         run: python -m unittest discover -s tests -p test_guest_passwords.py
       - name: Test on-screen notices and self-update
         run: python -m unittest tests.test_toast tests.test_updater
-      - name: Stage registration frontend without publishing it
+      - name: Mini-app ships the registration application UI
         shell: pwsh
         run: |
-          $target = Join-Path $env:RUNNER_TEMP 'registration-preview'
-          ./release/registration/Stage-Frontend.ps1 -OutputDirectory $target
-          $indexFile = if (Test-Path miniapp/index.html) { 'miniapp/index.html' } else { 'index.html' }
-          if ((Get-Content $indexFile -Raw).Contains('registration-wait.js')) { throw 'Production frontend must remain unchanged during staging' }
-          if (-not (Get-Content (Join-Path $target 'index.html') -Raw).Contains('registration-wait.js')) { throw 'Staged frontend missing approval UI' }
+          $html = Get-Content miniapp/index.html -Raw
+          foreach ($file in 'registration-wait.js','registration-wait.css','password-choice.js') { if (-not $html.Contains($file)) { throw "miniapp/index.html is missing $file" } }
       - name: Verify SQLite backup and read-only upgrade preflight
         shell: pwsh
         run: |
