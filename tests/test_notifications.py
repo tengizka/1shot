@@ -25,11 +25,15 @@ class NotificationsTest(unittest.TestCase):
         gate=NotificationGate(self.store);gate.consume({'8':{}})
         self.assertEqual(self.store.get('notice_cursor'),8)
         self.assertEqual(NotificationGate(self.store).consume({'8':{}}),[])
-    def test_local_sounds_and_event_settings(self):
+    def test_local_sounds_and_simple_settings(self):
         sound=Sound(Path(self.tmp.name),self.store)
-        self.assertEqual(len(PRESETS),12)
+        self.assertEqual(len(PRESETS),5)
         for preset in PRESETS:
-            sound.configure({'preset':preset,'volume':20,'events':{'created':'glass','attention':'low'},'enabled':False})
+            sound.configure({'preset':preset,'volume':20,'enabled':False})
             self.assertGreater(sound.path().stat().st_size,1000)
-        self.assertEqual(Sound(Path(self.tmp.name),self.store).settings['events']['attention'],'low')
+        self.assertEqual(Sound(Path(self.tmp.name),self.store).settings['preset'],list(PRESETS)[-1])
         with self.assertRaises(ValueError):sound.configure({'preset':'bad'})
+    def test_old_saved_preset_falls_back(self):
+        self.store.set('sound',{'preset':'chime','volume':40,'enabled':True,'events':{'created':'glass'}})
+        sound=Sound(Path(self.tmp.name),self.store)
+        self.assertEqual((sound.settings['preset'],sound.settings['volume'],sound.settings['events']),('soft',40,{}))

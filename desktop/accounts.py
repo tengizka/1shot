@@ -149,7 +149,7 @@ class Accounts:
         user=self.guest(result['id'])
         return {k:user.get(k) for k in ('id','username','firstName','lastName','mobilePhone','phone')}
     def reset(self,uid,expected_username,password,request_id=None,admin=False,privileged_confirmed=False):
-        if not isinstance(password,str) or not 8<=len(password)<=64 or password.isspace():raise UnsafeOperation('Новый пароль: от 8 до 64 символов')
+        if not isinstance(password,str) or not 3<=len(password)<=64 or password.isspace():raise UnsafeOperation('Новый пароль: от 3 до 64 символов')
         user=self.directory.get(uid,fresh=True) if admin else self.guest(uid)
         if admin and user['requires_privileged_confirmation'] and privileged_confirmed is not True:raise UnsafeOperation('Подтвердите смену пароля служебной или неподтверждённой гостевой группы')
         if user.get('username')!=expected_username:raise UnsafeOperation('Логин изменился. Найдите аккаунт заново')

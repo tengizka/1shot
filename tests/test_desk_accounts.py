@@ -101,7 +101,7 @@ class AccountsTests(unittest.TestCase):
   with self.assertRaises(UnsafeOperation):self.api.queue_password_result('r','done')
  def test_soft_sound_volume_and_saved_preferences(self):
   sound=Sound(Path(self.temp.name),self.store);self.assertEqual(sound.settings['preset'],'soft');self.assertTrue(sound.path().exists())
-  sound.configure({'preset':'chime','volume':25,'repeat':30,'enabled':False});other=Sound(Path(self.temp.name),self.store);self.assertEqual(other.settings['volume'],25);self.assertFalse(other.settings['enabled'])
+  sound.configure({'preset':'bell','volume':25,'enabled':False});other=Sound(Path(self.temp.name),self.store);self.assertEqual(other.settings['volume'],25);self.assertFalse(other.settings['enabled'])
 
 class ShutdownTests(unittest.TestCase):
  def test_close_hides_but_exit_destroys_before_tray_stop(self):

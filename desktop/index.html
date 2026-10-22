@@ -6,7 +6,7 @@
 
 <div class="window-bar">
  <div class="pywebview-drag-region"><img src="assets/tray-icon.png" alt=""><span id="window-title">1SHOT / CLUB DESK</span></div>
- <div class="status-chips"><span id="connection">СЕРВЕР · …</span><span id="gizmo-connection">GIZMO · …</span><span id="duty-chip" hidden></span><span id="clock-chip"></span></div>
+ <div class="status-chips"><span id="connection">СЕРВЕР · …</span><span id="gizmo-connection">GIZMO · …</span><span id="clock-chip"></span></div>
  <div class="window-actions">
   <button onclick="invoke('minimize')" aria-label="Свернуть"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 6h8"/></svg></button>
   <button onclick="invoke('maximize')" aria-label="Развернуть"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.5" y="1.5" width="9" height="9"/></svg></button>
@@ -17,7 +17,7 @@
 <nav>
  <img class="brand-logo" src="assets/logo.svg" alt="1SHOT">
  <button class="tab active" data-panel="hall"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span>Зал</span></button>
- <button class="tab" data-panel="bookings"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 2v5M16 2v5"/></svg><span>Брони</span><b id="count">0</b></button>
+ <button class="tab" data-panel="rentals"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="5"/><path d="M12 2v7M7 9h10"/></svg><span>Аренды</span><b id="rentals-count">0</b></button>
  <button class="tab" data-panel="accounts"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg><span>Аккаунты</span><b id="requests-count">0</b></button>
  <button class="tab" data-panel="sound"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 3-1 3-3 1-2 5 2 5 3 1 1 3h6l1-3 3-1 2-5-2-5-3-1-1-3Z"/><circle cx="12" cy="12" r="3"/></svg><span>Настройки</span></button>
  <button class="exit" onclick="invoke('quit')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v9M6.3 6.3a8 8 0 1 0 11.4 0"/></svg><span>Завершить работу</span></button>
@@ -37,19 +37,22 @@
  </div>
  <aside class="booking-column">
   <div class="section-heading">
-   <h2 id="booking-title">Брони</h2>
-   <div class="booking-filters">
-    <button id="add-booking" class="icon-btn" aria-label="Добавить бронь" title="Новая бронь"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 4v16M4 12h16"/></svg></button>
-    <button id="host-login" hidden>Войти на ПК</button>
-    <button id="all-hosts" onclick="selectHost(null)">Все ПК</button>
-   </div>
+   <h2 id="booking-title">Брони <span id="booking-total" class="dim"></span></h2>
+   <button id="add-booking" aria-label="Добавить бронь"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg><span id="add-booking-label">Бронь</span></button>
   </div>
-  <div class="list-tools">
-   <select id="booking-filter" aria-label="Фильтр броней"><option value="all">Все статусы</option><option value="attention">Требуют проверки</option><option value="holding">Ждут гостя</option><option value="scheduled">Ко времени</option><option value="arrival">В течение часа</option></select>
-   <select id="booking-sort" aria-label="Сортировка броней"><option value="time">По времени</option><option value="host">По ПК</option><option value="name">По гостю</option></select>
-  </div>
+  <p id="pick-hint" class="pick-hint" hidden>Выберите ПК на карте</p>
   <div id="grid"></div>
  </aside>
+</section>
+
+<section id="panel-rentals" hidden>
+ <div class="page-head"><h2>Аренды</h2><button id="rental-add" aria-label="Выдать вещь"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>Выдать</button></div>
+ <form id="rental-form" class="surface rental-form" hidden>
+  <div id="rental-items" class="rental-items" role="radiogroup" aria-label="Что выдали"></div>
+  <div class="rental-who"><label>ПК<input id="rental-host" inputmode="numeric" maxlength="3" placeholder="104"></label><label>Кому<input id="rental-who" maxlength="60" placeholder="Ник или имя"></label><button id="rental-submit" disabled>Выдать</button></div>
+  <p id="rental-message" role="status"></p>
+ </form>
+ <div id="rental-list" class="rental-list"></div>
 </section>
 
 <section id="panel-accounts" hidden>
@@ -57,10 +60,10 @@
  <div class="account-layout">
   <div class="surface">
    <h3>Сменить пароль</h3>
-   <p class="note">Проверьте личность владельца. Для служебных групп нужно дополнительное подтверждение. Старый пароль не показывается.</p>
+   
    <form id="find-user"><label>Никнейм, телефон, имя или фамилия<input id="account-search" maxlength="80" autocomplete="off" required></label><button>Найти аккаунт</button></form>
    <div id="account-options" class="account-options"></div><div id="account-result"></div>
-   <form id="reset-user" hidden><label>Новый пароль<input type="password" id="new-password" minlength="8" maxlength="64" autocomplete="new-password" required></label><label class="check"><input type="checkbox" id="identity-checked" required> Личность владельца проверена</label><label id="privileged-wrap" class="check" hidden><input type="checkbox" id="privileged-checked"> Подтверждаю смену пароля служебной или неподтверждённой гостевой группы</label><button>Установить новый пароль</button></form>
+   <form id="reset-user" hidden><label>Новый пароль<input type="password" id="new-password" minlength="3" maxlength="64" autocomplete="new-password" required></label><label class="check"><input type="checkbox" id="identity-checked" required> Личность владельца проверена</label><label id="privileged-wrap" class="check" hidden><input type="checkbox" id="privileged-checked"> Подтверждаю смену пароля служебной или неподтверждённой гостевой группы</label><button>Установить новый пароль</button></form>
    <p id="account-message" role="status"></p>
   </div>
   <div class="surface"><h3>Запросы на сброс</h3><div id="password-requests"></div></div>
@@ -68,33 +71,25 @@
 </section>
 
 <section id="panel-sound" hidden>
- <div class="page-head"><h2>Настройки</h2><div class="settings-tabs" role="tablist"><button type="button" role="tab" data-settings="alerts" aria-selected="true">Уведомления</button><button type="button" role="tab" data-settings="team" aria-selected="false">Смены</button><button type="button" role="tab" data-settings="update" aria-selected="false">Обновление</button></div></div>
- <div class="settings-pane" data-settings="alerts">
-  <div class="surface sound-settings"><h3>Звук</h3>
-   <div class="form-grid">
-    <label>Мелодия<select id="sound-preset"><option value="soft">Мягкий сигнал</option><option value="chime">Колокольчики</option><option value="pulse">Спокойный пульс</option><option value="glass">Стекло</option><option value="warm">Тёплый</option><option value="rise">Восходящий</option><option value="low">Низкий</option><option value="spark">Искра</option><option value="softbell">Мягкий колокол</option><option value="drop">Капля</option><option value="triple">Три ноты</option><option value="calm">Спокойный</option></select></label>
-    <label>Громкость <output id="volume-label">50%</output><input type="range" id="sound-volume" min="0" max="100" value="50"></label>
-    <label>Новая бронь<select id="sound-created"></select></label>
-    <label>Ожидание ПК<select id="sound-waiting"></select></label>
-    <label>Нужна проверка<select id="sound-attention"></select></label>
-    <label class="check"><input type="checkbox" id="sound-enabled" checked> Звук включён</label>
-   </div>
-   <div class="actions"><button onclick="saveSound(true)">Сохранить и проверить</button></div><p id="sound-result" role="status"></p>
-  </div>
- </div>
- <div class="settings-pane" data-settings="team" hidden>
-  <section id="club-management-gate" class="surface club-management-section"><h3>Управление клубом</h3><button type="button" class="btn-royal" id="btn-royal-management"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z"/><circle cx="12" cy="19" r="2"/></svg> Открыть график смен</button><div id="club-rota-panel" class="club-rota-panel" hidden><h3>График смен администраторов</h3><p class="note">Дневная смена: 09:00 – 21:00 МСК · Ночная смена: 21:00 – 09:00 МСК</p><div class="rota-month-selector"><button type="button" id="rota-prev-month">◀</button><span id="rota-month-label">Октябрь 2026</span><button type="button" id="rota-next-month">▶</button></div><div id="rota-days-container" class="rota-days-container"></div><div class="actions"><button type="button" id="btn-save-rota">Сохранить график</button><button type="button" id="btn-preview-rota">Предпросмотр дежурного</button><button type="button" id="btn-publish-rota">Опубликовать в мини-приложение</button></div><p id="rota-status" role="status" class="note"></p><details class="rota-import-box"><summary>Импорт из PowerShell / таблицы</summary><textarea id="rota-import-text" placeholder="ДД.ММ.ГГГГ;Дневная_смена;Ночная_смена&#10;08.10.2026;Алексей;Михаил"></textarea><div class="actions"><button type="button" id="btn-apply-rota-import">Применить импорт</button></div></details></div></section>
+ <div class="page-head"><h2>Настройки</h2><div class="settings-tabs" role="tablist"><button type="button" role="tab" data-settings="sound" aria-selected="true">Звук</button><button type="button" role="tab" data-settings="update" aria-selected="false">Обновление</button></div></div>
+ <div class="settings-pane" data-settings="sound">
+  <section class="surface sound-settings">
+   <div class="sound-top"><label class="switch"><input type="checkbox" id="sound-enabled" checked><i aria-hidden="true"></i><span>Звук уведомлений</span></label>
+   <label class="volume">Громкость <output id="volume-label">60%</output><input type="range" id="sound-volume" min="0" max="100" value="60"></label></div>
+   <div id="sound-presets" class="sound-presets" role="radiogroup" aria-label="Мелодия"></div>
+   <p id="sound-result" role="status"></p>
+  </section>
  </div>
  <div class="settings-pane" data-settings="update" hidden>
   <section class="surface update-box" id="update-box">
    <h3>Обновление 1SHOT Desk</h3>
    <div class="update-row"><div><small>Установлена</small><b id="update-current">—</b></div><div><small>Последняя</small><b id="update-latest">—</b></div></div>
    <div class="update-progress" id="update-progress" hidden><i></i></div>
-   <p id="update-message" class="note" role="status">Проверьте, есть ли новая версия. Настройки, .env и журнал при обновлении не трогаются.</p>
+   <p id="update-message" class="note" role="status"></p>
    <div class="actions"><button type="button" id="update-check">Проверить обновления</button><button type="button" id="update-run" hidden>Обновить</button></div>
   </section>
  </div>
 </section>
 </main>
 
-<script src="brand.js"></script><script src="assets/hall-map.js"></script><script src="assets/arrival-time.js"></script><script src="assets/oneshot-loader.js"></script><script src="desk.js"></script><script src="reminders.js"></script><script src="rota.js"></script><script src="admin-tools.js"></script><script src="registrations.js"></script><script src="guest-passwords.js"></script><script src="desk-shell.js"></script></body></html>
+<script src="brand.js"></script><script src="assets/hall-map.js"></script><script src="assets/arrival-time.js"></script><script src="assets/oneshot-loader.js"></script><script src="desk.js"></script><script src="admin-tools.js"></script><script src="desk-menu.js"></script><script src="rentals.js"></script><script src="registrations.js"></script><script src="guest-passwords.js"></script><script src="desk-shell.js"></script></body></html>

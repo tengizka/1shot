@@ -40,7 +40,6 @@ jobs:
           node tests/club-v2-browser.cjs
           node tests/guest-passwords-browser.cjs
           node tests/registration-approval-browser.cjs
-          node tests/reminders-browser.cjs
           node tests/desk-stability-browser.cjs
           node tests/desk-browser.cjs
           node tests/admin-tools-browser.cjs
@@ -58,8 +57,8 @@ jobs:
         run: python -m unittest discover -s tests -p test_club_controller.py
       - name: Test account safety and shutdown
         run: python -m unittest discover -s tests -p test_desk_accounts.py
-      - name: Test one-shot notifications and offline reminders
-        run: python -m unittest tests.test_notifications tests.test_reminders
+      - name: Test one-shot notifications, sounds and rentals
+        run: python -m unittest tests.test_notifications tests.test_rentals
       - name: Test economical polling and cache safety
         run: python -m unittest discover -s tests -p test_economy.py
       - name: Test staff directory and password boundaries

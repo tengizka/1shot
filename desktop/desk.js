@@ -5,19 +5,30 @@ const fmt=v=>new Date(v).toLocaleTimeString('ru-RU',{timeZone:'Europe/Moscow',ho
 const hostName=id=>String(id)==='1'?'PS5':'ПК '+id;
 let current=null,selectedHost=null,foundAccount=null,inFlight=false,soundLoaded=false,selectedResetRequest=null,view='hall';
 
-/* Зал and Брони share one screen: the plan with the list beside it, or the list alone. */
 function panel(name){
- view=name;const hall=name==='hall'||name==='bookings';
- document.querySelectorAll('main>section[id^=panel-]').forEach(e=>e.hidden=hall?e.id!=='panel-hall':e.id!=='panel-'+name);
+ view=name;window.closeHostMenu?.();
+ document.querySelectorAll('main>section[id^=panel-]').forEach(e=>e.hidden=e.id!=='panel-'+name);
  document.body.dataset.view=name;
  document.querySelectorAll('[data-panel]').forEach(e=>e.classList.toggle('active',e.dataset.panel===name));
 }
 document.querySelectorAll('[data-panel]').forEach(e=>e.onclick=()=>panel(e.dataset.panel));
 async function invoke(method,...args){try{const result=await window.pywebview.api[method](...args);if(!['booking_guest','find_account','search_accounts','select_account','check_update','download_update'].includes(method))await refresh();return result}catch{$('error').textContent='Не удалось выполнить команду. Проверьте связь с агентом';return null}}
+/* The list always shows every booking; a picked PC only highlights its own and owns the «+». */
 function selectHost(id){
- selectedHost=id==null?null:String(id);if(view!=='hall'&&view!=='bookings')panel('hall');
+ selectedHost=id==null?null:String(id);if(view!=='hall')panel('hall');
  document.querySelectorAll('#desk-map [data-host-id]').forEach(b=>b.classList.toggle('selected',b.dataset.hostId===selectedHost));
- if(current){bookings(current);refresh.bookingKey=JSON.stringify(current.rows)+selectedHost}
+ markSelected(true);
+}
+function markSelected(scroll=false){
+ setDeskText($('add-booking-label'),selectedHost?'Бронь · '+hostName(selectedHost):'Бронь');
+ let first=null;for(const card of $('grid').children){const on=!!selectedHost&&card.booking?.host_id===selectedHost;card.classList.toggle('focus',on);if(on&&!first)first=card}
+ if(scroll&&first)first.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+// Second tap confirms: no system dialogs anywhere in Desk.
+function armTap(btn,armed,action){
+ if(btn.dataset.armed){clearTimeout(btn.armTimer);delete btn.dataset.armed;btn.textContent=btn.dataset.label;action();return}
+ btn.dataset.label=btn.textContent;btn.dataset.armed='1';btn.textContent=armed;
+ btn.armTimer=setTimeout(()=>{if(btn.dataset.armed){delete btn.dataset.armed;btn.textContent=btn.dataset.label}},3000);
 }
 // Keep stable nodes: polling must not collapse details, steal focus or reset selection.
 function setDeskText(node,value){const text=String(value??'');if(node.textContent!==text)node.textContent=text}
@@ -37,7 +48,7 @@ function makeBookingCard(){
  const top=el(card,null,'div','card-top');el(top,'host','h2');el(top,'tag','span','tag');el(top,'time','p','time');
  const mid=el(card,null,'div','card-mid');el(mid,'guest','p','guest');el(mid,'status','p','status-pill');
  el(card,'codeLabel','small','code-label');setDeskText(fields.codeLabel,'Код старой брони');el(card,'code','strong','code');el(card,'message','p','dim');
- const details=el(card,'details','details','guest-details'),heading=document.createElement('summary');heading.textContent='Информация о госте';details.append(heading);
+ const details=el(card,'details','details','guest-details'),heading=document.createElement('summary');heading.textContent='Гость';details.append(heading);
  const info=document.createElement('div');info.className='guest-info';details.append(info);
  const detailRows=['Имя','Никнейм','Телефон','Gizmo ID','Telegram ID'].map(label=>{const p=document.createElement('p');info.append(p);return {p,label}});
  const phone=document.createElement('button');phone.type='button';phone.textContent='Копировать телефон';details.append(phone);
@@ -57,18 +68,17 @@ function makeBookingCard(){
  seat.onclick=async()=>{
   const b=card.booking;
   if(b.gizmo_user_id&&b.gizmo_user_id>0){
-   if(!confirm('Посадить гостя за ПК '+b.host_id+'? Убедитесь в присутствии гостя.'))return;
    setDeskText(copyStatus,'Выполняем посадку за ПК…');
    const res=await invoke('seat_guest',b.id,b.host_id,b.gizmo_user_id);
    setDeskText(copyStatus,res?.ok?'Гость посажен за ПК '+b.host_id:res?.error||'Ошибка посадки');
-  }else if(window.openAdminPC){window.openAdminPC('login',b.host_id)}
+  }else if(window.openHostMenu){selectHost(b.host_id);window.openHostMenu(b.host_id,'login')}
   else{panel('accounts');$('account-search').focus();setDeskText(copyStatus,'Бронь без аккаунта. Выберите аккаунт гостя для посадки за ПК '+b.host_id)}
  };
  fields.seat=seat;
  const copy=document.createElement('button');copy.type='button';copy.className='icon-btn';copy.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="8" y="8" width="13" height="13"/><path d="M16 8V3H3v13h5"/></svg>';copy.setAttribute('aria-label','Копировать номер брони');copy.title='Копировать номер брони';actions.append(copy);
  const cancel=document.createElement('button');cancel.type='button';cancel.className='btn-cancel';cancel.textContent='Отменить';cancel.setAttribute('aria-label','Отменить бронь');actions.append(cancel);
  const copyStatus=el(card,'copyStatus','p','note');copyStatus.setAttribute('role','status');copy.onclick=()=>copyDeskText(card.booking.id,copyStatus);
- cancel.onclick=async()=>{const b=card.booking;if(!confirm('Отменить бронь '+hostName(b.host_id)+'? Сессия игрока не будет завершена.'))return;cancel.disabled=true;try{const r=await invoke('cancel_booking',b.id);if(r?.error)setDeskText($('error'),r.error)}finally{cancel.disabled=false}};
+ cancel.onclick=()=>armTap(cancel,'Точно?',async()=>{const b=card.booking;cancel.disabled=true;try{const r=await invoke('cancel_booking',b.id);if(r?.error)setDeskText($('error'),r.error)}finally{cancel.disabled=false}});
  card.update=b=>{
   card.booking=b;card.dataset.bookingId=b.id;const cl='card '+b.status;if(card.className!==cl)card.className=cl;
   const identity=JSON.stringify([b.gizmo_user_id,b.telegram_id]);if(identity!==card.identity){card.identity=identity;delete details.dataset.loaded;setDeskText(detailStatus,'')}
@@ -83,15 +93,14 @@ function makeBookingCard(){
  return card;
 }
 function bookings(s){
- const grid=$('grid');setDeskText($('booking-title'),selectedHost?'Брони · '+hostName(selectedHost):'Все брони');$('all-hosts').hidden=!selectedHost;
- const filter=$('booking-filter').value,sort=$('booking-sort').value;
- const rows=s.rows.filter(b=>(!b.instant||b.status==='attention')&&(!selectedHost||b.host_id===selectedHost)&&(filter==='all'||b.status===filter||b.mode===filter)).sort((a,b)=>sort==='host'?Number(a.host_id)-Number(b.host_id):sort==='name'?String(a.username||'').localeCompare(String(b.username||'')):Date.parse(a.starts_at)-Date.parse(b.starts_at));
+ const grid=$('grid');
+ const rows=s.rows.filter(b=>!b.instant||b.status==='attention').sort((a,b)=>Date.parse(a.starts_at)-Date.parse(b.starts_at));
+ setDeskText($('booking-total'),rows.length||'');
  const existing=new Map([...grid.children].map(card=>[card.dataset.bookingId,card]));
  const nodes=rows.map(b=>{const card=existing.get(String(b.id))||makeBookingCard();card.update(b);return card});
- if(!nodes.length){const empty=grid.querySelector('.empty')||document.createElement('div');empty.className='empty';setDeskText(empty,selectedHost?'У '+(selectedHost==='1'?'PS5':'этого ПК')+' нет активных броней':'Активных броней пока нет');nodes.push(empty)}
- reconcileDeskChildren(grid,nodes);
+ if(!nodes.length){const empty=grid.querySelector('.empty')||document.createElement('div');empty.className='empty';setDeskText(empty,'Броней пока нет');nodes.push(empty)}
+ reconcileDeskChildren(grid,nodes);markSelected();
 }
-for(const id of ['booking-filter','booking-sort'])$(id).onchange=()=>{if(current)bookings(current)};
 
 /* Hall plan: the same schematic as the mini-app (360×416 units), scaled to fit the board. */
 const PLAN_SEATS={11:[140,40],12:[180,40],13:[220,40],14:[260,40],15:[300,40],21:[140,128],22:[180,128],23:[220,128],24:[260,128],25:[300,128],
@@ -108,7 +117,7 @@ function buildPlan(container,{picker=false,onPick}={}){
   const btn=document.createElement('button');btn.type='button';btn.className='desk-pc unknown';btn.style.left=x+'px';btn.style.top=y+'px';btn.dataset.room=planRoom(id);
   if(picker){btn.textContent=id}
   else{btn.dataset.hostId=id;const number=document.createElement('b');number.textContent=id;const state=document.createElement('span');state.className='pc-state';const phone=document.createElement('i');phone.className='miniapp-booking';phone.hidden=true;phone.setAttribute('aria-hidden','true');btn.append(number,state,phone)}
-  btn.onclick=()=>onPick?.(id,btn);layer.append(btn);buttons.set(id,btn);
+  btn.onclick=()=>onPick?.(id,btn);btn.oncontextmenu=e=>{e.preventDefault();onPick?.(id,btn)};layer.append(btn);buttons.set(id,btn);
  }
  if(!picker){const ps5=document.createElement('button');ps5.type='button';ps5.className='desk-ps5 unknown';ps5.dataset.hostId='1';ps5.innerHTML='<svg viewBox="0 0 32 24" aria-hidden="true"><path d="M10 5h12c3 0 4 3 5 6l2 7c1 4-3 5-5 2l-3-3H11l-3 3c-2 3-6 2-5-2l2-7c1-3 2-6 5-6Z"/><path d="M9 9v6m-3-3h6"/></svg><span><strong>TV-зона PS5</strong><small class="pc-state"></small></span><i class="miniapp-booking" hidden aria-hidden="true"></i>';ps5.onclick=()=>onPick?.('1',ps5);layer.append(ps5);buttons.set('1',ps5)}
  container.replaceChildren(layer);
@@ -120,7 +129,7 @@ window.buildDeskPlan=buildPlan;
 const STATE_SHORT={free:'',busy:'',reserved:'бронь',broken:'ремонт',unknown:'',connecting:'вход'};
 function hall(s){
  const map=$('desk-map'),fresh=s.last_sync&&Date.now()/1000-s.last_sync<30;
- if(!map.children.length)buildPlan(map,{onPick:id=>selectHost(selectedHost===id?null:id)});
+ if(!map.children.length)buildPlan(map,{onPick:id=>{selectHost(id);window.openHostMenu?.(id,pickMode?'book':'main');setPickMode(false)}});
  const hosts=new Map((s.hosts||[]).map(h=>[h.host_id,h]));let free=0,busy=0,booked=0;
  for(const btn of map.querySelectorAll('[data-host-id]')){
   const id=btn.dataset.hostId,connecting=s.rows.some(b=>b.instant&&b.host_id===id&&['requested','holding','checkin_pending'].includes(b.status));
@@ -131,6 +140,7 @@ function hall(s){
   const title=hostName(id)+': '+HOST_LABELS[status]+(reservation?' · Бронь из мини-приложения · '+(reservation.username||reservation.guest_name||'Гость'):'');
   if(btn.title!==title){btn.title=title;btn.setAttribute('aria-label',title)}
   const attention=s.rows.some(b=>b.host_id===id&&b.status==='attention');btn.classList.toggle('attention',attention);
+  btn.classList.toggle('has-rental',(s.rentals||[]).some(r=>r.host===id));
   btn.classList.toggle('selected',id===selectedHost);
   if(btn.dataset.status===status)continue;
   btn.dataset.status=status;btn.classList.remove('free','busy','reserved','broken','unknown','connecting');btn.classList.add(status);
@@ -141,19 +151,17 @@ function hall(s){
 async function refresh(){
  if(document.hidden||inFlight||!window.pywebview?.api)return;inFlight=true;
  try{
-  const s=await window.pywebview.api.snapshot();current=s;window.renderReminders?.(s);window.renderRotaSnapshot?.(s);window.updateAdminActions?.();window.renderRegistrations?.(s);window.renderUpdate?.(s);
+  const s=await window.pywebview.api.snapshot();current=s;window.renderRentals?.(s);window.renderHostMenu?.(s);window.renderRegistrations?.(s);window.renderUpdate?.(s);
   setDeskText($('connection'),(s.backend_label||'Сервер').toUpperCase()+(s.online?' · НА СВЯЗИ':' · НЕТ СВЯЗИ'));$('connection').className=s.online?'online':'offline';
   const gizmoOk=!!s.last_sync&&Date.now()/1000-s.last_sync<30;
   setDeskText($('gizmo-connection'),gizmoOk?'GIZMO · НА СВЯЗИ':'GIZMO · НЕТ СВЯЗИ');$('gizmo-connection').className=gizmoOk?'online':'offline';
-  $('duty-chip').hidden=!s.duty_admin;setDeskText($('duty-chip'),s.duty_admin?'АДМИН · '+s.duty_admin:'');
   setDeskText($('error'),[s.error,s.sync_error,s.password_sync_error,!s.protocol_ready?'Сервис аккаунтов пока недоступен. Проверьте сообщение об ошибке выше.':''].filter(Boolean).join('\n'));
-  const open=s.rows.filter(b=>!b.instant||b.status==='attention').length;setDeskText($('count'),open);$('count').toggleAttribute('data-zero',!open);
   const bookingKey=JSON.stringify(s.rows)+selectedHost;if(refresh.bookingKey!==bookingKey){bookings(s);refresh.bookingKey=bookingKey}
-  const hallKey=JSON.stringify(s.hosts)+gizmoOk+selectedHost+JSON.stringify(s.rows.map(b=>[b.host_id,b.status,b.instant,b.admin_created,b.username,b.guest_name]));if(refresh.hallKey!==hallKey){hall(s);refresh.hallKey=hallKey}
+  const hallKey=JSON.stringify(s.hosts)+gizmoOk+selectedHost+JSON.stringify((s.rentals||[]).map(r=>r.host))+JSON.stringify(s.rows.map(b=>[b.host_id,b.status,b.instant,b.admin_created,b.username,b.guest_name]));if(refresh.hallKey!==hallKey){hall(s);refresh.hallKey=hallKey}
   const requests=s.password_requests||[];setDeskText($('requests-count'),requests.length);$('requests-count').toggleAttribute('data-zero',!requests.length);
   const resetKey=JSON.stringify(requests);if(refresh.resetKey!==resetKey){renderResetRequests(requests);refresh.resetKey=resetKey}
   window.renderGuestPasswords?.(s);
-  if(!soundLoaded&&s.sound){soundLoaded=true;$('sound-preset').value=s.sound.preset;$('sound-volume').value=s.sound.volume;for(const kind of ['created','waiting','attention'])$('sound-'+kind).value=s.sound.events?.[kind]||s.sound.preset;$('sound-enabled').checked=s.sound.enabled;$('volume-label').value=s.sound.volume+'%'}
+  if(!soundLoaded&&s.sound){soundLoaded=true;soundState=s.sound;$('sound-volume').value=s.sound.volume;$('sound-enabled').checked=s.sound.enabled;$('volume-label').value=s.sound.volume+'%';renderSoundPresets()}
  }catch{$('connection').textContent='ПАНЕЛЬ НЕДОСТУПНА'}finally{inFlight=false}
 }
 function chooseAccount(user,requestId=null){
@@ -172,19 +180,29 @@ function renderResetRequests(requests){
   const action=(label,callback)=>{const btn=document.createElement('button');btn.textContent=label;btn.onclick=async()=>{if(card.dataset.busy)return;card.dataset.busy='1';actions.querySelectorAll('button').forEach(e=>e.disabled=true);try{await callback(status)}finally{delete card.dataset.busy;actions.querySelectorAll('button').forEach(e=>e.disabled=false)}};actions.append(btn)};
   action('Сменить пароль',async status=>{status.textContent='Получаем аккаунт…';const result=await invoke('prepare_password_request',r.id);if(!result?.user){status.textContent=result?.error||'Нет связи';return}chooseAccount(result.user,r.id);status.textContent='Заполните форму смены пароля'});
   for(const [outcome,label,question] of [['done','Услуга предоставлена','Подтверждаете, что услуга по этой заявке уже предоставлена? Пароль этой кнопкой не меняется.'],['rejected','Закрыть без выполнения','Закрыть заявку без смены пароля? Гость увидит, что услуга не выполнена.']]){
-   action(label,async status=>{if(!confirm(question))return;const result=await invoke('resolve_password_request',r.id,outcome,true);status.textContent=result?.ok?(result.synced?'Заявка закрыта':'Результат сохранён. Ожидаем синхронизацию с мини-аппом.'):result?.error||'Нет связи';if(result?.ok&&selectedResetRequest===r.id){selectedResetRequest=null;foundAccount=null;$('new-password').value='';$('reset-user').hidden=true}});
+   action(label,async status=>{const result=await invoke('resolve_password_request',r.id,outcome,true);status.textContent=result?.ok?(result.synced?'Заявка закрыта':'Результат сохранён. Ожидаем синхронизацию с мини-аппом.'):result?.error||'Нет связи';if(result?.ok&&selectedResetRequest===r.id){selectedResetRequest=null;foundAccount=null;$('new-password').value='';$('reset-user').hidden=true}});
   }
   nodes.push(card);
  }
  if(!nodes.length){const empty=box.querySelector('.empty-requests')||document.createElement('p');empty.className='empty-requests';setDeskText(empty,'Ожидающих запросов нет');nodes.push(empty)}
  reconcileDeskChildren(box,nodes);
 }
+/* Sound: on/off, volume and one melody; every change saves at once, a tap on a melody plays it. */
+const SOUNDS=[['soft','Лайм','две ноты вверх'],['bell','Колокол','чистый звон'],['drop','Капля','мягко вниз'],['chord','Аккорд','тёплый'],['tick','Тик-тик','тихо и коротко']];
+let soundState={preset:'soft',volume:60,enabled:true};
+function renderSoundPresets(){
+ const box=$('sound-presets');
+ if(!box.children.length)for(const [id,name,hint] of SOUNDS){const b=document.createElement('button');b.type='button';b.dataset.preset=id;b.setAttribute('role','radio');b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9Z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg><strong></strong><small></small>';b.querySelector('strong').textContent=name;b.querySelector('small').textContent=hint;b.onclick=async()=>{soundState.preset=id;renderSoundPresets();await saveSound();invoke('preview_sound',id)};box.append(b)}
+ for(const b of box.children)b.setAttribute('aria-checked',String(b.dataset.preset===soundState.preset));
+}
+async function saveSound(){soundState={preset:soundState.preset,volume:Number($('sound-volume').value),enabled:$('sound-enabled').checked};const r=await invoke('sound_settings',soundState);setDeskText($('sound-result'),r?'':'Не удалось сохранить')}
 $('sound-volume').oninput=e=>$('volume-label').value=e.target.value+'%';
-async function saveSound(test=false,kind=null){const result=await invoke('sound_settings',{preset:$('sound-preset').value,volume:Number($('sound-volume').value),events:Object.fromEntries(['created','waiting','attention'].map(kind=>[kind,$('sound-'+kind).value])),enabled:$('sound-enabled').checked});
- $('sound-result').textContent=result?'Настройки сохранены':'Не удалось сохранить';if(test&&result)await invoke('test_sound',kind)}
+$('sound-volume').onchange=async()=>{await saveSound();invoke('preview_sound',soundState.preset)};
+$('sound-enabled').onchange=()=>saveSound();
+renderSoundPresets();
 $('find-user').onsubmit=async e=>{e.preventDefault();foundAccount=null;selectedResetRequest=null;$('reset-user').hidden=true;$('account-message').textContent='Поиск…';const result=await invoke('find_account',$('account-search').value.trim());if(!result?.user){$('account-message').textContent=result?.error||'Нет ответа';return}chooseAccount(result.user)};
 $('account-search').oninput=()=>{foundAccount=null;selectedResetRequest=null;$('new-password').value='';$('reset-user').hidden=true;$('account-result').textContent=''};
-$('reset-user').onsubmit=async e=>{e.preventDefault();if(!foundAccount||!$('identity-checked').checked)return;if(!confirm('Сменить пароль аккаунта '+foundAccount.username+'?'))return;const btn=e.target.querySelector('button');btn.disabled=true;const password=$('new-password').value;$('new-password').value='';const result=selectedResetRequest?await invoke('reset_password_request',selectedResetRequest,foundAccount.username,password,true):await invoke('reset_password',foundAccount.id,foundAccount.username,password);$('account-message').textContent=result?.ok?(result.synced===false?'Пароль изменён и проверен. Заявка ожидает синхронизации — повторять смену не нужно.':'Пароль изменён и проверен. Услуга предоставлена. Сообщите пароль гостю лично.'):result?.error||'Результат неизвестен. Проверьте аккаунт';if(result?.ok){foundAccount=null;selectedResetRequest=null;$('reset-user').hidden=true}btn.disabled=false;};
+$('reset-user').onsubmit=async e=>{e.preventDefault();if(!foundAccount||!$('identity-checked').checked)return;const btn=e.target.querySelector('button');btn.disabled=true;const password=$('new-password').value;$('new-password').value='';const result=selectedResetRequest?await invoke('reset_password_request',selectedResetRequest,foundAccount.username,password,true):await invoke('reset_password',foundAccount.id,foundAccount.username,password);$('account-message').textContent=result?.ok?(result.synced===false?'Пароль изменён и проверен. Заявка ожидает синхронизации — повторять смену не нужно.':'Пароль изменён и проверен. Услуга предоставлена. Сообщите пароль гостю лично.'):result?.error||'Результат неизвестен. Проверьте аккаунт';if(result?.ok){foundAccount=null;selectedResetRequest=null;$('reset-user').hidden=true}btn.disabled=false;};
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 window.addEventListener('pywebviewready',()=>{refresh();window.initClubManagement?.();setInterval(refresh,2000)});
 panel('hall');
@@ -198,5 +216,8 @@ setTimeout(()=>$('desk-splash').classList.add('done'),2500);setTimeout(()=>$('de
 
 (()=>{const c=$('matrix-rain'),ctx=c.getContext('2d'),reduced=matchMedia('(prefers-reduced-motion: reduce)');let columns=[],w,h,raf=0,last=0;function resize(){w=innerWidth;h=innerHeight;c.width=w;c.height=h;columns=Array.from({length:Math.ceil(w/24)},()=>Math.random()*h/20)}function draw(t){if(document.hidden||reduced.matches){raf=0;return}raf=requestAnimationFrame(draw);if(t-last<90)return;last=t;ctx.fillStyle='#0002';ctx.fillRect(0,0,w,h);ctx.font='14px monospace';ctx.fillStyle='#ffffff55';const glyphs='⌁×+⟋⟍⋮⊞◇▱⊥⌜⌟≋';columns.forEach((y,i)=>{ctx.fillText(glyphs[Math.random()*glyphs.length|0],i*24,y*20);columns[i]=y*20>h&&Math.random()>.97?0:y+.4})}function start(){if(!raf&&!document.hidden&&!reduced.matches)raf=requestAnimationFrame(draw)}addEventListener('resize',resize);document.addEventListener('visibilitychange',start);reduced.addEventListener('change',start);resize();start()})();
 
-for(const kind of ['created','waiting','attention']){const select=$('sound-'+kind);select.innerHTML=$('sound-preset').innerHTML;const preview=document.createElement('button');preview.type='button';preview.className='icon-btn';preview.textContent='Прослушать';preview.onclick=()=>saveSound(true,kind);select.after(preview)}
-$('sound-enabled').onchange=()=>saveSound(false);
+
+let pickMode=false;
+function setPickMode(on){pickMode=on;$('pick-hint').hidden=!on;document.body.classList.toggle('pick-mode',on)}
+$('add-booking').onclick=()=>{if(selectedHost){window.openHostMenu?.(selectedHost,'book');return}setPickMode(!pickMode)};
+document.querySelector('nav .exit').onclick=e=>armTap(e.currentTarget.querySelector('span'),'Точно выйти?',()=>invoke('quit'));

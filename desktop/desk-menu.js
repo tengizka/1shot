@@ -1,0 +1,99 @@
+/* Quick actions next to a PC on the hall plan.
+   Free PC: Вход · Бронь · Блок · Аренда. Busy PC: who plays, balance and time left (tap a value to copy) + Аренда.
+   No system dialogs and no confirmations for routine actions. */
+(()=>{
+ const ICON={login:'<path d="M10 17l5-5-5-5M15 12H3M14 3h7v18h-7"/>',book:'<rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 2v5M16 2v5"/>',lock:'<rect x="5" y="11" width="14" height="10"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',unlock:'<rect x="5" y="11" width="14" height="10"/><path d="M8 11V7a4 4 0 0 1 7.6-1.8"/>',rent:'<rect x="7" y="2" width="10" height="20" rx="5"/><path d="M12 2v7M7 9h10"/>',back:'<path d="M19 12H5m6-6-6 6 6 6"/>',close:'<path d="m6 6 12 12M6 18 18 6"/>'};
+ const svg=name=>`<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[name]}</svg>`;
+ const menu=document.createElement('div');menu.id='host-menu';menu.className='host-menu';menu.hidden=true;menu.setAttribute('role','dialog');document.body.append(menu);
+ const flash=document.createElement('div');flash.id='desk-flash';flash.setAttribute('role','status');document.body.append(flash);
+ let host=null,view='main',info=null,infoSeq=0,requestId=null,slot=15,working=false;
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ function say(text){flash.textContent=text;flash.classList.remove('show');void flash.offsetWidth;flash.classList.add('show');clearTimeout(say.t);say.t=setTimeout(()=>flash.classList.remove('show'),2600)}
+ window.deskFlash=say;
+ const fresh=()=>current?.last_sync&&Date.now()/1000-current.last_sync<30;
+ const statusOf=id=>fresh()?(current.hosts||[]).find(h=>h.host_id===id)?.status||'unknown':'unknown';
+ const activeBooking=id=>(current?.rows||[]).find(b=>b.host_id===id&&!['cancelled','expired','completed'].includes(b.status));
+ const ownHold=id=>(current?.rows||[]).find(b=>b.admin_created&&!b.instant&&b.host_id===id&&b.status==='holding');
+ const hostButton=id=>document.querySelector(`#desk-map [data-host-id="${CSS.escape(id)}"]`);
+ const duration=sec=>{if(!Number.isFinite(sec)||sec<0)return '';const m=Math.round(sec/60);return m>=60?Math.floor(m/60)+' ч '+String(m%60).padStart(2,'0')+' мин':m+' мин'};
+
+ function place(){
+  const btn=hostButton(host);if(!btn||menu.hidden)return;
+  const r=btn.getBoundingClientRect(),board=$('desk-map').getBoundingClientRect(),w=menu.offsetWidth,h=menu.offsetHeight;
+  const right=r.left+r.width/2<board.left+board.width/2;
+  let x=right?r.right+12:r.left-12-w;x=Math.max(8,Math.min(innerWidth-w-8,x));
+  let y=r.top+r.height/2-h/2;y=Math.max(48,Math.min(innerHeight-h-8,y));
+  menu.style.left=x+'px';menu.style.top=y+'px';menu.dataset.side=right?'right':'left';
+ }
+ function tile(action,label,extra=''){return `<button type="button" class="menu-tile ${extra}" data-action="${action}">${svg(action)}<span>${label}</span></button>`}
+ function header(title,back){
+  const st=statusOf(host),label=HOST_LABELS[st]||'';
+  return `<div class="menu-head">${back?`<button type="button" class="icon-btn" data-action="back" aria-label="Назад">${svg('back')}</button>`:''}<strong>${esc(title||hostName(host))}</strong><span class="menu-state ${st}">${esc(label)}</span><button type="button" class="icon-btn" data-action="close" aria-label="Закрыть">${svg('close')}</button></div>`;
+ }
+ function infoRows(){
+  if(!info)return '<p class="menu-loading">Загружаем данные гостя…</p>';
+  if(info.error)return `<p class="menu-error">${esc(info.error)}</p>`;
+  if(info.free)return '';
+  const rows=[['Ник',info.username],['Имя',[info.first_name,info.last_name].filter(Boolean).join(' ')],['Телефон',info.phone],['Баланс',Number.isFinite(info.balance)?info.balance.toLocaleString('ru-RU',{maximumFractionDigits:2})+' ₽':''],['Осталось',duration(info.available_time)],['В игре',duration(info.span)],['Группа',info.group],['Gizmo ID',info.user_id]].filter(r=>r[1]!==''&&r[1]!=null);
+  return `<div class="menu-info">${rows.map(([k,v])=>`<button type="button" class="info-row" data-copy="${esc(v)}"><small>${esc(k)}</small><b>${esc(v)}</b></button>`).join('')}</div>`;
+ }
+ function render(){
+  if(!host)return;const st=statusOf(host),booking=activeBooking(host);let html='';
+  if(view==='main'){
+   html=header();
+   if(st==='busy')html+=infoRows()+`<div class="menu-tiles">${tile('rent','Аренда')}</div>`;
+   else if(host==='1')html+='';
+   else{
+    const tiles=[];
+    if(st==='free'){tiles.push(tile('login','Вход'),tile('book','Бронь'),tile('lock','Блок'))}
+    else if(st==='reserved'){if(ownHold(host))tiles.push(tile('login','Вход'));if(!booking)tiles.push(tile('unlock','Разблок'))}
+    tiles.push(tile('rent','Аренда'));
+    html+=`<div class="menu-tiles">${tiles.join('')}</div>`;
+   }
+  }else if(view==='login'){
+   html=header('Вход · '+hostName(host),true)+`<input id="menu-login-search" placeholder="Ник, телефон или имя" autocomplete="off" maxlength="80"><div id="menu-login-options" class="account-options menu-options"></div>`;
+  }else if(view==='book'){
+   const chips=[[15,'15 мин'],[30,'30 мин'],[60,'1 час'],[120,'2 часа']];
+   html=header('Бронь · '+hostName(host),true)+`<div class="menu-chips">${chips.map(([m,l])=>`<button type="button" data-slot="${m}" aria-pressed="${slot===m}">${l}</button>`).join('')}<input type="time" id="menu-book-time" step="300" aria-label="Своё время" class="${slot==='custom'?'on':''}"></div><input id="menu-book-name" maxlength="60" placeholder="Имя гостя" autocomplete="off"><button type="button" class="menu-primary" data-action="book-go">Забронировать · <span id="menu-book-at"></span></button>`;
+  }else if(view==='rent'){
+   const items=current?.rental_items||{};
+   html=header('Аренда · '+hostName(host),true)+`<div class="menu-tiles rent-tiles">${Object.entries(items).map(([id,name])=>`<button type="button" class="menu-tile rent-item" data-item="${id}">${window.rentalIcon?.(id)||''}<span>${esc(name)}</span></button>`).join('')}</div>`;
+  }
+  menu.innerHTML=html;menu.dataset.view=view;
+  if(view==='login')setupLogin();if(view==='book')updateBookTime();
+  place();
+ }
+ async function loadInfo(){const seq=++infoSeq,id=host;info=null;const r=await invoke('host_info',id);if(seq!==infoSeq||host!==id)return;info=r||{error:'Нет связи с Desk'};if(view==='main')render()}
+ window.openHostMenu=(id,start='main')=>{host=String(id);view=start;requestId=null;info=null;slot=15;menu.hidden=false;render();if(statusOf(host)==='busy')loadInfo();if(start==='login')$('menu-login-search')?.focus()};
+ window.closeHostMenu=()=>{menu.hidden=true;host=null;infoSeq++};
+ window.renderHostMenu=()=>{if(!host||menu.hidden||working)return;if(view==='main'){const key=statusOf(host)+!!activeBooking(host)+!!ownHold(host);if(menu.dataset.key!==key){menu.dataset.key=key;render();if(statusOf(host)==='busy'&&!info)loadInfo()}}};
+ addEventListener('resize',place);
+
+ function bookStart(){
+  if(slot==='custom'){const v=$('menu-book-time')?.value;if(!v)return null;const [h,m]=v.split(':').map(Number);return new Date(nextClubArrival(h,Math.ceil(m/5)*5%60+(m>55?0:0)))}
+  return new Date(Math.ceil((Date.now()+slot*60000)/300000)*300000);
+ }
+ function updateBookTime(){const at=bookStart();setDeskText($('menu-book-at'),at?clubArrivalLabel(at.toISOString()).replace(' МСК',''):'—');menu.querySelector('[data-action="book-go"]').disabled=!at}
+ function setupLogin(){
+  const input=$('menu-login-search'),box=$('menu-login-options');
+  window.accountPicker(input,box,user=>{box.replaceChildren();const btn=document.createElement('button');btn.type='button';btn.className='menu-primary';btn.textContent=user.requires_privileged_confirmation?'Служебный аккаунт · войти':'Войти · '+user.username;
+   const who=document.createElement('p');who.className='menu-who';who.textContent=[user.username,[user.firstName,user.lastName].filter(Boolean).join(' '),user.mobilePhone||user.phone].filter(Boolean).join(' · ');
+   btn.onclick=async()=>{if(working)return;working=true;btn.disabled=true;requestId ||= crypto.randomUUID();const id=host;const r=await invoke('login_account',id,user.id,user.username,requestId,ownHold(id)?.id||null,true,!!user.requires_privileged_confirmation);working=false;btn.disabled=false;if(r?.ok){closeHostMenu();say('Вход на '+hostName(id)+' отправлен')}else say(r?.error||'Нет ответа от Desk')};
+   box.append(who,btn);btn.focus()},()=>{requestId=null});
+ }
+ menu.addEventListener('click',async e=>{
+  const t=e.target.closest('button,input');if(!t||working)return;
+  const action=t.dataset.action;
+  if(action==='close')return closeHostMenu();
+  if(action==='back'){view='main';return render()}
+  if(t.dataset.copy!==undefined){try{await navigator.clipboard.writeText(t.dataset.copy);t.classList.add('copied');setTimeout(()=>t.classList.remove('copied'),900);say('Скопировано')}catch{say('Не удалось скопировать')}return}
+  if(['login','book','rent'].includes(action)){view=action;render();if(action==='login')$('menu-login-search')?.focus();return}
+  if(action==='lock'||action==='unlock'){working=true;t.disabled=true;const id=host;const r=await invoke('lock_host',id,action==='lock');working=false;say(r?.ok?hostName(id)+(action==='lock'?' заблокирован':' разблокирован'):r?.error||'Нет ответа');if(r?.ok)closeHostMenu();else t.disabled=false;return}
+  if(t.dataset.slot){slot=Number(t.dataset.slot);menu.querySelectorAll('[data-slot]').forEach(b=>b.setAttribute('aria-pressed',String(b===t)));$('menu-book-time').classList.remove('on');requestId=null;return updateBookTime()}
+  if(action==='book-go'){const at=bookStart();if(!at)return;working=true;t.disabled=true;requestId ||= crypto.randomUUID();const id=host;const iso=new Date(at.getTime()+3*3600000).toISOString().slice(0,16)+':00+03:00';const r=await invoke('create_manual_booking',id,iso,$('menu-book-name').value.trim(),requestId);working=false;t.disabled=false;if(r?.ok){closeHostMenu();say('Бронь '+hostName(id)+' создана')}else say(r?.error||'Нет ответа');return}
+  if(t.dataset.item){working=true;const id=host;const r=await invoke('add_rental',t.dataset.item,id,info?.username||'');working=false;if(r?.ok){closeHostMenu();say((current?.rental_items?.[t.dataset.item]||'Вещь')+' · '+hostName(id))}else say(r?.error||'Нет ответа')}
+ });
+ menu.addEventListener('input',e=>{if(e.target.id==='menu-book-time'){slot='custom';e.target.classList.add('on');menu.querySelectorAll('[data-slot]').forEach(b=>b.setAttribute('aria-pressed','false'));requestId=null;updateBookTime()}if(e.target.id==='menu-book-name')requestId=null});
+ document.addEventListener('mousedown',e=>{if(menu.hidden||menu.contains(e.target)||e.target.closest('#desk-map [data-host-id]'))return;closeHostMenu()});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!menu.hidden)closeHostMenu()});
+})();

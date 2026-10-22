@@ -17,7 +17,7 @@
 
  // Self-update: check → download (verified) → install; Desk restarts by itself.
  const msg=$('update-message'),run=$('update-run'),check=$('update-check'),bar=$('update-progress');
- const texts={idle:'Проверьте, есть ли новая версия. Настройки, .env и журнал при обновлении не трогаются.',checking:'Проверяем GitHub…',latest:'У вас последняя версия.',available:'Доступна новая версия. Desk скачает её и перезапустится сам.',downloading:'Скачиваем обновление…',ready:'Обновление скачано и проверено. Desk закроется на минуту и откроется снова.',installing:'Устанавливаем. Desk перезапустится сам.'};
+ const texts={idle:'',checking:'Проверяем GitHub…',latest:'У вас последняя версия.',available:'Есть новая версия.',downloading:'Скачиваем обновление…',ready:'Обновление скачано.',installing:'Устанавливаем…'};
  window.renderUpdate=s=>{
   const u=s.update;if(!u)return;
   setDeskText($('update-current'),'v'+(u.current||s.version||DESK_BUILD.version));setDeskText($('update-latest'),u.latest?'v'+u.latest:'—');
@@ -31,6 +31,6 @@
  run.onclick=async()=>{
   const phase=current?.update?.phase;
   if(phase==='available'){await invoke('download_update');return}
-  if(phase==='ready'){if(!confirm('Установить обновление? Desk закроется примерно на минуту, активные сессии гостей продолжатся.'))return;const r=await invoke('install_update');if(r?.error)setDeskText(msg,r.error)}
+  if(phase==='ready'){const r=await invoke('install_update');if(r?.error)setDeskText(msg,r.error)}
  };
 })();
