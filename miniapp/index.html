@@ -633,11 +633,16 @@ if (tg) {
   tg.expand();
   tg.enableClosingConfirmation();
   try { tg.setHeaderColor('#000000'); tg.setBackgroundColor('#000000'); } catch(e){}
-  // Stay expanded: a swipe inside the app must not fold it down (Bot API 7.7+).
-  // Telegram can forget this after the app is minimised or resized, so it is re-applied.
-  const keepOpen = () => { try { tg.expand(); if (tg.isVersionAtLeast?.('7.7')) tg.disableVerticalSwipes(); } catch(e){} };
+  // Stay expanded: a swipe inside the app must not fold it down.
+  // The official method silently does nothing when Telegram's version did not reach the page
+  // (e.g. after a redirect to the new domain), so the raw event is sent as well.
+  const noSwipe = () => {
+    try { tg.disableVerticalSwipes(); } catch(e){}
+    try { window.Telegram?.WebView?.postEvent('web_app_setup_swipe_behavior', false, { allow_vertical_swipe: false }); } catch(e){}
+  };
+  const keepOpen = () => { try { tg.expand(); } catch(e){} noSwipe(); };
   keepOpen();
-  try { tg.onEvent('activated', keepOpen); tg.onEvent('viewportChanged', e => { if (e?.isStateStable) { try { if (tg.isVersionAtLeast?.('7.7')) tg.disableVerticalSwipes(); } catch(_){} } }); } catch(e){}
+  try { tg.onEvent('activated', keepOpen); tg.onEvent('viewportChanged', e => { if (e?.isStateStable) noSwipe(); }); } catch(e){}
   if (!telegram_id) telegram_id = tg?.initDataUnsafe?.user?.id || 0;
 }
 
