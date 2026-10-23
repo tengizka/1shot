@@ -8,6 +8,7 @@ import uuid
 from datetime import datetime, timezone
 from urllib.parse import quote
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from .promo import PromoReward
 from .registration import registration_params
 from .services import ApiError
 
@@ -20,6 +21,7 @@ def phone_key(value):
 class RegistrationApproval:
     def __init__(self,cloud,gizmo,store,guard):
         self.cloud,self.gizmo,self.store,self.guard=cloud,gizmo,store,guard
+        self.promo=PromoReward(cloud,gizmo,store,guard)
 
     def report(self,id,record):
         if record.get('phase')=='reconciled':return {'ok':True,'status':'done','synced':True,'gizmo_user_id':record['gizmo_user_id']}
@@ -46,6 +48,7 @@ class RegistrationApproval:
             record=json.loads(raw)
             if record.get('phase')=='outcome' and not record.get('synced') and not record.get('conflict'):
                 self.report(key.split(':',1)[1],record)
+        self.promo.flush()
 
     def approve(self,id,confirmed=False):
         if confirmed is not True:return {'error':'Подтвердите очную проверку личности'}
@@ -55,7 +58,7 @@ class RegistrationApproval:
         if existing:return self.report(id,existing)
         self.guard()
         self.store.set('registration:'+id,{'phase':'intent','status':'attention'})
-        uid=None;status='attention'
+        uid=None;status='attention';code=None
         try:
             row=self.cloud.desk('registration_claim',id=id,confirmed=True)['request']
             if row['id']!=id or datetime.fromisoformat(row['expires_at'].replace('Z','+00:00'))<=datetime.now(timezone.utc):raise ValueError('Expired claim')
@@ -64,6 +67,7 @@ class RegistrationApproval:
             req=json.loads(AESGCM(key).decrypt(raw[:12],raw[12:],id.encode()))
             if req.get('action')!='register_application':raise ValueError('Wrong action')
             params=registration_params(req,self.gizmo);username=req['username'];password=req['password']
+            code=req.get('promo_code') if isinstance(req.get('promo_code'),str) and re.fullmatch(r'[A-Z0-9_-]{2,32}',req['promo_code']) else None
             exists=self.gizmo.request('GET',f'users/loginname/{quote(username,safe="")}/exist')
             if type(exists) is not bool:raise ValueError('Uncertain nickname check')
             users=self.gizmo.request('GET','users',params={'IsDeleted':False})
@@ -84,7 +88,11 @@ class RegistrationApproval:
         except Exception:status='attention'
         record={'phase':'outcome','status':status,'gizmo_user_id':uid,'synced':False}
         self.store.set('registration:'+id,record)
-        return self.report(id,record)
+        result=self.report(id,record)
+        if status=='done' and code:
+            reward=self.promo.grant(id,uid,code)
+            result['promo']={'code':code,'result':reward.get('result'),'note':reward.get('note')}
+        return result
 
     def reject(self,id,confirmed=False):
         if confirmed is not True:return {'error':'Подтвердите отклонение анкеты'}

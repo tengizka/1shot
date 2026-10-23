@@ -109,4 +109,7 @@
   if(loading)btn.innerHTML='<div class="spinner"></div>Проверяем…';else{btn.disabled=false;const was=mode;mode=formId==='form-login'?'login':'register';setButton();mode=was}
  };
  document.querySelectorAll('.auth-form').forEach(f=>{f.classList.remove('active')});
+ // Ссылка с лендинга t.me/<бот>?startapp=VK подставляет промокод площадки; гость может его стереть.
+ const start=String(window.Telegram?.WebApp?.initDataUnsafe?.start_param||'');
+ if(/^[A-Za-z0-9_-]{2,32}$/.test(start)&&$('r-promo')&&!$('r-promo').value)$('r-promo').value=start.toUpperCase();
 })();

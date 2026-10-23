@@ -29,6 +29,10 @@ Deno.serve(async req=>{
    const {data,error}=await client.rpc('club_'+b.action,args);if(error)throw error;
    return b.action==='registration_claim'?json({request:data}):json({ok:data===true});
   }
+  if(b.action==='promo_reward'){
+   const {data,error}=await client.rpc('club_promo_reward',{p_worker:b.worker_id,p_id:b.id,p_result:b.result});if(error)throw error;
+   return json({ok:data===true});
+  }
   if(b.action==='poll'){
 
    await client.from('club_worker').update({protocol:2}).eq('worker_id',b.worker_id);

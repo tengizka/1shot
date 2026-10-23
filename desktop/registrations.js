@@ -2,6 +2,7 @@
 (()=>{
  const tab=document.createElement('button');tab.className='tab';tab.dataset.panel='registrations';tab.textContent='Анкеты';tab.onclick=()=>panel('registrations');document.querySelector('nav').insertBefore(tab,document.querySelector('nav .exit'));
  const section=document.createElement('section');section.id='panel-registrations';section.hidden=true;const title=document.createElement('h2');title.textContent='Анкеты';const note=document.createElement('p');note.className='note';const list=document.createElement('div');list.className='registration-list';section.append(title,note,list);document.querySelector('main').append(section);
+ const promoText=p=>!p?'':p.result==='granted'?' · Час Standart начислен (промокод '+p.code+')':p.result==='failed'?' · Час не начислен: проверьте товар standart 1 h и начислите вручную':' · Проверьте в Gizmo, начислен ли час Standart. Не начисляйте повторно не проверив';
  const states={awaiting_admin:'Ожидает проверки личности',processing:'Создаём аккаунт. Не повторяйте действие',attention:'Нужна ручная сверка. Повторное создание заблокировано'};
  function create(){
   const card=document.createElement('article');card.className='card';const name=document.createElement('h3'),info=document.createElement('p'),state=document.createElement('p'),label=document.createElement('label'),check=document.createElement('input');check.type='checkbox';label.className='check';label.append(check,document.createTextNode('Личность проверена очно, данные анкеты сверены'));
@@ -10,7 +11,7 @@
   async function send(method){
    if(card.busy||card.blocked||!card.ready||card.row.status!=='awaiting_admin'||(method==='approve_registration'&&!check.checked))return;
    card.busy=true;sync();
-   try{const result=await invoke(method,card.row.id,true);card.blocked=method==='approve_registration'||result?.ok===true;setDeskText(message,result?.error||(result?.ok?(result.synced===false?'Аккаунт проверен. Ожидаем синхронизацию; не повторяйте создание':'Готово'):result?.status==='rejected'?'Найден дубль. Используйте существующий аккаунт':'Нужна ручная сверка. Не повторяйте создание'));}
+   try{const result=await invoke(method,card.row.id,true);card.blocked=method==='approve_registration'||result?.ok===true;setDeskText(message,(result?.error||(result?.ok?(result.synced===false?'Аккаунт проверен. Ожидаем синхронизацию; не повторяйте создание':'Готово'):result?.status==='rejected'?'Найден дубль. Используйте существующий аккаунт':'Нужна ручная сверка. Не повторяйте создание'))+promoText(result?.promo));}
    finally{card.busy=false;sync()}
   }
   password.onclick=async()=>{
@@ -27,7 +28,7 @@
    card.busy=true;sync();try{const result=await invoke('reconcile_registration',card.row.id,proof.proof_id,proof.gizmo_user_id,true);setDeskText(message,result?.ok?'Сверка завершена. Аккаунт и пароль не менялись':result?.error||'Нет подтверждения результата');if(result?.ok){card.proof=null;check.checked=false}}finally{card.busy=false;sync()}
   };
   approve.onclick=()=>send('approve_registration');reject.onclick=()=>send('reject_registration');
-  card.update=(r,ready)=>{if(card.row&&card.row.status!==r.status){card.proof=null;check.checked=false;setDeskText(candidate,'')}card.row=r;card.ready=ready;card.dataset.registrationId=r.id;const d=r.public_data||{};setDeskText(name,d.username||'Анкета');setDeskText(info,[d.first_name,d.last_name,d.mobile_phone,d.birth_date,d.sex===1?'Мужской':d.sex===2?'Женский':''].filter(Boolean).join(' · '));setDeskText(state,(states[r.status]||r.status)+(r.gizmo_user_id?' · Созданный ID: '+r.gizmo_user_id:''));sync()};return card;
+  card.update=(r,ready)=>{if(card.row&&card.row.status!==r.status){card.proof=null;check.checked=false;setDeskText(candidate,'')}card.row=r;card.ready=ready;card.dataset.registrationId=r.id;const d=r.public_data||{};setDeskText(name,d.username||'Анкета');setDeskText(info,[d.first_name,d.last_name,d.mobile_phone,d.birth_date,d.sex===1?'Мужской':d.sex===2?'Женский':'',d.promo_code?'Промокод '+d.promo_code+': час Standart':''].filter(Boolean).join(' · '));setDeskText(state,(states[r.status]||r.status)+(r.gizmo_user_id?' · Созданный ID: '+r.gizmo_user_id:''));sync()};return card;
  }
  window.renderRegistrations=s=>{
   setDeskText(note,s.registration_ready?'':'Нет связи с сервером');

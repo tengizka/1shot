@@ -4,7 +4,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
  try{
   const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'}),page=await context.newPage(),calls=[],errors=[];let registration=null;
   page.on('pageerror',e=>errors.push(e.message));
-  await page.addInitScript(()=>{window.Telegram={WebApp:{initData:'test',initDataUnsafe:{user:{id:123}},ready(){},expand(){},enableClosingConfirmation(){},setHeaderColor(){},setBackgroundColor(){}}}});
+  await page.addInitScript(()=>{window.Telegram={WebApp:{initData:'test',initDataUnsafe:{user:{id:123},start_param:'vk'},ready(){},expand(){},enableClosingConfirmation(){},setHeaderColor(){},setBackgroundColor(){}}}});
   await page.route('**/*',route=>{const url=new URL(route.request().url());
    if(url.host==='club.test'){
     let file;
@@ -22,7 +22,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   for(const [id,value] of [['r-user','new_guest'],['r-pass','x'],['r-phone','8 (999) 123-45-67'],['r-name','Test'],['r-last','Guest']]){await page.locator('#'+id).fill(value);await page.locator('#btn-reg').click()}
   await page.locator('.gender-choice label').first().click();await page.locator('#btn-reg').click();
   await page.evaluate(()=>document.getElementById('r-birth').value='2000-01-01');await page.locator('#btn-reg').click();
-  await page.locator('#r-promo').fill('blogger1');await page.locator('#btn-reg').click();
+  assert.equal(await page.locator('#r-promo').inputValue(),'VK');await page.locator('#r-promo').fill('blogger1');await page.locator('#btn-reg').click();
   await page.waitForSelector('#registration-wait:not([hidden])');assert.match(await page.locator('#registration-wait').innerText(),/администратор/);assert.equal(await page.locator('#r-pass').inputValue(),'');assert.equal(calls.filter(c=>c.action==='register_application').length,1);assert.equal(calls.find(c=>c.action==='register_application').password,'x');const sent=calls.find(c=>c.action==='register_application');assert.equal(sent.mobile_phone,'+79991234567','phone normalised to +7');assert.equal(sent.promo_code,'BLOGGER1','promo code sent upper-case');
   await page.reload();await page.waitForSelector('#registration-wait:not([hidden])');assert.ok(calls.some(c=>c.action==='capabilities'&&c.registration_pending===true));assert.equal(calls.filter(c=>c.action==='registration_status').length,0);
   registration={id:'request-1',status:'processing'};await page.evaluate(()=>window.dispatchEvent(new Event('club:resume')));await page.waitForFunction(()=>document.querySelector('#registration-wait').textContent.includes('Проверяем анкету'));
@@ -30,13 +30,13 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   assert.deepEqual(errors,[]);
   const desk=await context.newPage();await desk.setViewportSize({width:1100,height:800});desk.on('pageerror',e=>errors.push(e.message));desk.on('dialog',d=>d.accept());
   await desk.addInitScript(()=>{
-   window.approvals=[];window.reconciliations=[];window.row={id:'request-1',status:'awaiting_admin',public_data:{username:'<img src=x onerror=alert(1)>',first_name:'Test',mobile_phone:'+79991234567'}};
+   window.approvals=[];window.reconciliations=[];window.row={id:'request-1',status:'awaiting_admin',public_data:{username:'<img src=x onerror=alert(1)>',first_name:'Test',mobile_phone:'+79991234567',promo_code:'VK'}};
    window.pywebview={api:{snapshot:async()=>({online:true,protocol_ready:true,registration_ready:true,registrations:[row],last_sync:Date.now()/1000,rows:[],hosts:[],password_requests:[],alerts:0}),approve_registration:async(...args)=>{approvals.push(args);return {status:'attention',gizmo_user_id:7}},review_registration:async()=>({proof_id:'fresh-proof',gizmo_user_id:7,username:'guest',first_name:'Test'}),reconcile_registration:async(...args)=>{reconciliations.push(args);row.status='done';return {ok:true}}}};
    document.addEventListener('DOMContentLoaded',()=>dispatchEvent(new Event('pywebviewready')));
   });
   await desk.route('**/*',r=>{const u=new URL(r.request().url()),file='desktop/'+(u.pathname==='/'?'index.html':u.pathname.slice(1));if(u.host==='desk.test'&&fs.existsSync(file))return r.fulfill({contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.woff2')?'font/woff2':'text/html',body:fs.readFileSync(file)});return r.abort()});
   await desk.goto('https://desk.test');await desk.waitForSelector('#desk-splash',{state:'detached'});await desk.locator('[data-panel="registrations"]').click();
-  const create=desk.getByRole('button',{name:'Подтвердить и создать'});assert.equal(await create.isDisabled(),true);assert.equal(await desk.locator('.registration-list img').count(),0);
+  const create=desk.getByRole('button',{name:'Подтвердить и создать'});assert.match(await desk.locator('.registration-list').innerText(),/Промокод VK: час Standart/);assert.equal(await create.isDisabled(),true);assert.equal(await desk.locator('.registration-list img').count(),0);
   await desk.locator('.registration-list input').check();await create.click();assert.equal(await create.isDisabled(),true);assert.deepEqual(await desk.evaluate(()=>approvals),[['request-1',true]]);
   await desk.evaluate(()=>refresh());assert.equal(await create.isDisabled(),true);assert.deepEqual(errors,[]);
   await desk.evaluate(async()=>{row.status='attention';await refresh()});
