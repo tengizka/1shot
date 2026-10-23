@@ -5,6 +5,8 @@ Deno.serve(async req=>{
  if(!Deno.env.get('AGENT_SECRET')||req.headers.get('x-agent-secret')!==Deno.env.get('AGENT_SECRET'))return json({error:'Unauthorized'},403);
  try{
   const b=await req.json(),client=db();
+  // Read-only report for the analytics export, which runs without a Desk lease.
+  if(b.action==='promo_report'){const {data,error}=await client.rpc('club_promo_report');if(error)throw error;return json(data);}
   const {data:worker,error}=await client.from('club_worker').select('*').eq('worker_id',b.worker_id).gt('lease_until',new Date().toISOString()).single();
   if(error||!worker)return json({error:'lease_expired'},409);
   if(['password_context','password_authorize','password_claim','password_finish','password_review','password_resolve'].includes(b.action)){

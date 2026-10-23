@@ -92,6 +92,80 @@ def parse_date(date_str):
     except Exception:
         return None
 
+# Рекламный бюджет по промокоду в рублях. Впиши суммы, и лист «Промокоды» посчитает цену нового гостя.
+PROMO_BUDGET = {"LEVELUP": None, "RESPAWN": None, "HEADSHOT": None}
+
+def fetch_promo_report(env):
+    """Промокоды и итоги анкет с сервера клуба (без личных данных). None, если сервер недоступен."""
+    secret = env.get("AGENT_SECRET") or os.environ.get("AGENT_SECRET")
+    local = (env.get("CLUB_API_URL") or os.environ.get("CLUB_API_URL") or "").strip()
+    supa = (env.get("SUPABASE_URL") or os.environ.get("SUPABASE_URL") or "").strip()
+    if not secret or not (local or supa):
+        return None
+    url = (local.rstrip("/") + "/" if local else supa.rstrip("/") + "/functions/v1/") + "club-desk"
+    req = urllib.request.Request(url, data=json.dumps({"action": "promo_report"}).encode(), method="POST",
+                                 headers={"x-agent-secret": secret, "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        return data if isinstance(data, dict) and isinstance(data.get("redemptions"), list) else None
+    except Exception:
+        return None
+
+def promo_guest_activity(client, uid, since):
+    """Траты и визиты гостя после подтверждения анкеты. Бесплатный час стоит 0 ₽ и в траты не попадает."""
+    start = since.strftime("%Y-%m-%dT%H:%M:%SZ")
+    spent = {"total": 0, "cash": 0, "card": 0, "deposits": 0}
+    rows = client.get("reports/users/spending", params={"userId": uid, "start": start}) or []
+    for r in rows if isinstance(rows, list) else []:
+        if r.get("userId") == uid:
+            spent = {"total": float(r.get("total") or 0), "cash": float(r.get("cash") or 0), "card": float(r.get("creditCard") or 0), "deposits": float(r.get("deposits") or 0)}
+    days, last = set(), None
+    report = client.get("reports/sessionslog", params={"UserId": uid, "DateFrom": start, "DateTo": datetime.now(timezone.utc).strftime("%Y-%m-%dT23:59:59Z")})
+    for sess in (report.get("sessions") or []) if isinstance(report, dict) else []:
+        st = parse_date(sess.get("startTime"))
+        if st and float(sess.get("billedSpan") or sess.get("span") or 0) > 0:
+            days.add(st.date())
+            last = st if not last or st > last else last
+    return spent, len(days), last
+
+def promo_analytics(report, users, client):
+    user_map = {u.get("id"): u for u in users}
+    codes = {c["code"]: c for c in report.get("codes", [])}
+    summary, guests = {}, []
+    for r in report.get("redemptions", []):
+        code = r.get("code")
+        s = summary.setdefault(code, {"forms": 0, "done": 0, "rejected": 0, "waiting": 0, "granted": 0, "returned": 0, "spent": 0})
+        s["forms"] += 1
+        status = r.get("status")
+        if status in ("awaiting_admin", "processing", "attention"):
+            s["waiting"] += 1
+        elif status in ("rejected", "expired"):
+            s["rejected"] += 1
+        if status != "done" or not r.get("gizmo_user_id"):
+            continue
+        s["done"] += 1
+        if r.get("reward") == "granted":
+            s["granted"] += 1
+        uid = r["gizmo_user_id"]
+        since = parse_date(r.get("decided_at")) or parse_date(r.get("created_at")) or datetime.now()
+        spent, visits, last = promo_guest_activity(client, uid, since) if client else ({"total": 0, "cash": 0, "card": 0, "deposits": 0}, 0, None)
+        if visits >= 2:
+            s["returned"] += 1
+        s["spent"] += spent["total"]
+        u = user_map.get(uid, {})
+        guests.append({"code": code, "username": u.get("userName") or f"ID {uid}", "name": get_personal_name(u) if u else "—",
+                       "approved": since.strftime("%d.%m.%Y"), "reward": {"granted": "Выдан", "failed": "Не выдан"}.get(r.get("reward"), "Проверить"),
+                       "visits": visits, "last": last.strftime("%d.%m.%Y") if last else "—", "spent": round(spent["total"])})
+    rows = []
+    for code in sorted(set(codes) | set(summary)):
+        s = summary.get(code, {"forms": 0, "done": 0, "rejected": 0, "waiting": 0, "granted": 0, "returned": 0, "spent": 0})
+        budget = PROMO_BUDGET.get(code)
+        rows.append({"code": code, "channel": codes.get(code, {}).get("channel", "—"), **s, "spent": round(s["spent"]),
+                     "per_guest": round(s["spent"] / s["done"]) if s["done"] else 0,
+                     "budget": budget, "cost": round(budget / s["done"]) if budget and s["done"] else None})
+    return {"rows": rows, "guests": guests}
+
 def analyze(users, spending_list, active_sessions, sessions_log=None, client=None):
     total_users = len(users)
     ages = []
@@ -262,7 +336,7 @@ def analyze(users, spending_list, active_sessions, sessions_log=None, client=Non
             "total_time": s["total_time"],
             "days_ago": s["days_ago"],
             "status": f"Не был {s['days_ago']} дн.",
-            "message": f"Привет, {friendly_name}! Заметили, что давно не заглядывал к нам. Дарим 200 бонусов на твои любимые игровые часы — заходи на этой неделе поиграть!"
+            "message": f"Привет, {friendly_name}! Это 1SHOT. Давно тебя не видели, поэтому дарим час STANDART. Заходи на этой неделе, скажи на ресепшене, что звонили."
         })
 
     sleeping_candidates.sort(key=lambda x: x["lost_monthly"], reverse=True)
@@ -397,7 +471,7 @@ def create_designed_excel_workbook(data, filepath):
     # -------------------------------------------------------------
     # TAB 4: БАЗА ДЛЯ ВОЗВРАТА
     # -------------------------------------------------------------
-    sleeping_rows = [["Никнейм", "Имя гостя", "Телефон", "Обычный чек (₽)", "Ходил в месяц", "Потерянный доход (₽/мес)", "Дней без визита", "Персональное сообщение для рассылки"]]
+    sleeping_rows = [["Никнейм", "Имя гостя", "Телефон", "Обычный чек (₽)", "Ходил в месяц", "Потерянный доход (₽/мес)", "Дней без визита", "Что сказать по телефону", "Позвонили (дата)", "Результат"]]
     for s in data["sleeping_guests"]:
         sleeping_rows.append([
             s['username'],
@@ -407,19 +481,53 @@ def create_designed_excel_workbook(data, filepath):
             f"{s['prev_visits']} раз/мес",
             round(s['lost_monthly']),
             f"{s['days_ago']} дн.",
-            s['message']
+            s['message'],
+            "",
+            ""
         ])
 
     sheets_configs.append({
-        "name": "База для возврата",
-        "title": "База остывающих и спящих гостей для реактивации",
-        "subtitle": f"Постоянные игроки с потерянным доходом · Персональные обращения по имени · {now_str}",
-        "col_widths": [18, 16, 18, 16, 16, 24, 16, 68],
+        "name": "Обзвон спящих",
+        "title": "Спящие постоянники: обзвон с подарочным часом",
+        "subtitle": f"Ходили регулярно, но не были больше 3 недель · Сверху те, кто приносил больше · Отмечайте дату звонка и результат · {now_str}",
+        "col_widths": [18, 16, 18, 16, 16, 24, 16, 70, 18, 28],
         "headers": sleeping_rows[0],
         "rows": sleeping_rows[1:],
         "is_summary": False,
         "kpis": None
     })
+
+    # -------------------------------------------------------------
+    # TAB 5–6: ПРОМОКОДЫ (если сервер клуба ответил)
+    # -------------------------------------------------------------
+    promo = data.get("promo")
+    if promo:
+        promo_rows = [["Промокод", "Площадка", "Анкет", "Подтвердили в клубе", "Ждут / проверка", "Отклонено / истекло", "Час выдан", "Пришли повторно", "Потратили после часа (₽)", "В среднем на гостя (₽)", "Бюджет (₽)", "Цена нового гостя (₽)"]]
+        for r in promo["rows"]:
+            promo_rows.append([r["code"], r["channel"], r["forms"], r["done"], r["waiting"], r["rejected"], r["granted"], r["returned"], r["spent"], r["per_guest"], r["budget"] if r["budget"] is not None else "впиши в PROMO_BUDGET", r["cost"] if r["cost"] is not None else "—"])
+        sheets_configs.append({
+            "name": "Промокоды",
+            "title": "Реклама по площадкам: кто пришёл и сколько принёс",
+            "subtitle": f"Пришли повторно — играли в 2 разных дня и больше после подтверждения · Траты без бара, только через аккаунт гостя · {now_str}",
+            "col_widths": [14, 18, 10, 18, 14, 16, 12, 16, 22, 20, 18, 20],
+            "headers": promo_rows[0],
+            "rows": promo_rows[1:],
+            "is_summary": False,
+            "kpis": None
+        })
+        guest_rows = [["Промокод", "Никнейм", "Имя", "Подтверждён", "Бесплатный час", "Дней с визитами", "Последний визит", "Потратил после часа (₽)"]]
+        for g in promo["guests"]:
+            guest_rows.append([g["code"], g["username"], g["name"], g["approved"], g["reward"], g["visits"], g["last"], g["spent"]])
+        sheets_configs.append({
+            "name": "Гости по промокодам",
+            "title": "Новые гости из рекламы",
+            "subtitle": f"Каждый, кто подтвердил анкету с промокодом · {now_str}",
+            "col_widths": [14, 18, 16, 16, 16, 16, 16, 22],
+            "headers": guest_rows[0],
+            "rows": guest_rows[1:],
+            "is_summary": False,
+            "kpis": None
+        })
 
     sheet_xmls = []
     for sheet_idx, cfg in enumerate(sheets_configs, start=1):
@@ -747,6 +855,14 @@ def main():
         print(f"Fetched spending for {len(spending)} users.")
         
         data = analyze(users, spending, active_sessions, sessions_log, client)
+
+        print("Fetching promo codes report from the club server...")
+        report = fetch_promo_report(env)
+        if report is None:
+            print("Promo report unavailable (no SUPABASE_URL/AGENT_SECRET or no connection); skipping promo sheets.")
+        else:
+            data["promo"] = promo_analytics(report, users, client)
+            print(f"Promo codes: {len(data['promo']['rows'])}, approved guests: {len(data['promo']['guests'])}.")
 
     # Output file
     xlsx_path = str(Path(__file__).parent / "1SHOT_Statistika_Club.xlsx")
