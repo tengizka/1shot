@@ -2,9 +2,16 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="refresh" content="0; url=miniapp/">
-<script>window.location.replace("miniapp/" + window.location.search + window.location.hash);</script>
 <title>1SHOT</title>
+<script>
+// Внутри Telegram (старые ссылки на корень) ведём в мини-апп, в браузере — на кейс в портфолио.
+(function () {
+  var q = location.search + location.hash;
+  var inTelegram = /tgWebApp/.test(q) || typeof window.TelegramWebviewProxy !== "undefined" || /Telegram/i.test(navigator.userAgent);
+  location.replace(inTelegram ? "miniapp/" + q : "https://tengizka.fun/work/1shot/");
+})();
+</script>
+<noscript><meta http-equiv="refresh" content="0; url=https://tengizka.fun/work/1shot/"></noscript>
 </head>
 <body></body>
 </html>
