@@ -58,10 +58,12 @@ class PromoReward:
         try:
             invoice=self.gizmo.request('POST',f'users/{int(uid)}/order/{product}/invoice/payment/{method}')
             if not isinstance(invoice,dict) or type(invoice.get('id')) is not int:raise ValueError('Unknown order outcome')
+            record['invoice_id']=invoice['id']
+            # Accounting guard: the free hour must never move money. Any non-zero invoice stops for staff review.
+            if any(float(invoice.get(k) or 0)!=0 for k in ('total','subTotal','outstanding')):raise ValueError('Non-zero invoice')
             lines=self.gizmo.request('GET',f'users/{int(uid)}/producttime')
             ok=isinstance(lines,list) and any(isinstance(t,dict) and t.get('invoiceId')==invoice['id'] and not (t.get('isVoided') or t.get('isDeleted')) and float(t.get('totalSeconds') or 0)>=3600 for t in lines)
             record['result']='granted' if ok else 'attention'
-            record['invoice_id']=invoice['id']
         except Exception:
             record['result']='attention'
         try:

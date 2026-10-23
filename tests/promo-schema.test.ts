@@ -16,13 +16,13 @@ Deno.test('promo codes: validated on submit, tracked through approval, rewarded 
 
  await fail(()=>submit(1,'NOPE'),'Промокод не найден');
  check((await db.query<{n:number}>('select count(*)::int n from club_registration_requests')).rows[0].n===0,'bad code must not create a request');
- await db.exec("update club_promo_codes set active=false where code='YMAPS'");await fail(()=>submit(1,'YMAPS'),'Промокод не найден');
+ await db.exec("update club_promo_codes set active=false where code='RESPAWN'");await fail(()=>submit(1,'RESPAWN'),'Промокод не найден');
 
- const a=(await submit(1,' vk ')).rows[0].v;
+ const a=(await submit(1,' headshot ')).rows[0].v;
  const pub=(await db.query<{p:Record<string,unknown>}>('select public_data p from club_registration_requests where id=$1',[a])).rows[0].p;
- check(pub.promo_code==='VK'&&!('password' in pub),'public summary keeps the normalized code and never the password');
+ check(pub.promo_code==='HEADSHOT'&&!('password' in pub),'public summary keeps the normalized code and never the password');
  check((await db.query<{s:string}>('select status s from club_promo_redemptions where registration_id=$1',[a])).rows[0].s==='awaiting_admin');
- check((await submit(1,'YANDEX')).rows[0].v===a,'an active application is returned unchanged');
+ check((await submit(1,'LEVELUP')).rows[0].v===a,'an active application is returned unchanged');
  check((await db.query<{n:number}>('select count(*)::int n from club_promo_redemptions')).rows[0].n===1);
 
  const b=(await submit(2)).rows[0].v;
@@ -41,7 +41,7 @@ Deno.test('promo codes: validated on submit, tracked through approval, rewarded 
  await db.query("update club_worker set lease_until=now()-interval '1 second'");await fail(()=>reward('granted'),'worker_lease_expired');
 
  await db.query("update club_registration_requests set updated_at=now()-interval '8 days'");await db.query('select club_registration_cleanup()');
- check((await db.query<{n:number}>("select count(*)::int n from club_promo_redemptions where code='VK' and reward='granted'")).rows[0].n===1,'stats survive request cleanup');
+ check((await db.query<{n:number}>("select count(*)::int n from club_promo_redemptions where code='HEADSHOT' and reward='granted'")).rows[0].n===1,'stats survive request cleanup');
 
  await db.exec('set role anon');await fail(()=>db.query('select * from club_promo_codes'));await fail(()=>db.query('select * from club_promo_redemptions'));
  }finally{await db.close()}

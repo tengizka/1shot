@@ -26,7 +26,7 @@ revoke all on public.club_promo_codes,public.club_promo_redemptions from public,
 grant all on public.club_promo_codes,public.club_promo_redemptions to service_role;
 
 insert into public.club_promo_codes(code,channel) values
- ('YANDEX','Яндекс Поиск'),('YMAPS','Яндекс Карты'),('VK','ВКонтакте')
+ ('LEVELUP','Яндекс Поиск'),('RESPAWN','Яндекс Карты'),('HEADSHOT','ВКонтакте')
 on conflict do nothing;
 
 create or replace function public.club_registration_submit(p_id uuid,p_user bigint,p_data jsonb,p_cipher text) returns uuid language plpgsql security definer set search_path=public as $$
