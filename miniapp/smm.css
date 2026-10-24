@@ -622,3 +622,5 @@
 /* Sections run to the very bottom under the menu, so nothing behind them peeks through */
 .overlay{bottom:0!important;background:#000!important}
 .overlay .ov-body{padding-bottom:calc(90px + var(--safe-bot,0px))!important}
+/* While a section is open the session screen and the hall behind it are not drawn at all (keyboard resizes included) */
+body:has(.overlay.open) :is(#session-screen,#my-session-banner,#booking-bar){visibility:hidden}
