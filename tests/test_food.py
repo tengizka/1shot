@@ -32,7 +32,7 @@ class Gizmo:
         self.calls.append((method,path,kw))
         if method!='GET':self.writes.append((method,path,kw.get('json')))
         if path=='v2.0/assistancerequesttype':return {'data':self.types,'nextCursor':None}
-        if path=='v2.0/productgroups':return {'data':[{'id':1,'name':'Напитки','displayOrder':0},{'id':2,'name':'Снеки','displayOrder':1},{'id':3,'name':'Аксессуары','displayOrder':2},{'id':7,'name':'Аренда','displayOrder':9}],'nextCursor':None}
+        if path=='v2.0/productgroups':return {'data':[{'id':1,'name':'Напитки','displayOrder':0},{'id':2,'name':'Снеки','displayOrder':1},{'id':3,'name':'Аксессуары','displayOrder':2},{'id':7,'name':'Аренда','displayOrder':9},{'id':8,'name':'Standart','displayOrder':10},{'id':9,'name':'VIP','displayOrder':11}],'nextCursor':None}
         if path=='v2.0/taxes':return {'data':[{'id':1,'name':'24%','value':23},{'id':3,'name':'None','value':0}]}
         if path=='v2.0/invoices':
             if getattr(self,'invoices',None) is None:raise ApiError('Gizmo: HTTP 404')
@@ -252,6 +252,18 @@ class FoodTests(unittest.TestCase):
         self.assertIn(53,names);self.assertNotIn(52,names,'0.473 and 0,473 л are the same drink')
         self.assertIn(54,names,'a shop card on its own is shown even without sales')
         self.assertNotIn(55,names,'a till card nobody bought in two months stays hidden')
+
+    def test_hour_packages_and_service_rentals(self):
+        self.gizmo.products+=[{'id':60,'productType':1,'productGroupId':8,'name':'3 часа Standart','price':499,'timeProduct':{'minutes':180}},
+                              {'id':61,'productType':1,'productGroupId':8,'name':'Пакет Утро Standart','price':399,'timeProduct':{'minutes':300}},
+                              {'id':62,'productType':1,'productGroupId':9,'name':'3 часа VIP','price':599,'timeProduct':{'minutes':180}},
+                              {'id':63,'productType':1,'productGroupId':8,'name':'standart 1 h','price':0,'timeProduct':{'minutes':60}},
+                              {'id':64,'productType':0,'productGroupId':7,'name':'Аренда мышки Logitech G304 Lightspeed','price':89,'isService':True}]
+        self.food.tick([]);menu={m['id']:m for m in self.cloud.calls[0]['menu']}
+        self.assertEqual((menu[60]['group'],menu[62]['group']),('Standart','VIP'),'packages come in their own groups')
+        self.assertIn(61,menu);self.assertNotIn(63,menu,'the free promo hour is never sold')
+        self.assertIn(64,menu,'a rental marked as a service is still offered')
+        self.assertNotIn(16,menu,'other services stay out')
 
     def test_tax_report_is_read_only(self):
         self.gizmo.products[0]['productTaxes']=[{'taxId':1,'isEnabled':True}]

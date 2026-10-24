@@ -21,6 +21,8 @@ PAYMENT={'deposit':'спишите с депозита','card':'картой п�
 PENDING,ACCEPTED=0,1
 TIME_PRODUCT=1  # Gizmo ProductType: 0 product, 1 time, 2 bundle
 RENTAL_GROUP='аренда'
+# Hour packages are sold from these Gizmo groups in the market's «Пакеты часов» tab.
+PACK_GROUPS={'standart','vip'}
 
 def plain(name):
     """Product name without the quotes Gizmo copies sometimes carry: "Red Bull" → Red Bull."""
@@ -159,16 +161,20 @@ class Food:
         for p in self.paged('v2.0/products',{'IsDeleted':'false'}):
             group=groups.get(p.get('productGroupId'))
             price=p.get('price')
-            if not group or type(p.get('id')) is not int or p.get('isDeleted') or p.get('productType')==TIME_PRODUCT or p.get('timeProduct'):continue
-            if p.get('disallowClientOrder') or p.get('restrictSale') or p.get('isService') or not isinstance(price,(int,float)) or isinstance(price,bool) or price<=0:continue
-            if str(group.get('name','')).strip().casefold() in self.hidden or not plain(p.get('name')):continue
+            gname=str((group or {}).get('name','')).strip().casefold()
+            pack=gname in PACK_GROUPS and (p.get('productType')==TIME_PRODUCT or bool(p.get('timeProduct')))
+            if not group or type(p.get('id')) is not int or p.get('isDeleted'):continue
+            if not pack and (p.get('productType')==TIME_PRODUCT or p.get('timeProduct')):continue
+            # Rentals are often marked as a service in Gizmo; other services (heating and the like) stay out.
+            if p.get('disallowClientOrder') or p.get('restrictSale') or (p.get('isService') and gname!=RENTAL_GROUP) or not isinstance(price,(int,float)) or isinstance(price,bool) or price<=0:continue
+            if (gname in self.hidden and not pack) or not plain(p.get('name')):continue
             cards.append((p,group))
         sold_keys={key(n) for n in sold_names}
         items=[]
         for copies in pair_cards(cards):
             shop=[c for c in copies if not till_card(c[0])]
             p,group=max(shop or copies,key=lambda c:c[0]['id'])
-            rental=str(group.get('name','')).strip().casefold()==RENTAL_GROUP
+            rental=str(group.get('name','')).strip().casefold() in {RENTAL_GROUP}|PACK_GROUPS
             till=[c[0] for c in copies if till_card(c[0])]
             # Sales only decide for goods sold at the till; a shop card on its own is what the club chose to show.
             if not rental and till and (sold_ids or sold_names) and not any(t['id'] in sold_ids or key(t.get('name')) in sold_keys for t in till):continue

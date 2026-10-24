@@ -63,7 +63,7 @@
  function stepper(id,q){
   const box=el('div','food-qty');
   const minus=el('button','','−'),plus=el('button','','+');minus.type=plus.type='button';
-  const max=isRent(item(id))?1:5;  // one of each rental item
+  const max=isRent(item(id))||isPack(item(id))?1:5;  // one of each rental item and package
   minus.setAttribute('aria-label','Убрать');plus.setAttribute('aria-label','Добавить');plus.disabled=q>=max;
   minus.onclick=()=>{q>1?state.cart.set(id,q-1):state.cart.delete(id);tap('select');render()};
   plus.onclick=()=>{if(q<max){state.cart.set(id,q+1);tap('select');render()}};
@@ -84,6 +84,11 @@
 
  // Rentals come from Gizmo's «Аренда» group and live in their own tab.
  function isRent(m){return !!m&&String(m.group||'').trim().toLowerCase()==='аренда'}
+ // Hour packages come from Gizmo's Standart and VIP groups; morning and night ones only sell in their hours (MSK).
+ const PACKS=[['standart','STANDART'],['vip','VIP']];
+ function isPack(m){return !!m&&PACKS.some(([g])=>String(m.group||'').trim().toLowerCase()===g)}
+ function packWindow(m){const n=String(m.name).toLowerCase();return n.includes('утро')?[8,13]:n.includes('ночь')?[22,8]:null}
+ function packOpen(m){const w=packWindow(m);if(!w)return true;const h=new Date(Date.now()+3*3600000).getUTCHours();return w[0]<w[1]?h>=w[0]&&h<w[1]:h>=w[0]||h<w[1]}
  function menuView(){
   const frag=document.createDocumentFragment();
   const o=active();if(o)frag.append(orderCard(o));
@@ -95,7 +100,7 @@
   }
   // Until Desk at the club has sent the menu, keep the old "soon" card instead of an empty list.
   if(!state.menu.length){frag.append(el('span','smm-tag','Скоро'),el('h2','smm-title food-soon-title','Еда\nи напитки'),el('p','smm-text','Здесь появится меню бара клуба.'));return frag}
-  const rent=state.section==='rent',list=state.menu.filter(m=>isRent(m)===rent);
+  const rent=state.section==='rent',list=state.menu.filter(m=>!isPack(m)&&isRent(m)===rent);
   if(rent&&!list.length){frag.append(el('span','smm-tag','Аренда'),el('h2','smm-title food-soon-title','Всё\nна руках'),el('p','smm-text','Вещи появятся здесь, как только их вернут.'));return frag}
   const groups=[...new Set(list.map(m=>m.group))];
   if(!groups.includes(state.group))state.group=groups[0];
@@ -151,13 +156,26 @@
   body.classList.remove('food-soon');body.classList.add('food');
   const tabs=el('div','market-tabs');tabs.setAttribute('role','tablist');
   for(const [key,label] of [['food','Еда'],['rent','Аренда'],['packs','Пакеты часов']]){const b=el('button','',label);b.type='button';b.setAttribute('aria-selected',String(state.section===key));b.onclick=()=>{if(state.section===key)return;state.section=key;state.view='menu';tap('select');render();body.scrollTop=0};tabs.append(b)}
-  body.replaceChildren(tabs,state.section==='packs'?packsView():state.view==='checkout'?checkoutView():menuView());
+  body.replaceChildren(tabs,state.view==='checkout'?checkoutView():state.section==='packs'?packsView():menuView());
  }
  function packsView(){
-  // Time packages are sold here after online payment is connected.
-  const frag=document.createDocumentFragment();
-  frag.append(el('span','smm-tag','Скоро'),el('h2','smm-title food-soon-title','Пакеты\nчасов'),el('p','smm-text','Купить пакет часов можно будет прямо здесь, без очереди на ресепшене.'));
+  const frag=document.createDocumentFragment();const o=active();if(o)frag.append(orderCard(o));
+  if(!state.menu){const wait=el('div','food-loading');wait.setAttribute('role','status');wait.innerHTML='<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M12 16h24l-3 26H15Z"/><path d="M10 16h28M24 16V8h8"/></svg>';frag.append(wait);return frag}
+  const packs=state.menu.filter(isPack);
+  if(!packs.length){frag.append(el('span','smm-tag','Скоро'),el('h2','smm-title food-soon-title','Пакеты\nчасов'),el('p','smm-text','Пакеты появятся здесь, как только клуб их добавит.'));return frag}
+  for(const [g,label] of PACKS){
+   const list=packs.filter(m=>String(m.group).trim().toLowerCase()===g);if(!list.length)continue;
+   frag.append(el('p','pack-section pack-'+g,label));
+   const grid=el('div','food-grid');list.forEach(m=>grid.append(packCard(m)));frag.append(grid);
+  }
+  if(count()){const why=blocker();const bar=el('div','food-bar');const go=el('button','btn-main',why?why:'Оформить · '+rub(total()));go.type='button';go.disabled=!!why;go.onclick=()=>{state.view='checkout';state.request=state.request||crypto.randomUUID();tap('select');render();body.scrollTop=0};bar.append(el('span','food-bar-count',count()+' шт.'),go);frag.append(bar)}
   return frag;
+ }
+ function packCard(m){
+  const card=product(m),w=packWindow(m);card.classList.add('pack-card');
+  if(w){const hm=h=>String(h).padStart(2,'0')+':00';card.querySelector('h3').after(el('span','pack-window',hm(w[0])+'–'+hm(w[1])));
+   if(!packOpen(m)){const add=card.querySelector('.food-add');if(add){add.disabled=true;add.textContent='С '+hm(w[0])}state.cart.delete(m.id)}}
+  return card;
  }
  function start(){if(open)return;open=true;shown='';render();load();clearInterval(timer);timer=setInterval(()=>{if(!document.hidden)load()},5000)}
  function stop(){open=false;clearInterval(timer)}

@@ -9,7 +9,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
    localStorage.setItem('1shot_v2_profile',JSON.stringify({telegram_id:123,gizmo_user_id:77,username:'neo'}));
   });
   const pic='data:image/webp;base64,'+'UklGRg==';
-  const server={seat:null,orders:[],menu:[{id:10,group:'Напитки',name:'Red Bull',price:189,image:pic},{id:12,group:'Напитки',name:'Вода',price:60,image:'javascript:alert(1)'},{id:11,group:'Снеки',name:'Lays',price:120,image:null},{id:30,group:'Аренда',name:'Аренда мышки Logitech G PRO X Superlight',price:199,image:null}],fail:null};
+  const server={seat:null,orders:[],menu:[{id:10,group:'Напитки',name:'Red Bull',price:189,image:pic},{id:12,group:'Напитки',name:'Вода',price:60,image:'javascript:alert(1)'},{id:11,group:'Снеки',name:'Lays',price:120,image:null},{id:30,group:'Аренда',name:'Аренда мышки Logitech G PRO X Superlight',price:199,image:null},{id:60,group:'Standart',name:'3 часа Standart',price:499,image:null},{id:61,group:'Standart',name:'Пакет Ночь Standart',price:899,image:null},{id:62,group:'VIP',name:'3 часа VIP',price:599,image:null}],fail:null};
   await page.route('**/*',route=>{const url=new URL(route.request().url());
    if(url.host==='club.test'){
     const rawPath=url.pathname==='/'?'index.html':url.pathname.slice(1),file=fs.existsSync('miniapp/'+rawPath)?'miniapp/'+rawPath:rawPath;
@@ -47,7 +47,12 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   assert.equal(await page.evaluate(()=>{const b=document.querySelector('#ov-food .ov-body');return b.scrollWidth<=b.clientWidth}),true,'the market never scrolls sideways');
   assert.equal((await page.locator('#nav-food').textContent()).trim(),'Маркет');
   assert.equal(await page.evaluate(()=>{const n=document.querySelector('.bottom-nav').getBoundingClientRect(),o=document.querySelector('#ov-food').getBoundingClientRect(),hit=document.elementFromPoint(n.left+n.width/2,n.top+n.height/2);return n.height>0&&Math.abs(o.bottom-n.top)<=1&&!!hit?.closest('.bottom-nav')}),true,'the bottom menu stays visible and the section ends right on top of it');
-  await food.locator('.market-tabs button',{hasText:'Пакеты часов'}).click();assert.match(await food.innerText(),/Скоро/i);
+  await food.locator('.market-tabs button',{hasText:'Пакеты часов'}).click();
+  assert.deepEqual(await food.locator('.pack-section').allTextContents(),['STANDART','VIP'],'packages split into STANDART and VIP');
+  assert.deepEqual(await food.locator('.food-card h3').allTextContents(),['3 часа Standart','Пакет Ночь Standart','3 часа VIP']);
+  const night=food.locator('.food-card',{hasText:'Пакет Ночь'});assert.equal(await night.locator('.pack-window').innerText(),'22:00–08:00');
+  const h=new Date(Date.now()+3*3600000).getUTCHours();assert.equal(await night.locator('.food-add').isDisabled(),!(h>=22||h<8),'night package only sells 22–8 MSK');
+  if(process.env.SHOTS)await page.screenshot({path:process.env.SHOTS+'/packs.png'});
   await food.locator('.market-tabs button',{hasText:'Еда'}).click();await page.waitForSelector('#ov-food .food-card');
 
   // Add to cart, five is the limit.

@@ -54,3 +54,8 @@
 .food-loading svg{width:64px;height:64px;fill:none;stroke:var(--smm-lime);stroke-width:2.6;stroke-linecap:square;stroke-linejoin:miter;animation:food-bounce 1s cubic-bezier(.5,0,.5,1) infinite}
 @keyframes food-bounce{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-14px) rotate(-8deg)}60%{transform:translateY(0) rotate(6deg)}}
 @media(prefers-reduced-motion:reduce){.food-loading svg{animation:none}}
+/* Hour packages: STANDART and VIP sections; morning and night show their hours */
+.pack-section{margin:6px 0 0;font:700 13px var(--smm-display);letter-spacing:.08em;text-transform:uppercase;color:#fff}
+.pack-section.pack-vip{color:var(--smm-orange)}
+.pack-window{display:inline-block;align-self:flex-start;padding:4px 7px;border:1px solid #3a3a3a;font:700 9px Unbounded,sans-serif;letter-spacing:.06em;color:#bdbdbd}
+.pack-card .food-add:disabled{background:#1a1a1a!important;color:#6f6f6f!important;border-color:#2a2a2a!important}
