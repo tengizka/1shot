@@ -32,6 +32,9 @@ class Gizmo:
         if path=='v2.0/assistancerequesttype':return {'data':self.types,'nextCursor':None}
         if path=='v2.0/productgroups':return {'data':[{'id':1,'name':'Напитки','displayOrder':0},{'id':2,'name':'Снеки','displayOrder':1},{'id':3,'name':'Аксессуары','displayOrder':2}],'nextCursor':None}
         if path=='v2.0/taxes':return {'data':[{'id':1,'name':'24%','value':23},{'id':3,'name':'None','value':0}]}
+        if path=='v2.0/invoices':
+            if getattr(self,'invoices',None) is None:raise ApiError('Gizmo: HTTP 404')
+            return {'data':self.invoices,'nextCursor':None}
         if path=='v2.0/productsstock':return {'data':[{'id':14,'onHand':0}],'nextCursor':None}
         if path=='v2.0/products':
             if kw['params'].get('Pagination.Cursor'):return {'data':self.products[3:],'nextCursor':None}
@@ -175,6 +178,20 @@ class FoodTests(unittest.TestCase):
             return real(method,path,**kw)
         self.gizmo.request=no_list;self.gizmo.stock_error=ApiError('Gizmo: HTTP 500')
         self.food.tick([]);self.assertIn('Кончился',[m['name'] for m in self.cloud.calls[0]['menu']])
+
+    def test_only_goods_sold_in_two_months(self):
+        now=datetime.now(timezone.utc)
+        self.gizmo.invoices=[{'id':1,'createdTime':(now-timedelta(days=3)).isoformat(),'invoiceLines':[{'productId':10},{'productId':18}]},
+                             {'id':2,'createdTime':(now-timedelta(days=90)).isoformat(),'invoiceLines':[{'productId':11}]},
+                             {'id':3,'createdTime':(now-timedelta(days=5)).isoformat(),'isVoided':True,'invoiceLines':[{'productId':15}]}]
+        self.food.tick([])
+        self.assertEqual([m['name'] for m in self.cloud.calls[0]['menu']],['Red Bull','Комбо'],'old sale and voided invoice do not count')
+        self.assertEqual(self.gizmo.writes,[],'reading sales never writes to Gizmo')
+        params=next(c[2]['params'] for c in self.gizmo.calls if c[1]=='v2.0/invoices');self.assertIn('DateFrom',params)
+
+    def test_no_sales_data_shows_everything(self):
+        self.food.tick([]);self.assertIn('Lays',[m['name'] for m in self.cloud.calls[0]['menu']],'invoices unreadable: no filter')
+        self.setUp();self.gizmo.invoices=[];self.food.tick([]);self.assertIn('Lays',[m['name'] for m in self.cloud.calls[0]['menu']],'nothing sold: no filter, the market never empties')
 
     def test_tax_report_is_read_only(self):
         self.gizmo.products[0]['productTaxes']=[{'taxId':1,'isEnabled':True}]

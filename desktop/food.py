@@ -9,7 +9,7 @@ import io
 import json
 import os
 import time
-from datetime import datetime,timezone
+from datetime import datetime,timedelta,timezone
 from .services import ApiError
 
 ORDER_TYPE='сделать заказ'
@@ -100,6 +100,9 @@ class Food:
         # The stock list fails on some Gizmo builds; then each tracked product is asked on its own.
         try:stock={s['id']:s.get('onHand') for s in self.paged('v2.0/productsstock') if type(s.get('id')) is int}
         except ApiError:stock=None
+        # Only goods sold in the last FOOD_SOLD_DAYS (default 60): old duplicates with stale stock drop out.
+        try:sold=self.sold_ids()
+        except Exception:sold=None
         items=[]
         for p in self.paged('v2.0/products',{'IsDeleted':'false'}):
             group=groups.get(p.get('productGroupId'))
@@ -107,10 +110,33 @@ class Food:
             if not group or type(p.get('id')) is not int or p.get('isDeleted') or p.get('productType')==TIME_PRODUCT or p.get('timeProduct'):continue
             if p.get('disallowClientOrder') or p.get('restrictSale') or p.get('isService') or not isinstance(price,(int,float)) or isinstance(price,bool) or price<=0:continue
             if str(group.get('name','')).strip().casefold() in self.hidden or not str(p.get('name') or '').strip():continue
+            if sold and p['id'] not in sold:continue
             if p.get('enableStock') and not self.in_stock(p['id'],stock):continue
             items.append({'id':p['id'],'group':str(group.get('name') or 'Меню').strip()[:45],'group_order':int(group.get('displayOrder') or 0),'name':str(p['name']).strip()[:60],'price':round(float(price),2),'sort':int(p.get('displayOrder') or 0)})
         for item in items:item['image']=self.image(item['id'])
         return items
+
+    def sold_ids(self):
+        """Product ids on Gizmo invoices of the last N days, cached for 6 hours. Empty means «do not filter»."""
+        try:days=int(os.getenv('FOOD_SOLD_DAYS','60'))
+        except ValueError:days=60
+        if days<=0:return set()
+        hit=self.store.get('food.sold')
+        if hit and time.time()-hit.get('at',0)<6*3600 and hit.get('days')==days:return set(hit.get('ids') or [])
+        since=datetime.now(timezone.utc)-timedelta(days=days);ids=set()
+        for invoice in self.paged('v2.0/invoices',{'DateFrom':since.strftime('%Y-%m-%dT%H:%M:%S'),'Expand':'InvoiceLines'}):
+            when=str(invoice.get('createdTime') or invoice.get('date') or '')
+            try:
+                at=datetime.fromisoformat(when.replace('Z','+00:00'))
+                if at.tzinfo is None:at=at.replace(tzinfo=timezone.utc)
+                if at<since:continue
+            except ValueError:pass
+            if invoice.get('isVoided') or invoice.get('isDeleted'):continue
+            for line in invoice.get('invoiceLines') or []:
+                pid=line.get('productId') if isinstance(line,dict) else None
+                if type(pid) is int and not line.get('isVoided') and not line.get('isDeleted'):ids.add(pid)
+        self.store.set('food.sold',{'at':time.time(),'days':days,'ids':sorted(ids)})
+        return ids
 
     def in_stock(self,product_id,stock):
         """Out-of-stock goods are hidden; an unreadable stock never hides a product."""
