@@ -967,7 +967,8 @@ function setPlanView(zone,animate=true){
   const to=planTarget(zone),from={s:planScale,left:plan.scrollLeft,top:plan.scrollTop};
   cancelAnimationFrame(planAnim);
   if(!animate||matchMedia('(prefers-reduced-motion: reduce)').matches){applyPlan(to.s,to.left,to.top);return}
-  const t0=performance.now(),d=380,ease=x=>1-Math.pow(1-x,3);
+  // A soft zoom: slow start and end, a little longer than a tap so the move reads.
+  const t0=performance.now(),d=560,ease=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
   const step=now=>{const k=ease(Math.min(1,(now-t0)/d));applyPlan(from.s+(to.s-from.s)*k,from.left+(to.left-from.left)*k,from.top+(to.top-from.top)*k);if(k<1)planAnim=requestAnimationFrame(step)};
   planAnim=requestAnimationFrame(step);
 }
@@ -985,6 +986,34 @@ function switchZone(zone) {
     if(activeZone==='all'){const z=e.target.closest('.plan-zone');if(z){haptic('select');switchZone(z.dataset.zone)}}
     else{haptic('select');switchZone('all')}
   });
+})();
+// Two fingers: the plan follows the pinch live; on release it settles into the zone (spread) or back to the whole hall (pinch).
+(()=>{
+  const plan=document.getElementById('hall-plan');let g=null;
+  const pts=e=>[...e.touches].slice(0,2).map(t=>({x:t.clientX,y:t.clientY}));
+  const span=([a,b])=>Math.hypot(a.x-b.x,a.y-b.y);
+  plan.addEventListener('touchstart',e=>{
+    if(e.touches.length!==2)return;
+    cancelAnimationFrame(planAnim);const r=plan.getBoundingClientRect(),[a,b]=pts(e),mx=(a.x+b.x)/2-r.left,my=(a.y+b.y)/2-r.top;
+    const s0=planScale,ml=Math.max(0,(plan.clientWidth-360*s0)/2),mt=Math.max(0,(plan.clientHeight-416*s0)/2);
+    g={d0:span([a,b]),s0,mx,my,px:(plan.scrollLeft+mx-ml)/s0,py:(plan.scrollTop+my-mt)/s0,ratio:1,cx:(a.x+b.x)/2,cy:(a.y+b.y)/2};
+  },{passive:true});
+  plan.addEventListener('touchmove',e=>{
+    if(!g||e.touches.length!==2)return;e.preventDefault();
+    g.ratio=span(pts(e))/g.d0;const all=planTarget('all').s,s=Math.max(all*.85,Math.min(g.s0*g.ratio,all*6));
+    const ml=Math.max(0,(plan.clientWidth-360*s)/2),mt=Math.max(0,(plan.clientHeight-416*s)/2);
+    applyPlan(s,g.px*s+ml-g.mx,g.py*s+mt-g.my);
+  },{passive:false});
+  const end=e=>{
+    if(!g||e.touches.length>=2)return;const done=g;g=null;
+    if(done.ratio>1.12&&activeZone==='all'){
+      const z=document.elementFromPoint(done.cx,done.cy)?.closest('.plan-zone');
+      if(z){haptic('select');switchZone(z.dataset.zone);return}
+    }
+    if(done.ratio<.9&&activeZone!=='all'){haptic('select');switchZone('all');return}
+    setPlanView(activeZone);
+  };
+  plan.addEventListener('touchend',end);plan.addEventListener('touchcancel',end);
 })();
 // Tap feedback: different haptics for free and unavailable PCs, and the picked seat stays lit.
 const SEAT_DENIED={reserved:'Этот ПК уже забронирован',broken:'Этот ПК на ремонте',unknown:'Нет связи с этим ПК'};
