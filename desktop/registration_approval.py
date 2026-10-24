@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import re
+import time
 import uuid
 from datetime import datetime, timezone
 from urllib.parse import quote
@@ -58,6 +59,17 @@ class RegistrationApproval:
         self.cloud,self.gizmo,self.store,self.guard=cloud,gizmo,store,guard
         self.promo=PromoReward(cloud,gizmo,store,guard)
 
+    def remember(self,id,req,result,uid=None,source='telegram',code=None):
+        """Local history of decided applications for the «История анкет» list (no passwords)."""
+        history=[h for h in self.store.get('registration-history',[]) if h.get('id')!=id]
+        history.insert(0,{'id':id,'at':datetime.now(timezone.utc).isoformat(),'result':result,'source':source,'gizmo_user_id':uid,'code':code,
+                          'username':str(req.get('username') or '')[:30],'name':' '.join(str(req.get(k) or '').strip() for k in ('first_name','last_name')).strip()[:90],
+                          'phone':str(req.get('mobile_phone') or '')[:20]})
+        self.store.set('registration-history',history[:300])
+
+    def history(self):
+        return self.store.get('registration-history',[])
+
     def report(self,id,record):
         if record.get('phase')=='reconciled':return {'ok':True,'status':'done','synced':True,'gizmo_user_id':record['gizmo_user_id']}
         if record.get('phase')!='outcome':
@@ -68,10 +80,11 @@ class RegistrationApproval:
                 result=self.cloud.desk('registration_finish',id=id,status=record['status'],gizmo_user_id=record.get('gizmo_user_id'))
                 record['synced']=result.get('ok') is True
                 record['conflict']=not record['synced']
+                if record['conflict']:record['retry_at']=time.time()
                 self.store.set('registration:'+id,record)
             except ApiError as error:
                 if error.status in (403,409):
-                    record['conflict']=True
+                    record['conflict']=True;record['retry_at']=time.time()
                     self.store.set('registration:'+id,record)
             except Exception:pass  # Retry reporting only; never repeat a Gizmo write.
         return {'ok':record['status']=='done','status':record['status'],'synced':bool(record.get('synced')),'gizmo_user_id':record.get('gizmo_user_id')}
@@ -83,6 +96,9 @@ class RegistrationApproval:
             record=json.loads(raw)
             if record.get('phase')=='outcome' and not record.get('synced') and not record.get('conflict'):
                 self.report(key.split(':',1)[1],record)
+            elif record.get('phase')=='outcome' and record.get('conflict') and record.get('status')=='done' and time.time()-record.get('retry_at',0)>300:
+                # The server may have moved it to «attention» by timeout; it accepts the created account now.
+                record.update(conflict=False,retry_at=time.time());self.store.set(key,record);self.report(key.split(':',1)[1],record)
         self.promo.flush()
 
     def approve(self,id,confirmed=False):
@@ -93,7 +109,7 @@ class RegistrationApproval:
         if existing:return self.report(id,existing)
         self.guard()
         self.store.set('registration:'+id,{'phase':'intent','status':'attention'})
-        uid=None;status='attention';code=None
+        uid=None;status='attention';code=None;req={}
         try:
             row=self.cloud.desk('registration_claim',id=id,confirmed=True)['request']
             if row['id']!=id or datetime.fromisoformat(row['expires_at'].replace('Z','+00:00'))<=datetime.now(timezone.utc):raise ValueError('Expired claim')
@@ -110,6 +126,9 @@ class RegistrationApproval:
         except Exception:status='attention'
         record={'phase':'outcome','status':status,'gizmo_user_id':uid,'synced':False}
         self.store.set('registration:'+id,record)
+        if status in ('done','rejected'):
+            try:self.remember(id,req,status,uid,'telegram',code)
+            except Exception:pass
         result=self.report(id,record)
         if status=='done' and code:
             reward=self.promo.grant(id,uid,code)
@@ -150,6 +169,7 @@ class RegistrationApproval:
             uid=uid or (created[0] if created else None)
             record={'phase':'outcome','status':status,'gizmo_user_id':uid,'code':code,'username':req['username']}
             self.store.set(key,record)
+            if status=='done':self.remember(id,req,'done',uid,'desk',code)
         result={'ok':record.get('status')=='done','status':record.get('status'),'gizmo_user_id':record.get('gizmo_user_id'),'username':record.get('username')}
         if record.get('phase')!='outcome':
             result.update(ok=False,status='attention',error='Операция прервалась. Проверьте аккаунт в Gizmo вручную; повторное создание заблокировано');return result

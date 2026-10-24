@@ -76,6 +76,10 @@ class ApprovalTests(unittest.TestCase):
   def desk(*args,**kwargs):attempts.append(1);raise ApiError('owner conflict',status=409)
   self.cloud.desk=desk;self.api.flush();self.api.flush()
   self.assertEqual(len(attempts),1);self.assertTrue(self.store.get('registration:'+self.id)['conflict']);self.assertEqual(self.gizmo.writes,[])
+  # Five minutes later a created account is reported again (the server accepts it after a timeout).
+  record=self.store.get('registration:'+self.id);record['retry_at']-=301;self.store.set('registration:'+self.id,record)
+  self.cloud.desk=lambda *a,**k:{'ok':True};self.api.flush()
+  self.assertTrue(self.store.get('registration:'+self.id)['synced']);self.assertEqual(self.gizmo.writes,[])
  def test_guest_group_is_resolved_not_assumed(self):
   data=dict(self.payload,birth_date='2010-01-01');self.assertEqual(registration_params(data,self.gizmo,date(2026,10,8))['UserGroupId'],15)
  def test_profile_mismatch_never_sets_password_or_links(self):

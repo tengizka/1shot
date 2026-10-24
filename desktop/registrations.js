@@ -1,7 +1,7 @@
 /* Trusted local staff UI. A checkbox is confirmation, not an authorization mechanism. */
 (()=>{
  const tab=document.createElement('button');tab.className='tab';tab.dataset.panel='registrations';tab.textContent='Анкеты';tab.onclick=()=>panel('registrations');document.querySelector('nav').insertBefore(tab,document.querySelector('nav .exit'));
- const section=document.createElement('section');section.id='panel-registrations';section.hidden=true;const title=document.createElement('h2');title.textContent='Анкеты';const note=document.createElement('p');note.className='note';const list=document.createElement('div');list.className='registration-list';const tools=document.createElement('div');tools.className='registration-tools';tools.innerHTML='<input type="search" id="registration-search" placeholder="Поиск: имя, ник, телефон, промокод" autocomplete="off" maxlength="60"><select id="registration-sort" aria-label="Сортировка"><option value="new">Сначала новые</option><option value="old">Сначала старые</option><option value="name">По имени</option><option value="promo">Сначала с промокодом</option></select><span id="registration-count" class="note"></span>';section.append(title,tools,note,list);document.querySelector('main').append(section);
+ const section=document.createElement('section');section.id='panel-registrations';section.hidden=true;const title=document.createElement('h2');title.textContent='Анкеты';const note=document.createElement('p');note.className='note';const list=document.createElement('div');list.className='registration-list';const tools=document.createElement('div');tools.className='registration-tools';tools.innerHTML='<input type="search" id="registration-search" placeholder="Поиск: имя, ник, телефон, промокод" autocomplete="off" maxlength="60"><select id="registration-sort" aria-label="Сортировка"><option value="new">Сначала новые</option><option value="old">Сначала старые</option><option value="name">По имени</option><option value="promo">Сначала с промокодом</option></select><span id="registration-count" class="note"></span>';const hist=document.createElement('details');hist.className='registration-history';hist.innerHTML='<summary>История анкет</summary><div class="registration-history-list"></div>';section.append(title,tools,note,list,hist);document.querySelector('main').append(section);
  const promoText=p=>!p?'':p.result==='granted'?' · Час Standart начислен (промокод '+p.code+')':p.result==='failed'?' · Час не начислен: '+(p.error||'начислите вручную'):' · Проверьте в Gizmo, начислен ли час Standart. Не начисляйте повторно не проверив';
  const states={awaiting_admin:'Ожидает проверки личности',processing:'Создаём аккаунт. Не повторяйте действие',attention:'Нужна ручная сверка. Повторное создание заблокировано'};
  function create(){
@@ -50,8 +50,25 @@
  search.oninput=sort.onchange=()=>current&&window.renderRegistrations(current);
  window.renderRegistrations=s=>{
   setDeskText(note,s.registration_ready?'':'Нет связи с сервером');
-  const all=s.registrations||[],q=search.value.trim(),rows=all.filter(r=>matches(r,q)).sort(SORT[sort.value]||SORT.new);
+  // A decided application leaves the list at once; the server catches up on the next poll.
+  const decided=new Set((s.registration_history||[]).map(h=>h.id));
+  const all=(s.registrations||[]).filter(r=>!decided.has(r.id)),q=search.value.trim(),rows=all.filter(r=>matches(r,q)).sort(SORT[sort.value]||SORT.new);
   setDeskText(count,all.length?(q?'Найдено '+rows.length+' из '+all.length:'Всего '+all.length):'Анкет нет');
   const existing=new Map([...list.children].map(c=>[c.dataset.registrationId,c]));const nodes=rows.map(r=>{const card=existing.get(r.id)||create();card.update(r,s.registration_ready);return card});reconcileDeskChildren(list,nodes);
- };if(current)window.renderRegistrations(current);
+  renderHistory(s.registration_history||[]);
+ };
+ const RESULT={done:'Аккаунт создан',rejected:'Отклонена'};
+ function renderHistory(items){
+  hist.querySelector('summary').textContent='История анкет'+(items.length?' · '+items.length:'');
+  const box=hist.querySelector('.registration-history-list');
+  const key=JSON.stringify(items.map(h=>[h.id,h.result]));if(box.dataset.key===key)return;box.dataset.key=key;
+  box.replaceChildren(...(items.length?items:[null]).map(h=>{
+   const row=document.createElement('div');row.className='registration-history-row';
+   if(!h){row.textContent='Пока пусто';return row}
+   const when=new Date(h.at).toLocaleString('ru-RU',{timeZone:'Europe/Moscow',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+   const parts=[when,h.name||h.username||'Гость',h.username&&h.name?'ник '+h.username:'',h.phone,(RESULT[h.result]||h.result)+(h.gizmo_user_id?' · ID '+h.gizmo_user_id:''),h.code?'промокод '+h.code:'',h.source==='desk'?'на ресепшене':''].filter(Boolean);
+   for(const [i,t] of parts.entries()){const span=document.createElement('span');span.textContent=t;if(i===4)span.className=h.result==='done'?'ok':'muted';row.append(span)}
+   return row;
+  }));
+ }if(current)window.renderRegistrations(current);
 })();

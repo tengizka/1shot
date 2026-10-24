@@ -394,3 +394,10 @@ nav .exit span{white-space:normal}
 #desk-reg-submit{background:var(--lime);border-color:var(--lime);color:#000}
 #desk-reg-submit:disabled{opacity:.4}
 @media(max-width:900px){.desk-reg-grid{grid-template-columns:1fr 1fr}}
+
+.registration-history{margin-top:18px;border-top:1px solid var(--line,#2a2a2b);padding-top:12px}
+.registration-history summary{cursor:pointer;font:700 11px Unbounded,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.registration-history-list{display:flex;flex-direction:column;margin-top:10px}
+.registration-history-row{display:flex;flex-wrap:wrap;gap:4px 14px;padding:8px 0;border-bottom:1px solid #1a1a1a;font-size:11px;color:#d9d9d9}
+.registration-history-row .ok{color:var(--lime)}
+.registration-history-row .muted{color:var(--muted)}

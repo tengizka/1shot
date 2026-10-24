@@ -174,7 +174,11 @@ class App:
         try:
             with self.operations:
                 self.renew_account_lease()
-                return self.registration.reject(id,confirmed)
+                result=self.registration.reject(id,confirmed)
+                if isinstance(result,dict) and result.get('ok'):
+                    row=next((r for r in self.registrations if r.get('id')==id),{})
+                    self.registration.remember(id,row.get('public_data') or {},'rejected')
+                return result
         except Exception:return {'error':'Не удалось подтвердить отклонение анкеты'}
     def promo_codes(self):
         try:
@@ -288,7 +292,7 @@ class App:
 
     def snapshot(self):
         with self.lock:
-            return {'rentals':self.rentals.list(),'rental_history':self.rentals.history()[-200:],'rental_items':RENTAL_ITEMS,'password_grants':self.password_grants,'password_ready':self.password_ready and self.online,'registrations':self.registrations,'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':' · '.join(x for x in (self.error,'Еда: '+self.food.error if self.food.error else '') if x),'food':dict(self.food.status),'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'update':self.updater.snapshot(),'version':VERSION,'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
+            return {'rentals':self.rentals.list(),'rental_history':self.rentals.history()[-200:],'rental_items':RENTAL_ITEMS,'password_grants':self.password_grants,'password_ready':self.password_ready and self.online,'registrations':self.registrations,'registration_history':self.registration.history()[:100],'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':' · '.join(x for x in (self.error,'Еда: '+self.food.error if self.food.error else '') if x),'food':dict(self.food.status),'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'update':self.updater.snapshot(),'version':VERSION,'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
     def acknowledge(self):
         with self.lock:self.store.set('alerts',{})
         self.sound.stop()
