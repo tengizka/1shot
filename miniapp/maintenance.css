@@ -15,5 +15,4 @@ body.maintenance>*:not(#maintenance){pointer-events:none!important;user-select:n
 #maintenance .mt-photos::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.35)}
 #maintenance .mt-actions{display:flex;flex-wrap:wrap;gap:10px}
 #maintenance .mt-call{display:flex;align-items:center;justify-content:center;min-height:52px;padding:0 18px;flex:1 1 220px;background:var(--smm-lime,#A3FF10);color:#000;font:800 15px Unbounded,sans-serif;letter-spacing:.04em;text-decoration:none;white-space:nowrap}
-#maintenance .mt-copy{min-height:52px;padding:0 16px;flex:0 1 auto;background:#000;color:#fff;border:2px solid #fff;font:800 11px Unbounded,sans-serif;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
 @media(prefers-reduced-motion:reduce){#maintenance .mt-photos img{transition:none;transform:none}}
