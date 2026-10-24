@@ -3,6 +3,7 @@ import os
 import sys
 import threading
 import time
+import types
 from pathlib import Path
 from .engine import Controller,Store
 from .accounts import Accounts
@@ -33,7 +34,7 @@ class App:
         self.accounts=Accounts(self.gizmo,self.cloud,self.store,self.controller.guard)
         self.registration=RegistrationApproval(self.cloud,self.gizmo,self.store,self.controller.guard)
         self.guest_passwords=GuestPasswords(self.cloud,self.gizmo,self.store,self.controller.guard)
-        self.food=Food(self.cloud,self.gizmo,self.store,lambda:{r['host_id']:r['gizmo_host_id'] for r in self.host_rows})
+        self.food=Food(self.cloud,self.gizmo,self.store,lambda:{r['host_id']:r['gizmo_host_id'] for r in self.host_rows},rentals=types.SimpleNamespace(list=lambda:self._locked(lambda:self.rentals.list()),add=lambda *a:self._locked(lambda:self.rentals.add(*a))))
         self.password_grants=[];self.password_ready=False
         self.registrations=[];self.registration_ready=False
         self.sound=Sound(HOME,self.store);self.host_rows=[];self.password_requests=[];self.protocol_ready=False;self.maximized=False
@@ -92,6 +93,9 @@ class App:
                 self.host_rows=self.bridge.collect_hosts();self.last_sync=time.time()
             return {'ok':True}
         except Exception as error:return {'error':str(error)[:160] or 'Gizmo не подтвердил блокировку'}
+    def _locked(self,fn):
+        # Food reads and adds rentals under the same lock as the Desk buttons.
+        with self.lock:return fn()
     def add_rental(self,item,host=None,who='',user_id=None):
         try:
             with self.lock:return {'ok':True,'rental':self.rentals.add(item,host,who,user_id)}

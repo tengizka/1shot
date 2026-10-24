@@ -25,12 +25,14 @@ class Gizmo:
             {'id':13,'productType':0,'productGroupId':1,'name':'Секрет','price':50,'disallowClientOrder':True},
             {'id':14,'productType':0,'productGroupId':1,'name':'Кончился','price':90,'enableStock':True,'disallowSaleIfOutOfStock':True},
             {'id':15,'productType':0,'productGroupId':3,'name':'Мышь','price':900},
-            {'id':16,'productType':0,'productGroupId':1,'name':'Подогрев','price':30,'isService':True}]
+            {'id':16,'productType':0,'productGroupId':1,'name':'Подогрев','price':30,'isService':True},
+            {'id':30,'productType':0,'productGroupId':7,'name':'Аренда мышки Logitech G PRO X Superlight','price':199},
+            {'id':31,'productType':0,'productGroupId':7,'name':'Аренда Power Bank','price':100}]
     def request(self,method,path,**kw):
         self.calls.append((method,path,kw))
         if method!='GET':self.writes.append((method,path,kw.get('json')))
         if path=='v2.0/assistancerequesttype':return {'data':self.types,'nextCursor':None}
-        if path=='v2.0/productgroups':return {'data':[{'id':1,'name':'Напитки','displayOrder':0},{'id':2,'name':'Снеки','displayOrder':1},{'id':3,'name':'Аксессуары','displayOrder':2}],'nextCursor':None}
+        if path=='v2.0/productgroups':return {'data':[{'id':1,'name':'Напитки','displayOrder':0},{'id':2,'name':'Снеки','displayOrder':1},{'id':3,'name':'Аксессуары','displayOrder':2},{'id':7,'name':'Аренда','displayOrder':9}],'nextCursor':None}
         if path=='v2.0/taxes':return {'data':[{'id':1,'name':'24%','value':23},{'id':3,'name':'None','value':0}]}
         if path=='v2.0/invoices':
             if getattr(self,'invoices',None) is None:raise ApiError('Gizmo: HTTP 404')
@@ -82,7 +84,7 @@ class FoodTests(unittest.TestCase):
         finally:del os.environ['FOOD_HIDE_GROUPS']
         food.tick([])
         menu=self.cloud.calls[0]['menu']
-        self.assertEqual([m['name'] for m in menu],['Red Bull','Lays','Комбо'],'time packages out, bundles in')
+        self.assertEqual([m['name'] for m in menu][:3],['Red Bull','Lays','Комбо'],'time packages out, bundles in')
         self.assertEqual(menu[0]['group'],'Напитки');self.assertTrue(menu[0]['image'].startswith('data:image/webp;base64,'));self.assertLess(len(menu[0]['image']),55000)
         self.assertIsNone(menu[1]['image']);self.assertEqual(self.gizmo.writes,[],'menu sync never writes to Gizmo')
         food.menu_at=0;food.tick([]);self.assertNotIn('menu',self.cloud.calls[1],'unchanged menu is not sent again')
@@ -140,7 +142,7 @@ class FoodTests(unittest.TestCase):
             if (kw.get('params') or {}).get('Pagination.Limit') and path!='v2.0/products':raise ApiError('Gizmo: HTTP 500')
             return real(method,path,**kw)
         self.gizmo.request=picky;self.food.tick(SEATED)
-        self.assertEqual([m['name'] for m in self.cloud.calls[0]['menu']],['Red Bull','Lays','Комбо','Мышь']);self.assertEqual(self.food.error,'')
+        self.assertEqual([m['name'] for m in self.cloud.calls[0]['menu'] if m['group']!='Аренда'],['Red Bull','Lays','Комбо','Мышь']);self.assertEqual(self.food.error,'')
         def broken(method,path,**kw):
             if path=='v2.0/products':raise ApiError('Gizmo: HTTP 500')
             return real(method,path,**kw)
@@ -156,7 +158,7 @@ class FoodTests(unittest.TestCase):
         self.assertEqual([m['name'] for m in self.cloud.calls[0]['menu']],['Red Bull','Lays'],'first page kept');self.assertEqual(self.food.error,'')
 
     def test_time_and_rental_groups_hidden_by_default(self):
-        self.assertTrue({'standart','vip','tv','аренда'}<=self.food.hidden)
+        self.assertTrue({'standart','vip','tv'}<=self.food.hidden);self.assertNotIn('аренда',self.food.hidden,'rentals are sold in the market')
 
     def test_out_of_stock_is_hidden_even_when_the_stock_list_fails(self):
         real=self.gizmo.request
@@ -187,13 +189,31 @@ class FoodTests(unittest.TestCase):
                              {'id':2,'date':day(90),'invoiceLines':[{'productName':'Lays','product':None}]},
                              {'id':3,'date':day(5),'isVoided':True,'invoiceLines':[{'productName':'Мышь','product':None}]}]
         self.food.tick([])
-        self.assertEqual([m['name'] for m in self.cloud.calls[0]['menu']],['Red Bull','Комбо'],'old sale and voided invoice do not count')
+        self.assertEqual([m['name'] for m in self.cloud.calls[0]['menu']],['Red Bull','Комбо','Аренда мышки Logitech G PRO X Superlight','Аренда Power Bank'],'old sale and voided invoice do not count; rentals never filtered by sales')
         self.assertEqual(self.gizmo.writes,[],'reading sales never writes to Gizmo')
         params=next(c[2]['params'] for c in self.gizmo.calls if c[1]=='v2.0/invoices');self.assertIn('DateFrom',params);self.assertEqual(params['Pagination.IsAsc'],'false','newest first')
 
     def test_no_sales_data_shows_everything(self):
         self.food.tick([]);self.assertIn('Lays',[m['name'] for m in self.cloud.calls[0]['menu']],'invoices unreadable: no filter')
         self.setUp();self.gizmo.invoices=[];self.food.tick([]);self.assertIn('Lays',[m['name'] for m in self.cloud.calls[0]['menu']],'nothing sold: no filter, the market never empties')
+
+    def test_rentals_in_the_market_and_registered_when_accepted(self):
+        from desktop.rentals import Rentals
+        rentals=Rentals(self.store);food=Food(self.cloud,self.gizmo,self.store,lambda:{'13':'113'},rentals=rentals)
+        food.tick([]);names=[m['name'] for m in self.cloud.calls[-1]['menu']]
+        self.assertIn('Аренда Power Bank',names);self.assertEqual(next(m['group'] for m in self.cloud.calls[-1]['menu'] if m['id']==30),'Аренда')
+        self.cloud.orders=[order(items=[{'id':30,'name':'Аренда мышки Logitech G PRO X Superlight','price':199,'qty':1}],total=199)]
+        food.tick(SEATED);self.gizmo.status=1;food.tick(SEATED);food.tick(SEATED)
+        self.assertEqual([(r['item'],r['host'],r.get('user_id')) for r in rentals.list()],[('gprox','13',77)],'one rental on the PC, not one per tick')
+        names=[m['name'] for m in self.cloud.calls[-1]['menu']]
+        self.assertNotIn('Аренда мышки Logitech G PRO X Superlight',names,'taken item leaves the market at once');self.assertIn('Аренда Power Bank',names)
+        rentals.returned(rentals.list()[0]['id']);food.tick(SEATED)
+        self.assertIn('Аренда мышки Logitech G PRO X Superlight',[m['name'] for m in self.cloud.calls[-1]['menu']],'returned item is back')
+
+    def test_rental_names_map_to_desk_items(self):
+        from desktop.rentals import item_for
+        self.assertEqual([item_for(n) for n in ['Аренда Power Bank','Аренда мышки Logitech G304 Lightspeed','Аренда мышки Logitech G PRO X Superlight','Аренда мышки Attack Shark X3 Black','Аренда мышки Logitech G PRO X Superlight 2','Аренда игрового коврика Logitech G740','Red Bull']],
+                         ['powerbank','g304','gprox','x3','gprox2','pad',None])
 
     def test_tax_report_is_read_only(self):
         self.gizmo.products[0]['productTaxes']=[{'taxId':1,'isEnabled':True}]

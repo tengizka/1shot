@@ -46,8 +46,8 @@
 .food-soon-title{font-size:clamp(40px,13vw,56px);white-space:pre-line}
 
 /* Маркет: sections on top, no sideways swipe, loading cup in the middle. */
-.market-tabs{display:grid;grid-template-columns:1fr 1fr;flex:none}
-.market-tabs button{min-height:46px;background:#000;border:2px solid var(--smm-rule);color:#9a9a9a;font:800 11px Unbounded,sans-serif;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+.market-tabs{display:grid;grid-template-columns:.8fr .9fr 1.3fr;flex:none}
+.market-tabs button{min-height:46px;padding:0 6px;background:#000;border:2px solid var(--smm-rule);color:#9a9a9a;font:800 11px Unbounded,sans-serif;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
 .market-tabs button+button{border-left:0}
 .market-tabs button[aria-selected="true"]{background:var(--smm-lime);border-color:var(--smm-lime);color:#000}
 .food-loading{flex:1;min-height:50vh;display:grid;place-items:center}

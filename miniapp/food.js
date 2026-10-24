@@ -63,9 +63,10 @@
  function stepper(id,q){
   const box=el('div','food-qty');
   const minus=el('button','','−'),plus=el('button','','+');minus.type=plus.type='button';
-  minus.setAttribute('aria-label','Убрать');plus.setAttribute('aria-label','Добавить');plus.disabled=q>=5;
+  const max=isRent(item(id))?1:5;  // one of each rental item
+  minus.setAttribute('aria-label','Убрать');plus.setAttribute('aria-label','Добавить');plus.disabled=q>=max;
   minus.onclick=()=>{q>1?state.cart.set(id,q-1):state.cart.delete(id);tap('select');render()};
-  plus.onclick=()=>{if(q<5){state.cart.set(id,q+1);tap('select');render()}};
+  plus.onclick=()=>{if(q<max){state.cart.set(id,q+1);tap('select');render()}};
   box.append(minus,el('b','',String(q)),plus);return box;
  }
  function product(m){
@@ -81,6 +82,8 @@
   return card;
  }
 
+ // Rentals come from Gizmo's «Аренда» group and live in their own tab.
+ function isRent(m){return !!m&&String(m.group||'').trim().toLowerCase()==='аренда'}
  function menuView(){
   const frag=document.createDocumentFragment();
   const o=active();if(o)frag.append(orderCard(o));
@@ -92,9 +95,11 @@
   }
   // Until Desk at the club has sent the menu, keep the old "soon" card instead of an empty list.
   if(!state.menu.length){frag.append(el('span','smm-tag','Скоро'),el('h2','smm-title food-soon-title','Еда\nи напитки'),el('p','smm-text','Здесь появится меню бара клуба.'));return frag}
-  const groups=[...new Set(state.menu.map(m=>m.group))];
+  const rent=state.section==='rent',list=state.menu.filter(m=>isRent(m)===rent);
+  if(rent&&!list.length){frag.append(el('span','smm-tag','Аренда'),el('h2','smm-title food-soon-title','Всё\nна руках'),el('p','smm-text','Вещи появятся здесь, как только их вернут.'));return frag}
+  const groups=[...new Set(list.map(m=>m.group))];
   if(!groups.includes(state.group))state.group=groups[0];
-  if(groups.length>1){
+  if(!rent&&groups.length>1){
    const tabs=el('div','food-groups');tabs.setAttribute('role','tablist');
    for(const g of groups){const b=el('button','',g);b.type='button';b.setAttribute('aria-selected',String(g===state.group));b.onclick=()=>{state.group=g;tap('select');render();body.scrollTop=0};tabs.append(b)}
    // The strip keeps its scroll across re-renders; the picked group only slides into view if it is cut off.
@@ -102,7 +107,7 @@
    requestAnimationFrame(()=>{tabs.scrollLeft=state.tabsLeft||0;tabs.querySelector('[aria-selected="true"]')?.scrollIntoView({block:'nearest',inline:'nearest'})});
    frag.append(tabs);
   }
-  const grid=el('div','food-grid');state.menu.filter(m=>m.group===state.group).forEach(m=>grid.append(product(m)));frag.append(grid);
+  const grid=el('div','food-grid');list.filter(m=>rent||m.group===state.group).forEach(m=>grid.append(product(m)));frag.append(grid);
   const why=blocker();
   if(count()){
    const bar=el('div','food-bar');const go=el('button','btn-main',why?why:'Оформить · '+rub(total()));go.type='button';go.disabled=!!why;
@@ -145,7 +150,7 @@
   if(state.view==='checkout'&&!count())state.view='menu';
   body.classList.remove('food-soon');body.classList.add('food');
   const tabs=el('div','market-tabs');tabs.setAttribute('role','tablist');
-  for(const [key,label] of [['food','Еда'],['packs','Пакеты часов']]){const b=el('button','',label);b.type='button';b.setAttribute('aria-selected',String(state.section===key));b.onclick=()=>{if(state.section===key)return;state.section=key;state.view='menu';tap('select');render();body.scrollTop=0};tabs.append(b)}
+  for(const [key,label] of [['food','Еда'],['rent','Аренда'],['packs','Пакеты часов']]){const b=el('button','',label);b.type='button';b.setAttribute('aria-selected',String(state.section===key));b.onclick=()=>{if(state.section===key)return;state.section=key;state.view='menu';tap('select');render();body.scrollTop=0};tabs.append(b)}
   body.replaceChildren(tabs,state.section==='packs'?packsView():state.view==='checkout'?checkoutView():menuView());
  }
  function packsView(){

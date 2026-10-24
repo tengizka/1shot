@@ -9,7 +9,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
    localStorage.setItem('1shot_v2_profile',JSON.stringify({telegram_id:123,gizmo_user_id:77,username:'neo'}));
   });
   const pic='data:image/webp;base64,'+'UklGRg==';
-  const server={seat:null,orders:[],menu:[{id:10,group:'Напитки',name:'Red Bull',price:189,image:pic},{id:12,group:'Напитки',name:'Вода',price:60,image:'javascript:alert(1)'},{id:11,group:'Снеки',name:'Lays',price:120,image:null}],fail:null};
+  const server={seat:null,orders:[],menu:[{id:10,group:'Напитки',name:'Red Bull',price:189,image:pic},{id:12,group:'Напитки',name:'Вода',price:60,image:'javascript:alert(1)'},{id:11,group:'Снеки',name:'Lays',price:120,image:null},{id:30,group:'Аренда',name:'Аренда мышки Logitech G PRO X Superlight',price:199,image:null}],fail:null};
   await page.route('**/*',route=>{const url=new URL(route.request().url());
    if(url.host==='club.test'){
     const rawPath=url.pathname==='/'?'index.html':url.pathname.slice(1),file=fs.existsSync('miniapp/'+rawPath)?'miniapp/'+rawPath:rawPath;
@@ -37,7 +37,12 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   assert.deepEqual(await food.locator('.food-groups button').allTextContents(),['Напитки','Снеки']);
   assert.deepEqual(await food.locator('.food-card h3').allTextContents(),['Red Bull','Вода']);
   assert.equal(await food.locator('.food-card img').count(),1,'only data:image pictures are shown');
-  assert.deepEqual(await food.locator('.market-tabs button').allTextContents(),['Еда','Пакеты часов'],'market: food and hour packages on top');
+  assert.deepEqual(await food.locator('.market-tabs button').allTextContents(),['Еда','Аренда','Пакеты часов'],'market: food, rentals and hour packages on top');
+  assert.deepEqual(await food.locator('.food-groups button').allTextContents(),['Напитки','Снеки'],'rentals are not a food group');
+  await food.locator('.market-tabs button',{hasText:'Аренда'}).click();assert.deepEqual(await food.locator('.food-card h3').allTextContents(),['Аренда мышки Logitech G PRO X Superlight']);
+  await food.locator('.food-card .food-add').click();assert.equal(await food.getByRole('button',{name:'Добавить'}).isDisabled(),true,'one of each rental item');
+  if(process.env.SHOTS)await page.screenshot({path:process.env.SHOTS+'/rent.png'});
+  await food.getByRole('button',{name:'Убрать'}).click();
   assert.doesNotMatch(await food.innerText(),/когда сидишь за ПК/i,'no hint text under the menu');
   assert.equal(await page.evaluate(()=>{const b=document.querySelector('#ov-food .ov-body');return b.scrollWidth<=b.clientWidth}),true,'the market never scrolls sideways');
   assert.equal((await page.locator('#nav-food').textContent()).trim(),'Маркет');

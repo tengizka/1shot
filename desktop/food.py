@@ -11,12 +11,14 @@ import os
 import time
 from datetime import datetime,timedelta,timezone
 from .services import ApiError
+from .rentals import item_for
 
 ORDER_TYPE='сделать заказ'
 PAYMENT={'deposit':'спишите с депозита','card':'картой при получении','cash':'наличными при получении'}
 # Gizmo AssistanceRequestStatus: 0 pending, 1 accepted, 2 rejected, 3 cancelled.
 PENDING,ACCEPTED=0,1
 TIME_PRODUCT=1  # Gizmo ProductType: 0 product, 1 time, 2 bundle
+RENTAL_GROUP='аренда'
 
 def tag(order_id):return '#'+str(order_id).replace('-','')[:6].upper()
 
@@ -43,11 +45,13 @@ def thumbnail(raw):
     return None
 
 class Food:
-    def __init__(self,cloud,gizmo,store,host_ids=lambda:{}):
-        self.cloud,self.gizmo,self.store,self.host_ids=cloud,gizmo,store,host_ids
+    def __init__(self,cloud,gizmo,store,host_ids=lambda:{},rentals=None):
+        self.cloud,self.gizmo,self.store,self.host_ids,self.rentals=cloud,gizmo,store,host_ids,rentals
         self.type_id=None;self.menu_at=0;self.report_at=0;self.error='';self.status={'menu':0,'open':0}
         # Time packages and rentals are not food; FOOD_HIDE_GROUPS in .env replaces this list.
-        self.hidden={g.strip().casefold() for g in os.getenv('FOOD_HIDE_GROUPS','Standart,VIP,TV,Аренда').split(',') if g.strip()}
+        # Rentals are sold in the market too (their own tab), so the «Аренда» group is never hidden.
+        self.hidden={g.strip().casefold() for g in os.getenv('FOOD_HIDE_GROUPS','Standart,VIP,TV').split(',') if g.strip()}-{RENTAL_GROUP}
+        self.busy_seen=None
 
     def get(self,path,params=None):
         # Errors name the endpoint, so "HTTP 500" on the Desk screen says which Gizmo call failed.
@@ -103,6 +107,7 @@ class Food:
         # Only goods sold in the last FOOD_SOLD_DAYS (default 60): old duplicates with stale stock drop out.
         try:sold_ids,sold_names=self.sold()
         except Exception:sold_ids,sold_names=set(),set()
+        busy=self.busy_items()
         items=[]
         for p in self.paged('v2.0/products',{'IsDeleted':'false'}):
             group=groups.get(p.get('productGroupId'))
@@ -110,11 +115,29 @@ class Food:
             if not group or type(p.get('id')) is not int or p.get('isDeleted') or p.get('productType')==TIME_PRODUCT or p.get('timeProduct'):continue
             if p.get('disallowClientOrder') or p.get('restrictSale') or p.get('isService') or not isinstance(price,(int,float)) or isinstance(price,bool) or price<=0:continue
             if str(group.get('name','')).strip().casefold() in self.hidden or not str(p.get('name') or '').strip():continue
-            if (sold_ids or sold_names) and p['id'] not in sold_ids and str(p.get('name') or '').strip().casefold() not in sold_names:continue
+            rental=str(group.get('name','')).strip().casefold()==RENTAL_GROUP
+            if rental:
+                # A rental item already in someone's hands is not offered until it is returned.
+                if item_for(p.get('name')) in busy:continue
+            elif (sold_ids or sold_names) and p['id'] not in sold_ids and str(p.get('name') or '').strip().casefold() not in sold_names:continue
             if p.get('enableStock') and not self.in_stock(p['id'],stock):continue
             items.append({'id':p['id'],'group':str(group.get('name') or 'Меню').strip()[:45],'group_order':int(group.get('displayOrder') or 0),'name':str(p['name']).strip()[:60],'price':round(float(price),2),'sort':int(p.get('displayOrder') or 0)})
         for item in items:item['image']=self.image(item['id'])
         return items
+
+    def busy_items(self):
+        try:return frozenset(r.get('item') for r in self.rentals.list()) if self.rentals else frozenset()
+        except Exception:return frozenset()
+
+    def rent_out(self,order,host,journal):
+        """Accepted order: its rental items go to the Desk rentals list on this PC, once."""
+        if not self.rentals or journal.get('rented'):return
+        for line in order.get('items') or []:
+            key=item_for(line.get('name'))
+            if key:
+                try:self.rentals.add(key,host,'',int(order['gizmo_user_id']))
+                except ValueError:pass
+        journal['rented']=True
 
     def sold(self):
         """Products on Gizmo invoices of the last N days, cached for 6 hours: (ids, names). Empty means «do not filter».
@@ -170,10 +193,12 @@ class Food:
         self.error=''
         seats=[{'uid':int(s['userId']),'host':str(s['hostNumber'])} for s in sessions if s.get('userId') and s.get('hostNumber') is not None]
         body={'seats':seats,'updates':list(self.store.get('food.updates',{}).values())[:50]}
+        # A rental taken or returned refreshes the menu at once, not in ten minutes.
+        if self.busy_items()!=self.busy_seen:self.menu_at=0
         if time.time()-self.menu_at>600:
             # A broken menu read never stops seats and orders; it is retried in a minute.
             try:
-                menu=self.menu();digest=hashlib.sha256(json.dumps(menu,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
+                self.busy_seen=self.busy_items();menu=self.menu();digest=hashlib.sha256(json.dumps(menu,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
                 if digest!=self.store.get('food.menu_hash') or self.status['menu']!=len(menu):body['menu']=menu
                 self.menu_at=time.time();self.status['menu']=len(menu)
             except Exception as error:self.menu_at=time.time()-540;self.error='меню: '+str(error)[:150]
@@ -223,7 +248,8 @@ class Food:
             if age>2700:self.close(oid,'')
         elif status==ACCEPTED:
             if order['status']!='accepted':
-                self.store.set(key,dict(journal,phase='accepted',accepted_at=time.time()));self.queue(oid,'accepted',message='Принят, несём')
+                journal=dict(journal,phase='accepted',accepted_at=time.time());self.rent_out(order,where.get(uid) or order.get('host_id'),journal)
+                self.store.set(key,journal);self.queue(oid,'accepted',message='Принят, несём')
             elif time.time()-journal.get('accepted_at',time.time())>1800 or uid not in where:self.close(oid,'')
         elif status is not None:self.close(oid,'')
 

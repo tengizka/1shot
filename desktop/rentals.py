@@ -15,6 +15,14 @@ ITEMS = {
     'pad': 'Коврик Logitech G740',
 }
 LIMIT = 100
+# Gizmo product names of the «Аренда» group → the Desk item; the most specific words come first.
+NAME_KEYS = (('superlight 2', 'gprox2'), ('pro x 2', 'gprox2'), ('superlight', 'gprox'), ('pro x', 'gprox'),
+             ('x3', 'x3'), ('g304', 'g304'), ('g740', 'pad'), ('коврик', 'pad'), ('power bank', 'powerbank'), ('повербанк', 'powerbank'))
+
+
+def item_for(name):
+    text = ' '.join(str(name or '').casefold().replace('-', ' ').split())
+    return next((key for words, key in NAME_KEYS if words in text), None)
 HISTORY = 500
 
 
