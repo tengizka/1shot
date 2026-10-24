@@ -131,7 +131,8 @@ class Food:
             p,group=max(copies,key=lambda c:c[0]['id'])
             rental=str(group.get('name','')).strip().casefold()==RENTAL_GROUP
             if not rental and (sold_ids or sold_names) and not any(c[0]['id'] in sold_ids for c in copies) and norm(p.get('name')) not in sold_norm:continue
-            tracked=[c[0] for c in copies if c[0].get('enableStock')]
+            # Rental items come back after use: their stock count says nothing, they are always offered.
+            tracked=[] if rental else [c[0] for c in copies if c[0].get('enableStock')]
             if tracked and not any(self.in_stock(t['id'],stock) for t in tracked):continue
             items.append({'id':p['id'],'group':str(group.get('name') or 'Меню').strip()[:45],'group_order':int(group.get('displayOrder') or 0),'name':plain(p['name'])[:60],'price':round(float(p['price']),2),'sort':int(p.get('displayOrder') or 0)})
         items.sort(key=lambda i:(i['group_order'],i['sort'],i['id']))
