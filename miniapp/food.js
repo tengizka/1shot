@@ -5,7 +5,7 @@
  const PAY=[['card','Картой','при получении'],['cash','Наличными','при получении'],['deposit','С депозита','спишет администратор']];
  const STEPS=[['sent','Отправлен'],['accepted','Принят'],['closed','Закрыт']];
  const TITLES={new:'Отправлен',sent:'Отправлен',accepted:'Принят, несём',closed:'Закрыт'};
- const state={menu:null,version:null,seat:null,account:true,desk:true,orders:[],cart:new Map(),group:null,payment:null,view:'menu',busy:false,request:null,error:''};
+ const state={section:'food',menu:null,version:null,seat:null,account:true,desk:true,orders:[],cart:new Map(),group:null,payment:null,view:'menu',busy:false,request:null,error:''};
  let timer=null,open=false,loading=false,shown='';
  const rub=n=>Number(n).toLocaleString('ru-RU',{maximumFractionDigits:2})+' ₽';
  const el=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e};
@@ -83,7 +83,12 @@
  function menuView(){
   const frag=document.createDocumentFragment();
   const o=active();if(o)frag.append(orderCard(o));
-  if(!state.menu){frag.append(el('p','smm-note food-empty',state.error||'Загружаем меню…'));return frag}
+  if(!state.menu){
+   // Loading: a bouncing cup in the middle, no caption.
+   const wait=el('div','food-loading');wait.setAttribute('role','status');wait.setAttribute('aria-label','Загрузка меню');
+   wait.innerHTML='<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M12 16h24l-3 26H15Z"/><path d="M10 16h28M24 16V8h8"/></svg>';
+   frag.append(wait);return frag;
+  }
   // Until Desk at the club has sent the menu, keep the old "soon" card instead of an empty list.
   if(!state.menu.length){frag.append(el('span','smm-tag','Скоро'),el('h2','smm-title food-soon-title','Еда\nи напитки'),el('p','smm-text','Здесь появится меню бара клуба.'));return frag}
   const groups=[...new Set(state.menu.map(m=>m.group))];
@@ -99,7 +104,7 @@
    const bar=el('div','food-bar');const go=el('button','btn-main',why?why:'Оформить · '+rub(total()));go.type='button';go.disabled=!!why;
    go.onclick=()=>{state.view='checkout';state.request=state.request||crypto.randomUUID();tap('select');render();body.scrollTop=0};
    bar.append(el('span','food-bar-count',count()+' шт.'),go);frag.append(bar);
-  }else if(why)frag.append(el('p','smm-note food-why',why));
+  }
   return frag;
  }
 
@@ -138,7 +143,15 @@
  function render(){
   if(state.view==='checkout'&&!count())state.view='menu';
   body.classList.remove('food-soon');body.classList.add('food');
-  body.replaceChildren(state.view==='checkout'?checkoutView():menuView());
+  const tabs=el('div','market-tabs');tabs.setAttribute('role','tablist');
+  for(const [key,label] of [['food','Еда'],['packs','Пакеты часов']]){const b=el('button','',label);b.type='button';b.setAttribute('aria-selected',String(state.section===key));b.onclick=()=>{if(state.section===key)return;state.section=key;state.view='menu';tap('select');render();body.scrollTop=0};tabs.append(b)}
+  body.replaceChildren(tabs,state.section==='packs'?packsView():state.view==='checkout'?checkoutView():menuView());
+ }
+ function packsView(){
+  // Time packages are sold here after online payment is connected.
+  const frag=document.createDocumentFragment();
+  frag.append(el('span','smm-tag','Скоро'),el('h2','smm-title food-soon-title','Пакеты\nчасов'),el('p','smm-text','Купить пакет часов можно будет прямо здесь, без очереди на ресепшене.'));
+  return frag;
  }
  function start(){if(open)return;open=true;shown='';render();load();clearInterval(timer);timer=setInterval(()=>{if(!document.hidden)load()},5000)}
  function stop(){open=false;clearInterval(timer)}

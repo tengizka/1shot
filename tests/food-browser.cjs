@@ -37,7 +37,12 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   assert.deepEqual(await food.locator('.food-groups button').allTextContents(),['Напитки','Снеки']);
   assert.deepEqual(await food.locator('.food-card h3').allTextContents(),['Red Bull','Вода']);
   assert.equal(await food.locator('.food-card img').count(),1,'only data:image pictures are shown');
-  assert.match(await food.innerText(),/когда сидишь за ПК/i,'not seated: the menu is visible, ordering is not');
+  assert.deepEqual(await food.locator('.market-tabs button').allTextContents(),['Еда','Пакеты часов'],'market: food and hour packages on top');
+  assert.doesNotMatch(await food.innerText(),/когда сидишь за ПК/i,'no hint text under the menu');
+  assert.equal(await page.evaluate(()=>{const b=document.querySelector('#ov-food .ov-body');return b.scrollWidth<=b.clientWidth}),true,'the market never scrolls sideways');
+  assert.equal((await page.locator('#nav-food').textContent()).trim(),'Маркет');
+  await food.locator('.market-tabs button',{hasText:'Пакеты часов'}).click();assert.match(await food.innerText(),/Скоро/i);
+  await food.locator('.market-tabs button',{hasText:'Еда'}).click();await page.waitForSelector('#ov-food .food-card');
 
   // Add to cart, five is the limit.
   await food.locator('.food-card').first().locator('.food-add').click();
