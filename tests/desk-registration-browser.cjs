@@ -8,7 +8,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
    const old=new Date(Date.now()-5*86400000).toISOString(),fresh=new Date().toISOString(),exp=d=>new Date(Date.parse(d)+30*86400000).toISOString();
    const registrations=[
     {id:'a',status:'awaiting_admin',created_at:old,expires_at:exp(old),public_data:{username:'oldguest',first_name:'Олег',last_name:'Старый',mobile_phone:'+79990000001'}},
-    {id:'b',status:'awaiting_admin',created_at:fresh,expires_at:exp(fresh),public_data:{username:'newguest',first_name:'Анна',last_name:'Новая',mobile_phone:'+79995556677',promo_code:'HEADSHOT'}}];
+    {id:'b',status:'awaiting_admin',created_at:fresh,expires_at:exp(fresh),public_data:{username:'newguest',first_name:'Анна',last_name:'Новая',mobile_phone:'+79995556677',promo_code:'HEADSHOT',linked_account:{username:'anna_old',gizmo_user_id:5}}}];
    window.pywebview={api:{snapshot:async()=>({online:true,protocol_ready:true,registration_ready:true,registrations,last_sync:Date.now()/1000,hosts:[],rows:[],password_requests:[],alerts:0,rentals:[],rental_items:{}}),
     promo_codes:async()=>({codes:[{code:'HEADSHOT',channel:'ВКонтакте'},{code:'GG',channel:'Сайт без рекламы'}]}),
     register_guest:async(...a)=>{calls.push(a);return reply}}};
@@ -27,6 +27,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   await page.locator('#registration-search').fill('');await page.selectOption('#registration-sort','old');assert.deepEqual(await titles(),['oldguest','newguest']);
 
   assert.equal(await page.locator('#desk-reg [name=username]').count(),0,'no nickname field');
+  assert.match(await page.locator('.registration-linked').first().textContent(),/уже есть аккаунт: anna_old · ID 5/);assert.equal(await page.locator('.registration-linked:not([hidden])').count(),1);
   // Reception registration: everything filled, sex and promo picked by buttons, identity confirmed.
   await page.locator('#desk-reg-open').click();const submit=page.locator('#desk-reg-submit');
   await page.waitForSelector('#desk-reg [data-group="code"] button');assert.equal(await submit.isDisabled(),true);

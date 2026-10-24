@@ -28,7 +28,12 @@
    card.busy=true;sync();try{const result=await invoke('reconcile_registration',card.row.id,proof.proof_id,proof.gizmo_user_id,true);setDeskText(message,result?.ok?'Сверка завершена. Аккаунт и пароль не менялись':result?.error||'Нет подтверждения результата');if(result?.ok){card.proof=null;check.checked=false}}finally{card.busy=false;sync()}
   };
   approve.onclick=()=>send('approve_registration');reject.onclick=()=>send('reject_registration');
-  card.update=(r,ready)=>{if(card.row&&card.row.status!==r.status){card.proof=null;check.checked=false;setDeskText(candidate,'')}card.row=r;card.ready=ready;card.dataset.registrationId=r.id;const d=r.public_data||{};setDeskText(name,d.username||'Анкета');setDeskText(when,applicationWhen(r));setDeskText(info,[d.first_name,d.last_name,d.mobile_phone,d.birth_date,d.sex===1?'Мужской':d.sex===2?'Женский':'',d.promo_code?'Промокод '+d.promo_code+': час Standart':''].filter(Boolean).join(' · '));setDeskText(state,(states[r.status]||r.status)+(r.gizmo_user_id?' · Созданный ID: '+r.gizmo_user_id:''));sync()};return card;
+  card.update=(r,ready)=>{if(card.row&&card.row.status!==r.status){card.proof=null;check.checked=false;setDeskText(candidate,'')}card.row=r;card.ready=ready;card.dataset.registrationId=r.id;const d=r.public_data||{};setDeskText(name,d.username||'Анкета');setDeskText(when,applicationWhen(r));setDeskText(info,[d.first_name,d.last_name,d.mobile_phone,d.birth_date,d.sex===1?'Мужской':d.sex===2?'Женский':'',d.promo_code?'Промокод '+d.promo_code+': час Standart':''].filter(Boolean).join(' · '));setDeskText(state,(states[r.status]||r.status)+(r.gizmo_user_id?' · Созданный ID: '+r.gizmo_user_id:''));
+   // One Telegram may hold several accounts now; the admin decides after seeing the document.
+   let linked=card.querySelector('.registration-linked');const l=d.linked_account;
+   if(l&&!linked){linked=document.createElement('p');linked.className='registration-linked';info.after(linked)}
+   if(linked){linked.hidden=!l;setDeskText(linked,l?'С этого Telegram уже есть аккаунт: '+(l.username||'—')+' · ID '+l.gizmo_user_id:'')}
+   sync()};return card;
  }
  const MSK={timeZone:'Europe/Moscow'};
  function applicationWhen(r){

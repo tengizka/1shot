@@ -22,9 +22,15 @@ Deno.test('registration: unlinked profile, finish after timeout, guest cancel',a
  check((await status(a)).s==='done');check((await db.query<{u:number}>('select gizmo_user_id u from profiles where telegram_id=5')).rows[0].u===42);
  check((await db.query<{s:string}>('select status s from club_promo_redemptions where registration_id=$1',[a])).rows[0].s==='done','promo mirrored');
 
- // A real link to another account still blocks.
- await db.exec("insert into profiles values(6,77,'x','X','Y')");
- const b=await submit(6).catch(()=>null);check(b===null,'linked Telegram cannot apply');
+ // A Telegram with an account may apply again: the admin sees which account is linked, the new one takes over.
+ await db.exec("insert into profiles values(6,77,'oldnick','X','Y')");
+ const b=await submit(6);
+ const pub=(await db.query<{p:Record<string,unknown>}>('select public_data p from club_registration_requests where id=$1',[b])).rows[0].p;
+ check(JSON.stringify(pub.linked_account)==='{"username":"oldnick","gizmo_user_id":77}','admin sees the linked account');
+ await db.query('select club_registration_claim($1,$2,true)',[worker,b]);await db.query("select club_registration_finish($1,$2,'done',88)",[worker,b]);
+ check((await db.query<{u:number}>('select gizmo_user_id u from profiles where telegram_id=6')).rows[0].u===88,'the new account is linked');
+ // The free hour stays one per Telegram.
+ await fail(()=>submit(5),'бесплатный час уже получали');
 
  // Guest cancels a waiting application; a processing one is the admin's.
  const c=await submit(7);check((await db.query<{v:boolean}>('select club_registration_cancel(7) v')).rows[0].v);
