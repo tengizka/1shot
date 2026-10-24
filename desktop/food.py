@@ -97,7 +97,7 @@ class Food:
     def menu(self):
         """What a guest may order: goods only (no time packages), not hidden from client orders, in stock."""
         groups={g['id']:g for g in self.paged('v2.0/productgroups') if type(g.get('id')) is int}
-        # Stock is a hint only: without it the admin still sees the order and answers in person.
+        # The stock list fails on some Gizmo builds; then each tracked product is asked on its own.
         try:stock={s['id']:s.get('onHand') for s in self.paged('v2.0/productsstock') if type(s.get('id')) is int}
         except ApiError:stock=None
         items=[]
@@ -107,10 +107,20 @@ class Food:
             if not group or type(p.get('id')) is not int or p.get('isDeleted') or p.get('productType')==TIME_PRODUCT or p.get('timeProduct'):continue
             if p.get('disallowClientOrder') or p.get('restrictSale') or p.get('isService') or not isinstance(price,(int,float)) or isinstance(price,bool) or price<=0:continue
             if str(group.get('name','')).strip().casefold() in self.hidden or not str(p.get('name') or '').strip():continue
-            if stock is not None and p.get('enableStock') and p.get('disallowSaleIfOutOfStock') and not (stock.get(p['id']) or 0)>0:continue
+            if p.get('enableStock') and not self.in_stock(p['id'],stock):continue
             items.append({'id':p['id'],'group':str(group.get('name') or 'Меню').strip()[:45],'group_order':int(group.get('displayOrder') or 0),'name':str(p['name']).strip()[:60],'price':round(float(price),2),'sort':int(p.get('displayOrder') or 0)})
         for item in items:item['image']=self.image(item['id'])
         return items
+
+    def in_stock(self,product_id,stock):
+        """Out-of-stock goods are hidden; an unreadable stock never hides a product."""
+        if stock is not None and product_id in stock:on_hand=stock[product_id]
+        else:
+            try:
+                row=self.get(f'v2.0/productsstock/{int(product_id)}')
+                on_hand=(row.get('result') if isinstance(row,dict) and isinstance(row.get('result'),dict) else row or {}).get('onHand')
+            except Exception:return True
+        return not isinstance(on_hand,(int,float)) or on_hand>0
 
     def tax_report(self):
         """Read-only: Gizmo's tax table and every product that carries a tax, for staff to review remotely."""

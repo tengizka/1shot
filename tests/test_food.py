@@ -14,7 +14,7 @@ def png():
 
 class Gizmo:
     def __init__(self):
-        self.calls=[];self.writes=[];self.status=0;self.post_error=None;self.post_result='model';self.notes=[]
+        self.calls=[];self.writes=[];self.status=0;self.post_error=None;self.post_result='model';self.notes=[];self.on_hand={}
         self.types=[{'id':4,'title':'Где мой заказ?','isDeleted':False},{'id':6,'title':'Сделать заказ','isDeleted':False}]
         self.products=[
             {'id':10,'productType':0,'productGroupId':1,'name':'Red Bull','price':189,'displayOrder':1},
@@ -37,6 +37,9 @@ class Gizmo:
             if kw['params'].get('Pagination.Cursor'):return {'data':self.products[3:],'nextCursor':None}
             return {'data':self.products[:3],'nextCursor':'next'}
         if path=='v2.0/products/10/images':return [{'id':1,'productId':10,'image':png()}]
+        if path.startswith('v2.0/productsstock/'):
+            if getattr(self,'stock_error',None):raise self.stock_error
+            return {'id':int(path.rsplit('/',1)[1]),'onHand':self.on_hand.get(int(path.rsplit('/',1)[1]),0)}
         if path.startswith('v2.0/products/'):return []
         if path=='v2.0/assistancerequest' and method=='POST':
             if self.post_error:raise self.post_error
@@ -151,6 +154,27 @@ class FoodTests(unittest.TestCase):
 
     def test_time_and_rental_groups_hidden_by_default(self):
         self.assertTrue({'standart','vip','tv','аренда'}<=self.food.hidden)
+
+    def test_out_of_stock_is_hidden_even_when_the_stock_list_fails(self):
+        real=self.gizmo.request
+        def no_list(method,path,**kw):
+            if path=='v2.0/productsstock':raise ApiError('Gizmo: HTTP 500')
+            return real(method,path,**kw)
+        self.gizmo.request=no_list
+        self.gizmo.products[0]['enableStock']=True;self.gizmo.products[1]['enableStock']=True;self.gizmo.on_hand={10:3}
+        self.food.tick([])
+        names=[m['name'] for m in self.cloud.calls[0]['menu']]
+        self.assertIn('Red Bull',names);self.assertNotIn('Lays',names,'0 on hand: hidden');self.assertNotIn('Кончился',names)
+        self.assertIn('Мышь',names,'stock not tracked: shown')
+        self.assertFalse(any(c[1]=='v2.0/productsstock/15' for c in self.gizmo.calls),'untracked goods are not asked')
+
+    def test_unreadable_stock_never_hides_a_product(self):
+        real=self.gizmo.request
+        def no_list(method,path,**kw):
+            if path=='v2.0/productsstock':raise ApiError('Gizmo: HTTP 500')
+            return real(method,path,**kw)
+        self.gizmo.request=no_list;self.gizmo.stock_error=ApiError('Gizmo: HTTP 500')
+        self.food.tick([]);self.assertIn('Кончился',[m['name'] for m in self.cloud.calls[0]['menu']])
 
     def test_tax_report_is_read_only(self):
         self.gizmo.products[0]['productTaxes']=[{'taxId':1,'isEnabled':True}]
