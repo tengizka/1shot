@@ -1,6 +1,11 @@
-/* The strip takes its height from --safe-top, so every header moves down with it. */
-body.maintenance{--safe-top:calc(env(safe-area-inset-top,0px) + 34px)}
-#maintenance-bar{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;z-index:10000;height:34px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 12px;background:var(--smm-amber,#FFB10B);color:#000;font:800 10px/1.2 Unbounded,sans-serif;letter-spacing:.06em;text-transform:uppercase;text-align:center;pointer-events:none}
-#maintenance-bar .mt-dot{flex:none;width:7px;height:7px;background:#000;animation:mt-blink 1.2s steps(2) infinite}
-@keyframes mt-blink{50%{opacity:0}}
-@media(prefers-reduced-motion:reduce){#maintenance-bar .mt-dot{animation:none}}
+/* Full-screen maintenance: covers splash, app and dialogs; the page behind is inert. */
+body.maintenance{overflow:hidden}
+body.maintenance>*:not(#maintenance){pointer-events:none!important;user-select:none}
+#maintenance{position:fixed;inset:0;z-index:2147483647;display:flex;flex-direction:column;justify-content:flex-end;gap:16px;padding:calc(40px + env(safe-area-inset-top,0px)) 24px calc(48px + env(safe-area-inset-bottom,0px));background:#000;color:#fff}
+#maintenance h1{margin:0;font-family:var(--smm-display,'ReSquare','Unbounded',sans-serif);font-weight:700;text-transform:uppercase;font-size:clamp(44px,14vw,72px);line-height:.92}
+#maintenance p{margin:0;max-width:420px;font:500 13px/1.6 Unbounded,sans-serif;color:#d9d9d9}
+#maintenance .mt-phone{color:var(--smm-lime,#A3FF10);font-weight:700}
+#maintenance .smm-tag{display:inline-block;align-self:flex-start;padding:7px 11px;background:var(--smm-amber,#FFB10B);color:#000;font:800 11px Unbounded,sans-serif;letter-spacing:.14em;text-transform:uppercase}
+#maintenance .mt-logo{position:absolute;top:calc(40px + env(safe-area-inset-top,0px));left:24px;width:150px;height:auto}
+#maintenance .mt-phone b{white-space:nowrap;font-size:16px}
+#maintenance *{outline:none}
