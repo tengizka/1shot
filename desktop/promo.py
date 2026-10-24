@@ -98,11 +98,8 @@ class PromoReward:
             record['error']='автоначисление выключено, выдайте час вручную';self.store.set(key,record);return self.report(id,record)
         try:
             self.guard();seller=self.seller();product=free_hour_product(self.gizmo);method=payment_method()
-            # Always aim for 0%: strict mode refuses, otherwise the hour is given and staff see how to fix the tax.
-            try:zero_tax(self.gizmo,product)
-            except ValueError as tax:
-                if strict_tax():raise
-                record['tax_warning']=str(tax)[:200]
+            # The club accepts the product's tax line on the free hour; PROMO_REQUIRE_ZERO_TAX=true checks for 0%.
+            if strict_tax():zero_tax(self.gizmo,product)
         except Exception as error:
             # Nothing was ordered; the reason is shown to the admin, who can give the hour by hand.
             record['error']=str(error)[:160] or 'Проверка товара не прошла';self.store.set(key,record);return self.report(id,record)

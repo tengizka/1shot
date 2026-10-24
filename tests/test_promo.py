@@ -74,9 +74,7 @@ class PromoTests(unittest.TestCase):
  def test_tax_line_allowed_by_default_but_never_money(self):
   self.gizmo.taxes_linked=[{'taxId':1,'isEnabled':True}];self.build();r=self.api.approve(self.id,True)
   self.assertEqual(r['promo']['result'],'granted','the club accepts the 23% line on the free hour')
-  self.assertIn('None',r['promo']['tax_warning'],'staff see how to make it 0%')
-  self.gizmo=Gizmo();self.gizmo.taxes_linked=[{'taxId':3,'isEnabled':True}];self.build();r=self.api.approve(self.id,True)
-  self.assertEqual(r['promo']['result'],'granted');self.assertNotIn('tax_warning',r['promo'],'0% tax: no warning')
+  self.assertNotIn('tax_warning',r['promo'],'no tax hints on the card')
  def test_any_tax_on_the_product_stops_the_hour(self):
   os.environ['PROMO_REQUIRE_ZERO_TAX']='true'  # strict mode, off by default since the club accepts the tax line
   for linked,ok in (([{'taxId':3,'isEnabled':True}],True),([],False),([{'taxId':1,'isEnabled':False}],False),([{'taxId':3},{'taxId':1,'isEnabled':False}],True),([{'taxId':1,'isEnabled':True}],False),([{'taxId':9}],False)):
