@@ -610,8 +610,14 @@
 #session-screen dl>.session-time-box{border-color:var(--smm-lime)!important}
 #session-screen .session-time-box dd{color:var(--smm-lime)}
 #session-screen .session-time-box.low dd{color:#FF8A1F}
-#session-screen .session-actions{margin:auto 0 0!important;padding-top:14px;gap:8px!important}
-#session-screen .session-actions button{min-height:48px;padding:10px!important}
+#session-screen .session-actions{margin:auto 0 0!important;padding-top:14px;display:grid!important;grid-template-columns:1fr 1fr;gap:8px!important}
+#session-screen .session-actions button{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:8px!important;min-height:76px;padding:12px 8px!important;background:#000!important;border:2px solid var(--smm-rule)!important;border-radius:0!important;color:#fff!important;font:700 10px Unbounded,sans-serif!important;letter-spacing:.1em;text-transform:uppercase;transition:border-color .15s,color .15s}
+#session-screen .session-actions svg{width:24px;height:24px}
+#session-screen .btn-lock-pc svg{color:var(--smm-lime)}
+#session-screen .btn-logout-pc svg{color:var(--smm-pink)}
+#session-screen .btn-lock-pc:active{border-color:var(--smm-lime)!important;color:var(--smm-lime)!important}
+#session-screen .btn-logout-pc:active{border-color:var(--smm-pink)!important;color:var(--smm-pink)!important}
+#session-screen .session-actions button:disabled{opacity:.4}
 @media(max-height:700px){.session-scene{max-height:24vh}#session-screen .session-host{font-size:42px!important}}
 @media(prefers-reduced-motion:reduce){.session-scene *{animation:none!important}}
 /* Club tab: no sideways swipe; each hall in its own color and shape */
