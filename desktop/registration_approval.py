@@ -132,7 +132,7 @@ class RegistrationApproval:
         result=self.report(id,record)
         if status=='done' and code:
             reward=self.promo.grant(id,uid,code)
-            result['promo']={'code':code,'result':reward.get('result'),'note':reward.get('note'),'error':reward.get('error')}
+            result['promo']={'code':code,'result':reward.get('result'),'note':reward.get('note'),'error':reward.get('error'),**({'tax_warning':reward['tax_warning']} if reward.get('tax_warning') else {})}
         return result
 
     def promo_codes(self):
@@ -186,7 +186,7 @@ class RegistrationApproval:
                     result['promo']={'code':code,'result':'pending','error':'Нет связи с сервером. Нажмите «Создать» ещё раз: аккаунт не продублируется'};return result
                 record['redeemed']=True;self.store.set(key,record)
             reward=self.promo.grant(id,record['gizmo_user_id'],code)
-            result['promo']={'code':code,'result':reward.get('result'),'note':reward.get('note'),'error':reward.get('error')}
+            result['promo']={'code':code,'result':reward.get('result'),'note':reward.get('note'),'error':reward.get('error'),**({'tax_warning':reward['tax_warning']} if reward.get('tax_warning') else {})}
         return result
 
     def reject(self,id,confirmed=False):

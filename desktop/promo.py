@@ -98,11 +98,15 @@ class PromoReward:
             record['error']='автоначисление выключено, выдайте час вручную';self.store.set(key,record);return self.report(id,record)
         try:
             self.guard();seller=self.seller();product=free_hour_product(self.gizmo);method=payment_method()
-            if strict_tax():zero_tax(self.gizmo,product)
+            # Always aim for 0%: strict mode refuses, otherwise the hour is given and staff see how to fix the tax.
+            try:zero_tax(self.gizmo,product)
+            except ValueError as tax:
+                if strict_tax():raise
+                record['tax_warning']=str(tax)[:200]
         except Exception as error:
             # Nothing was ordered; the reason is shown to the admin, who can give the hour by hand.
             record['error']=str(error)[:160] or 'Проверка товара не прошла';self.store.set(key,record);return self.report(id,record)
-        self.store.set(key,{'phase':'ordering','code':code,'gizmo_user_id':uid})
+        self.store.set(key,{'phase':'ordering','code':code,'gizmo_user_id':uid,**({'tax_warning':record['tax_warning']} if record.get('tax_warning') else {})})
         try:
             invoice=seller.request('POST',f'users/{int(uid)}/order/{product}/invoice/payment/{method}')
             if not isinstance(invoice,dict) or type(invoice.get('id')) is not int:raise ValueError('Unknown order outcome')
