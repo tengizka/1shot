@@ -18,6 +18,8 @@ class Gizmo:
   if path=='users' and method=='GET':return self.users
   if path=='users' and method=='PUT':self.member={k[0].lower()+k[1:]:v for k,v in kwargs['params'].items()};return 7
   if path.endswith('/valid'):return {'result':0,'identity':{'userId':7}}
+  if path.startswith('v2.0/products/'):return {'id':41,'productTaxes':getattr(self,'taxes_linked',[])}
+  if path=='v2.0/taxes':return {'data':[{'id':1,'name':'НДС','value':23},{'id':2,'name':'Без НДС','value':0}]}
   if path=='products/time':return [{'id':41,'name':'standart 1 h','price':0,'minutes':60}]
   if '/order/' in path:return {'id':900,'total':0,'subTotal':0,'outstanding':0}
   if path.endswith('/producttime'):return [{'invoiceId':900,'totalSeconds':3600}]

@@ -20,6 +20,20 @@ def free_hour_product(gizmo):
     return found[0]['id']
 
 
+def zero_tax(gizmo,product):
+    """Only a product without any non-zero tax may be sold; an answer we cannot read counts as a tax."""
+    item=gizmo.request('GET',f'v2.0/products/{int(product)}',params={'Expand':'ProductTaxes'})
+    links=item.get('productTaxes') if isinstance(item,dict) else None
+    if not isinstance(links,list):raise ValueError('не удалось проверить налог товара standart 1 h')
+    used={t.get('taxId') for t in links if isinstance(t,dict) and t.get('isEnabled',True)}
+    if not used:return
+    taxes=gizmo.request('GET','v2.0/taxes')
+    taxes=taxes.get('data') if isinstance(taxes,dict) else taxes
+    values={t.get('id'):t.get('value') for t in taxes or [] if isinstance(t,dict)}
+    bad=[values.get(i) for i in used if not isinstance(values.get(i),(int,float)) or values.get(i)!=0]
+    if bad:raise ValueError(f'у товара standart 1 h есть налог {bad[0]}%: уберите его в Gizmo, нужен 0%')
+
+
 def payment_method():
     value=os.getenv('PROMO_PAYMENT_METHOD_ID','-1').strip()
     if not re.fullmatch(r'-?\d+',value):raise ValueError('Некорректный PROMO_PAYMENT_METHOD_ID')
@@ -69,7 +83,7 @@ class PromoReward:
         if os.getenv('PROMO_AUTO_HOUR','false').strip().lower()!='true':
             record['error']='автоначисление выключено, выдайте час вручную';self.store.set(key,record);return self.report(id,record)
         try:
-            self.guard();seller=self.seller();product=free_hour_product(self.gizmo);method=payment_method()
+            self.guard();seller=self.seller();product=free_hour_product(self.gizmo);zero_tax(self.gizmo,product);method=payment_method()
         except Exception as error:
             # Nothing was ordered; the reason is shown to the admin, who can give the hour by hand.
             record['error']=str(error)[:160] or 'Проверка товара не прошла';self.store.set(key,record);return self.report(id,record)
@@ -80,6 +94,7 @@ class PromoReward:
             record['invoice_id']=invoice['id']
             # Accounting guard: the free hour must never move money. Any non-zero invoice stops for staff review.
             if any(float(invoice.get(k) or 0)!=0 for k in ('total','subTotal','outstanding')):raise ValueError('Non-zero invoice')
+            if any('tax' in k.lower() and isinstance(v,(int,float)) and not isinstance(v,bool) and v!=0 for k,v in invoice.items()):raise ValueError('Non-zero tax')
             lines=seller.request('GET',f'users/{int(uid)}/producttime')
             ok=isinstance(lines,list) and any(isinstance(t,dict) and t.get('invoiceId')==invoice['id'] and not (t.get('isVoided') or t.get('isDeleted')) and float(t.get('totalSeconds') or 0)>=3600 for t in lines)
             record['result']='granted' if ok else 'attention'

@@ -22,6 +22,8 @@ class Gizmo:
   if path=='users' and method=='GET':return []
   if path=='users' and method=='PUT':self.member={k[0].lower()+k[1:]:v for k,v in kwargs['params'].items()};return 7
   if path.endswith('/valid'):return {'result':0,'identity':{'userId':7}}
+  if path.startswith('v2.0/products/'):return {'id':41,'productTaxes':getattr(self,'taxes_linked',[])}
+  if path=='v2.0/taxes':return {'data':[{'id':1,'name':'НДС','value':23},{'id':2,'name':'Без НДС','value':0}]}
   if path=='products/time':return self.products if self.products is not None else [{'id':41,'name':'standart 1 h','price':self.price,'minutes':self.minutes},{'id':42,'name':'standart 30 min','price':0,'minutes':30}]
   if '/order/' in path:
    if self.order_error:raise RuntimeError('timeout')
@@ -69,6 +71,14 @@ class PromoTests(unittest.TestCase):
   self.assertEqual(result['promo']['result'],'failed');self.assertEqual(self.gizmo.orders(),[]);self.assertEqual(self.cloud.rewards,['failed'])
  def test_wrong_duration_is_refused(self):
   self.gizmo.minutes=30;self.build();self.assertEqual(self.api.approve(self.id,True)['promo']['result'],'failed');self.assertEqual(self.gizmo.orders(),[])
+ def test_any_tax_on_the_product_stops_the_hour(self):
+  for linked,ok in (([{'taxId':2,'isEnabled':True}],True),([{'taxId':1,'isEnabled':False}],True),([{'taxId':1,'isEnabled':True}],False),([{'taxId':9}],False)):
+   self.gizmo=Gizmo();self.gizmo.taxes_linked=linked;self.build();r=self.api.approve(self.id,True)
+   self.assertEqual(r['promo']['result'],'granted' if ok else 'failed',linked)
+   if not ok:self.assertEqual(self.gizmo.orders(),[]);self.assertIn('налог',r['promo']['error'])
+ def test_tax_in_the_invoice_needs_a_check(self):
+  self.gizmo.invoice=dict(self.gizmo.invoice,taxTotal=0.5);self.build()
+  self.assertEqual(self.api.approve(self.id,True)['promo']['result'],'attention')
  def test_auto_hour_off_by_default(self):
   os.environ.pop('PROMO_AUTO_HOUR');self.build()
   r=self.api.approve(self.id,True);self.assertEqual(r['promo']['result'],'failed');self.assertIn('вручную',r['promo']['error']);self.assertEqual(self.gizmo.orders(),[])
