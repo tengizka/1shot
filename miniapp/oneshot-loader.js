@@ -1,4 +1,4 @@
-/* 1SHOT loader: the mascot changes faces on top, the 1SHOT logo below fills from left to right.
+/* 1SHOT loader: the 1SHOT logo fills from left to right, a small mascot below keeps changing faces.
    No bar and no percentage. Used by the start screen, the connecting overlay and Desk. */
 (()=>{
  const LOGO='M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z';
@@ -6,7 +6,7 @@
  // Styles live here so the mini-app and Desk look the same.
  if(!document.getElementById('ol-style')){const s=document.createElement('style');s.id='ol-style';s.textContent=`
 .oneshot-loader{display:flex;flex-direction:column;align-items:center;gap:18px;width:min(56vw,230px)}
-.oneshot-loader .ol-mascot{width:48%;height:auto;overflow:visible;fill:#fff;stroke:#fff;stroke-width:.12;animation:olm-bob 1.6s ease-in-out infinite}
+.oneshot-loader .ol-mascot{width:20%;height:auto;overflow:visible;fill:#fff;stroke:#fff;stroke-width:.12;animation:olm-bob 1.6s ease-in-out infinite}
 .oneshot-loader .ol-mascot g{transform-box:fill-box;transition:transform .18s ease}
 .oneshot-loader .olm-ears{transform-origin:50% 100%}
 .oneshot-loader .olm-eyes g,.oneshot-loader .olm-mouth{transform-origin:center}
@@ -19,7 +19,7 @@
 .oneshot-loader[data-face=wow] .olm-ears{transform:translateY(-6%)}
 .oneshot-loader[data-face=ears] .olm-ears{transform:rotate(-5deg)}
 .oneshot-loader .ol-logo{width:100%;height:auto;overflow:visible}
-.oneshot-loader .ol-base{fill:#1d1d1d}.oneshot-loader .ol-fill{fill:#fff}.oneshot-loader .ol-edge{fill:#A3FF10;transition:opacity .2s}
+.oneshot-loader .ol-base{fill:#1d1d1d}.oneshot-loader .ol-fill{fill:#fff}.oneshot-loader .ol-edge{display:none}
 .oneshot-loader .ol-caption{margin:0;font:600 10px Unbounded,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#9a9a9a;text-align:center}
 .oneshot-loader .ol-sub{margin:0;text-align:center;font:500 11px/1.6 Unbounded,sans-serif;color:#cfcfcf}
 .oneshot-loader .ol-caption:empty,.oneshot-loader .ol-sub:empty{display:none}
@@ -29,10 +29,10 @@
  let seq=0;
  function build(host,{caption='',sub=''}={}){
   const id='ol'+(++seq);
-  host.insertAdjacentHTML('beforeend',`<div class="oneshot-loader" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="${caption||'Загрузка 1SHOT'}">${MASCOT}
+  host.insertAdjacentHTML('beforeend',`<div class="oneshot-loader" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="${caption||'Загрузка 1SHOT'}">
    <svg class="ol-logo" viewBox="0 0 522 138" aria-hidden="true"><defs><clipPath id="${id}"><rect class="ol-clip" x="0" y="-4" width="522" height="146"/></clipPath></defs>
     <path class="ol-base" fill-rule="evenodd" d="${LOGO}"/><path class="ol-fill" fill-rule="evenodd" d="${LOGO}" clip-path="url(#${id})"/><rect class="ol-edge" x="0" y="-4" width="3" height="146"/></svg>
-   <p class="ol-caption">${caption}</p><p class="ol-sub">${sub}</p></div>`);
+   ${MASCOT}<p class="ol-caption">${caption}</p><p class="ol-sub">${sub}</p></div>`);
   const el=host.lastElementChild,clip=el.querySelector('.ol-clip'),edge=el.querySelector('.ol-edge');
   let raf=0,value=0,face=0,faces=0;
   // The mascot keeps changing faces while the loader is on screen.
