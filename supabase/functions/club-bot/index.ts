@@ -2,7 +2,10 @@
 // GET ?setup=1 points Telegram at this function and sets the menu button and descriptions (safe to repeat).
 const TOKEN=Deno.env.get('TELEGRAM_BOT_TOKEN')||'';
 const APP='https://tengizka.github.io/1shot/miniapp/';
-const CALL='https://tengizka.github.io/1shot/call.html';
+const PHONE='+74955837811';
+// The mini-app promo video (GitHub Pages, under Telegram's 20 MB fetch limit); after the first send Telegram's file_id is reused.
+const VIDEO='https://tengizka.github.io/1shot/miniapp/media/bot-welcome.mp4';
+let videoId=Deno.env.get('BOT_VIDEO_FILE_ID')||'';
 const HOOK=(Deno.env.get('SUPABASE_URL')||'')+'/functions/v1/club-bot';
 const ok=(body:unknown)=>new Response(JSON.stringify(body),{headers:{'content-type':'application/json'}});
 async function tg(method:string,body:unknown){
@@ -18,13 +21,13 @@ const WELCOME='<b>Привет! Это 1SHOT</b> — компьютерный к
  'В приложении:\n• бронь ПК за пару касаний\n• еда и напитки прямо к твоему ПК\n• аренда мышек, коврика и повербанка\n• пакеты часов и бонусы за пополнение';
 const keyboard=(promo?:string)=>({inline_keyboard:[
  [{text:'Открыть 1SHOT',web_app:{url:APP+(promo?'?promo='+encodeURIComponent(promo):'')}}],
- [{text:'Позвонить в клуб',url:CALL},{text:'Канал клуба',url:'https://t.me/oneshotmira17'}]]});
+ [{text:'📞 Позвонить в клуб',callback_data:'call'},{text:'Канал клуба',url:'https://t.me/oneshotmira17'}]]});
 Deno.serve(async req=>{
  const url=new URL(req.url);
  if(!TOKEN)return ok({error:'no_token'});
  if(req.method==='GET'&&url.searchParams.get('setup')==='1'){
   return ok({
-   webhook:await tg('setWebhook',{url:HOOK,secret_token:await secret(),allowed_updates:['message'],drop_pending_updates:true}),
+   webhook:await tg('setWebhook',{url:HOOK,secret_token:await secret(),allowed_updates:['message','callback_query'],drop_pending_updates:true}),
    menu:await tg('setChatMenuButton',{menu_button:{type:'web_app',text:'1SHOT',web_app:{url:APP}}}),
    commands:await tg('setMyCommands',{commands:[{command:'start',description:'Открыть 1SHOT'}]}),
    description:await tg('setMyDescription',{description:'Компьютерный клуб 1SHOT в Мытищах, 24/7. Бронь ПК, еда к столу, аренда девайсов и пакеты часов — в одном приложении.'}),
@@ -34,14 +37,23 @@ Deno.serve(async req=>{
  if(req.method!=='POST')return ok({ok:true});
  if(req.headers.get('x-telegram-bot-api-secret-token')!==await secret())return new Response('forbidden',{status:403});
  try{
-  const update=await req.json(),msg=update?.message;
+  const update=await req.json(),msg=update?.message,cb=update?.callback_query;
+  // «Позвонить»: a contact card, whose phone opens the dialer in one tap (Telegram buttons cannot hold tel: links).
+  if(cb){
+   await tg('answerCallbackQuery',{callback_query_id:cb.id});
+   if(cb.data==='call'&&cb.message?.chat?.id)await tg('sendContact',{chat_id:cb.message.chat.id,phone_number:PHONE,first_name:'1SHOT',last_name:'компьютерный клуб'});
+   return ok({ok:true});
+  }
   if(!msg?.chat?.id||msg.chat.type!=='private')return ok({ok:true});
   const text=String(msg.text||'').trim();
   if(text.startsWith('/start')){
    const raw=text.split(/\s+/)[1]||'';
    const promo=/^[A-Za-z0-9_-]{2,32}$/.test(raw)?raw.toUpperCase():'';
    const extra=promo?`\n\n🎁 Промокод <b>${promo}</b> уже подставлен: при регистрации получишь 1 час в STANDART.`:'';
-   await tg('sendMessage',{chat_id:msg.chat.id,text:WELCOME+extra,parse_mode:'HTML',reply_markup:keyboard(promo)});
+   const sent=await tg('sendVideo',{chat_id:msg.chat.id,video:videoId||VIDEO,caption:WELCOME+extra,parse_mode:'HTML',supports_streaming:true,width:720,height:1280,reply_markup:keyboard(promo)});
+   if(sent?.ok)videoId=sent.result?.video?.file_id||videoId;
+   // Without the video the greeting still goes out as text.
+   else await tg('sendMessage',{chat_id:msg.chat.id,text:WELCOME+extra,parse_mode:'HTML',reply_markup:keyboard(promo)});
   }else{
    await tg('sendMessage',{chat_id:msg.chat.id,text:'Я бот-помощник 1SHOT. Бронь, еда, аренда и твой аккаунт — в приложении 👇\nЕсли нужен человек: +7 (495) 583-78-11',reply_markup:keyboard()});
   }

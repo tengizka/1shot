@@ -13,6 +13,8 @@
  const tap=k=>{try{haptic(k)}catch{}};
  const total=()=>[...state.cart].reduce((s,[id,q])=>s+(item(id)?.price||0)*q,0);
  const count=()=>[...state.cart.values()].reduce((s,q)=>s+q,0);
+ // Goods the club does not want in the market (old till cards with a white background).
+ const HIDE=[/hqd.*pinq.*bubble\s*gum/i];
  const item=id=>state.menu?.find(m=>m.id===id);
 
  async function call(action,data={}){
@@ -24,7 +26,7 @@
    if(!tg?.initData){state.error='Откройте приложение через Telegram';return}
    let s=await call('food_state',{menu:!state.menu});
    if(state.menu&&s.menu_version!==state.version)s=await call('food_state',{menu:true});
-   if(Array.isArray(s.menu)){state.menu=s.menu;state.version=s.menu_version;for(const id of [...state.cart.keys()])if(!item(id))state.cart.delete(id)}
+   if(Array.isArray(s.menu)){state.menu=s.menu.filter(m=>!HIDE.some(r=>r.test(m.name||'')));state.version=s.menu_version;for(const id of [...state.cart.keys()])if(!item(id))state.cart.delete(id)}
    Object.assign(state,{seat:s.seat,account:s.account,desk:s.desk,orders:s.orders||[],error:''});
   }catch(e){state.error=e.message||'Нет связи с клубом'}
   finally{
