@@ -4,8 +4,11 @@
 #registration-wait h2{margin:0;font:700 clamp(34px,10.5vw,48px)/.92 ReSquare,Unbounded,sans-serif;text-transform:uppercase;color:#fff}
 #registration-wait p{margin:0 0 6px;font:500 12px/1.65 Unbounded,sans-serif;color:#cfcfcf}
 #registration-wait button{min-height:56px}
-#registration-wait .rw-loader{margin:0 0 18px}
-#registration-wait .rw-loader[hidden]{display:none}
+#registration-wait .rw-status{display:flex;align-items:center;gap:10px;margin:0 0 6px;font:700 10px Unbounded,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--smm-lime,#A3FF10)}
+#registration-wait .rw-status i{width:9px;height:9px;flex:none;background:var(--smm-lime,#A3FF10);animation:rw-pulse 1.4s ease-in-out infinite}
+#registration-wait .rw-status[hidden]{display:none}
+@keyframes rw-pulse{50%{opacity:.2}}
+@media(prefers-reduced-motion:reduce){#registration-wait .rw-status i{animation:none}}
 #registration-wait .rw-cancel{min-height:52px;background:transparent;border:2px solid #3a3a3a;color:#bdbdbd;font:700 12px Unbounded,sans-serif;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
 #registration-wait .rw-cancel.armed{border-color:var(--smm-pink,#E93E97);color:var(--smm-pink,#E93E97)}
 #registration-wait button[hidden]{display:none}
