@@ -123,4 +123,17 @@ class FoodTests(unittest.TestCase):
         long=order(items=[{'name':'Очень длинное название напитка '+str(i),'qty':5} for i in range(10)])
         text=note(long,'204');self.assertLessEqual(len(text),255);self.assertTrue(text.endswith('оплата: картой при получении'));self.assertIn(tag(long['id']),text)
 
+    def test_gizmo_500_on_paging_falls_back_and_names_the_call(self):
+        real=self.gizmo.request
+        def picky(method,path,**kw):
+            if (kw.get('params') or {}).get('Pagination.Limit') and path!='v2.0/products':raise ApiError('Gizmo: HTTP 500')
+            return real(method,path,**kw)
+        self.gizmo.request=picky;self.food.tick(SEATED)
+        self.assertEqual([m['name'] for m in self.cloud.calls[0]['menu']],['Red Bull','Lays','Мышь']);self.assertEqual(self.food.error,'')
+        def broken(method,path,**kw):
+            if path=='v2.0/products':raise ApiError('Gizmo: HTTP 500')
+            return real(method,path,**kw)
+        self.setUp();self.gizmo.request=broken;self.food.tick(SEATED)
+        self.assertIn('(v2.0/products)',self.food.error);self.assertEqual(self.cloud.calls[0]['seats'],[{'uid':77,'host':'13'}],'seats still reported');self.assertNotIn('menu',self.cloud.calls[0])
+
 if __name__=='__main__':unittest.main()

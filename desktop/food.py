@@ -48,12 +48,22 @@ class Food:
         self.type_id=None;self.menu_at=0;self.error='';self.status={'menu':0,'open':0}
         self.hidden={g.strip().casefold() for g in os.getenv('FOOD_HIDE_GROUPS','').split(',') if g.strip()}
 
+    def get(self,path,params=None):
+        # Errors name the endpoint, so "HTTP 500" on the Desk screen says which Gizmo call failed.
+        try:return self.gizmo.request('GET',path,params=params)
+        except ApiError as error:raise ApiError(f'{error} ({path.split("?")[0]})') from error
+
     def paged(self,path,params=None):
         rows,cursor=[],None
         for _ in range(30):
             query=dict(params or {},**{'Pagination.Limit':100})
             if cursor:query['Pagination.Cursor']=cursor
-            page=self.gizmo.request('GET',path,params=query)
+            try:page=self.get(path,query)
+            except ApiError as error:
+                # Some Gizmo builds fail on paging parameters: ask once for the plain list.
+                if rows or 'HTTP 5' not in str(error):raise
+                page=self.get(path,params or None)
+                if isinstance(page,dict) and isinstance(page.get('data'),list):return page['data']
             if isinstance(page,list):return rows+page
             if not isinstance(page,dict) or not isinstance(page.get('data'),list):raise ApiError('Gizmo: неверный ответ '+path)
             rows+=page['data'];cursor=page.get('nextCursor')
@@ -72,7 +82,7 @@ class Food:
         if hit and time.time()-hit.get('at',0)<86400:return hit.get('uri')
         uri=None
         try:
-            images=self.gizmo.request('GET',f'v2.0/products/{int(product_id)}/images')
+            images=self.get(f'v2.0/products/{int(product_id)}/images')
             images=images.get('data') if isinstance(images,dict) else images
             first=next((i for i in images or [] if isinstance(i,dict) and i.get('image')),None)
             uri=thumbnail(first['image']) if first else None
@@ -84,7 +94,9 @@ class Food:
     def menu(self):
         """What a guest may order: goods only (no time packages), not hidden from client orders, in stock."""
         groups={g['id']:g for g in self.paged('v2.0/productgroups') if type(g.get('id')) is int}
-        stock={s['id']:s.get('onHand') for s in self.paged('v2.0/productsstock') if type(s.get('id')) is int}
+        # Stock is a hint only: without it the admin still sees the order and answers in person.
+        try:stock={s['id']:s.get('onHand') for s in self.paged('v2.0/productsstock') if type(s.get('id')) is int}
+        except ApiError:stock=None
         items=[]
         for p in self.paged('v2.0/products',{'IsDeleted':'false'}):
             group=groups.get(p.get('productGroupId'))
@@ -92,7 +104,7 @@ class Food:
             if not group or type(p.get('id')) is not int or p.get('isDeleted') or p.get('productType')==TIME_PRODUCT:continue
             if p.get('disallowClientOrder') or p.get('restrictSale') or not isinstance(price,(int,float)) or isinstance(price,bool) or price<=0:continue
             if str(group.get('name','')).strip().casefold() in self.hidden or not str(p.get('name') or '').strip():continue
-            if p.get('enableStock') and p.get('disallowSaleIfOutOfStock') and not (stock.get(p['id']) or 0)>0:continue
+            if stock is not None and p.get('enableStock') and p.get('disallowSaleIfOutOfStock') and not (stock.get(p['id']) or 0)>0:continue
             items.append({'id':p['id'],'group':str(group.get('name') or 'Меню').strip()[:45],'group_order':int(group.get('displayOrder') or 0),'name':str(p['name']).strip()[:60],'price':round(float(price),2),'sort':int(p.get('displayOrder') or 0)})
         for item in items:item['image']=self.image(item['id'])
         return items
@@ -107,9 +119,12 @@ class Food:
         seats=[{'uid':int(s['userId']),'host':str(s['hostNumber'])} for s in sessions if s.get('userId') and s.get('hostNumber') is not None]
         body={'seats':seats,'updates':list(self.store.get('food.updates',{}).values())[:50]}
         if time.time()-self.menu_at>600:
-            menu=self.menu();digest=hashlib.sha256(json.dumps(menu,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
-            if digest!=self.store.get('food.menu_hash') or self.status['menu']!=len(menu):body['menu']=menu
-            self.menu_at=time.time();self.status['menu']=len(menu)
+            # A broken menu read never stops seats and orders; it is retried in a minute.
+            try:
+                menu=self.menu();digest=hashlib.sha256(json.dumps(menu,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
+                if digest!=self.store.get('food.menu_hash') or self.status['menu']!=len(menu):body['menu']=menu
+                self.menu_at=time.time();self.status['menu']=len(menu)
+            except Exception as error:self.menu_at=time.time()-540;self.error='меню: '+str(error)[:150]
         result=self.cloud.desk('food_sync',**body)
         if 'menu' in body:self.store.set('food.menu_hash',digest)
         sent={u['id']:u for u in body['updates']};pending=self.store.get('food.updates',{})
@@ -146,7 +161,7 @@ class Food:
             return self.sent(oid,aid if type(aid) is int else self.find(uid,oid))
         aid=order.get('assistance_id') or journal.get('assistance_id')
         if not aid:return self.close(oid,'')
-        call=self.gizmo.request('GET',f'v2.0/assistancerequest/{int(aid)}')
+        call=self.get(f'v2.0/assistancerequest/{int(aid)}')
         status=call.get('status') if isinstance(call,dict) else None
         if status==PENDING:
             if age>2700:self.close(oid,'')
