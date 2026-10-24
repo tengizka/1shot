@@ -46,7 +46,8 @@ class Food:
     def __init__(self,cloud,gizmo,store,host_ids=lambda:{}):
         self.cloud,self.gizmo,self.store,self.host_ids=cloud,gizmo,store,host_ids
         self.type_id=None;self.menu_at=0;self.error='';self.status={'menu':0,'open':0}
-        self.hidden={g.strip().casefold() for g in os.getenv('FOOD_HIDE_GROUPS','').split(',') if g.strip()}
+        # Time packages and rentals are not food; FOOD_HIDE_GROUPS in .env replaces this list.
+        self.hidden={g.strip().casefold() for g in os.getenv('FOOD_HIDE_GROUPS','Standart,VIP,TV,Аренда').split(',') if g.strip()}
 
     def get(self,path,params=None):
         # Errors name the endpoint, so "HTTP 500" on the Desk screen says which Gizmo call failed.
@@ -61,6 +62,8 @@ class Food:
             try:page=self.get(path,query)
             except ApiError as error:
                 # Some Gizmo builds fail on paging parameters: ask once for the plain list.
+                # Gizmo keeps a nextCursor even after the last page and may fail on it: keep what we have.
+                if rows and 'HTTP 5' in str(error):return rows
                 if rows or 'HTTP 5' not in str(error):raise
                 page=self.get(path,params or None)
                 if isinstance(page,dict) and isinstance(page.get('data'),list):return page['data']

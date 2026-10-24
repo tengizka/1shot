@@ -22,7 +22,7 @@
 
 ## Меню
 Desk раз в 10 минут читает из Gizmo товары (без пакетов времени, без «запрещено к заказу клиентом», без закончившихся на складе) и картинки.
-Скрыть группу товаров: в `.env` Desk строка `FOOD_HIDE_GROUPS=Услуги,Аксессуары`. Выключить заказ еды: `FOOD_ENABLED=false`.
+Скрытые группы по умолчанию: Standart, VIP, TV, Аренда. Свой список: в `.env` Desk строка `FOOD_HIDE_GROUPS=Standart,VIP,TV,Аренда,Ещё группа`. Выключить заказ еды: `FOOD_ENABLED=false`.
 
 ## Где код
 - Сервер: `supabase/migrations/202610240023_food_orders.sql`, действия `food_state`/`food_order` в club-bookings, `food_sync` в club-desk.

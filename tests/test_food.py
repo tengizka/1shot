@@ -136,4 +136,15 @@ class FoodTests(unittest.TestCase):
         self.setUp();self.gizmo.request=broken;self.food.tick(SEATED)
         self.assertIn('(v2.0/products)',self.food.error);self.assertEqual(self.cloud.calls[0]['seats'],[{'uid':77,'host':'13'}],'seats still reported');self.assertNotIn('menu',self.cloud.calls[0])
 
+    def test_gizmo_fails_on_the_page_after_the_last(self):
+        real=self.gizmo.request
+        def cursor(method,path,**kw):
+            if (kw.get('params') or {}).get('Pagination.Cursor'):raise ApiError('Gizmo: HTTP 500')
+            return real(method,path,**kw)
+        self.gizmo.request=cursor;self.food.tick(SEATED)
+        self.assertEqual([m['name'] for m in self.cloud.calls[0]['menu']],['Red Bull','Lays'],'first page kept');self.assertEqual(self.food.error,'')
+
+    def test_time_and_rental_groups_hidden_by_default(self):
+        self.assertTrue({'standart','vip','tv','аренда'}<=self.food.hidden)
+
 if __name__=='__main__':unittest.main()
