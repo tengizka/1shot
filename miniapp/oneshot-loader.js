@@ -8,7 +8,6 @@
 .oneshot-loader{display:flex;flex-direction:column;align-items:center;gap:18px;width:min(56vw,230px)}
 .oneshot-loader .ol-mascot{width:20%;height:auto;overflow:visible;fill:#fff;stroke:#fff;stroke-width:.12;animation:olm-bob 1.6s ease-in-out infinite}
 .oneshot-loader .ol-mascot g{transform-box:fill-box;transition:transform .18s ease}
-.oneshot-loader .olm-ears{transform-origin:50% 100%}
 .oneshot-loader .olm-eyes g,.oneshot-loader .olm-mouth{transform-origin:center}
 .oneshot-loader[data-face=blink] .olm-eyes g{transform:scaleY(.12)}
 .oneshot-loader[data-face=left] .olm-eyes g{transform:translateX(-35%)}
@@ -16,8 +15,8 @@
 .oneshot-loader[data-face=wink] .olm-eye-r{transform:scaleY(.12)}
 .oneshot-loader[data-face=wink] .olm-mouth{transform:scaleX(1.35)}
 .oneshot-loader[data-face=wow] .olm-mouth{transform:scale(.7,2.2)}
-.oneshot-loader[data-face=wow] .olm-ears{transform:translateY(-6%)}
-.oneshot-loader[data-face=ears] .olm-ears{transform:rotate(-5deg)}
+.oneshot-loader[data-face=ears] .ol-mascot{rotate:-6deg}
+.oneshot-loader .ol-mascot{transition:rotate .25s ease}
 .oneshot-loader .ol-logo{width:100%;height:auto;overflow:visible}
 .oneshot-loader .ol-base{fill:#1d1d1d}.oneshot-loader .ol-fill{fill:#fff}.oneshot-loader .ol-edge{display:none}
 .oneshot-loader .ol-caption{margin:0;font:600 10px Unbounded,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#9a9a9a;text-align:center}

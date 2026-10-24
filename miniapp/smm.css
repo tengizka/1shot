@@ -579,7 +579,7 @@
 .session-scene{display:block;width:100%;max-width:300px;margin:14px auto 4px;overflow:visible}
 .session-scene .ms-head{fill:#fff;stroke:#fff;stroke-width:.12}
 .session-scene .ms-eyes{transform-box:fill-box;transform-origin:center;animation:ms-blink 4.2s infinite}
-.session-scene .ms-ears{transform-box:fill-box;transform-origin:50% 100%;animation:ms-ear 6s ease-in-out infinite}
+.session-scene .ms-tilt{transform-box:fill-box;transform-origin:50% 100%;animation:ms-tilt 6s ease-in-out infinite}
 .session-scene .ms-light{animation:ms-flicker 2.6s steps(1) infinite}
 .session-scene .ms-monitor{fill:#000;stroke:var(--smm-lime);stroke-width:2}
 .session-scene .ms-logo{fill:var(--smm-lime);font:700 13px var(--smm-display);letter-spacing:.06em}
@@ -588,7 +588,7 @@
 .session-scene .ms-paw{fill:#fff;animation:ms-tap .32s ease-in-out infinite alternate}
 .session-scene .ms-paw-r{animation-delay:.16s}
 @keyframes ms-blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
-@keyframes ms-ear{0%,80%,100%{transform:rotate(0)}85%{transform:rotate(-4deg)}90%{transform:rotate(3deg)}}
+@keyframes ms-tilt{0%,70%,100%{transform:rotate(0)}78%{transform:rotate(-4deg)}88%{transform:rotate(3deg)}}
 @keyframes ms-flicker{0%{opacity:.9}18%{opacity:.6}34%{opacity:1}52%{opacity:.75}70%{opacity:.95}86%{opacity:.65}}
 @keyframes ms-tap{to{transform:translateY(-4px)}}
 #session-screen h1{margin:10px 0 6px!important}
