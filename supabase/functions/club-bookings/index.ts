@@ -32,6 +32,15 @@ Deno.serve(async req=>{
    const telegram=JSON.parse(new URLSearchParams(b.initData).get('user')||'{}');
    return json({...data,desk:await deskStatus(client),telegram:{first_name:telegram.first_name,last_name:telegram.last_name,photo_url:typeof telegram.photo_url==='string'&&telegram.photo_url.startsWith('https://')?telegram.photo_url:null}});
   }
+  if(b.action==='food_state'){
+   const {data,error}=await client.rpc('club_food_state',{p_user:user,p_menu:b.menu===true});if(error)throw error;return json(data);
+  }
+  if(b.action==='food_order'){
+   if(typeof b.request_id!=='string'||!/^[0-9a-f-]{36}$/i.test(b.request_id)||!Array.isArray(b.items)||b.items.length>10)return json({error:'Некорректный заказ'},400);
+   const items=b.items.map((x:{id?:unknown;qty?:unknown})=>({id:x?.id,qty:x?.qty}));
+   const {data,error}=await client.rpc('club_food_order',{p_user:user,p_request:b.request_id,p_items:items,p_payment:b.payment});if(error)throw error;
+   return json({order:data},201);
+  }
   if(b.action==='list'){
    // Never let recent history push an old active/attention booking out of the list.
    const fields=publicFields+',protocol,for_friend,instant';

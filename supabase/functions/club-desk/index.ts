@@ -31,6 +31,10 @@ Deno.serve(async req=>{
    const {data,error}=await client.rpc('club_'+b.action,args);if(error)throw error;
    return b.action==='registration_claim'?json({request:data}):json({ok:data===true});
   }
+  if(b.action==='food_sync'){
+   const {data,error}=await client.rpc('club_food_sync',{p_worker:b.worker_id,p_seats:Array.isArray(b.seats)?b.seats:null,p_menu:Array.isArray(b.menu)?b.menu:null,p_updates:Array.isArray(b.updates)?b.updates.slice(0,50):[]});if(error)throw error;
+   return json(data);
+  }
   if(b.action==='promo_codes'){const {data,error}=await client.rpc('club_promo_codes_active');if(error)throw error;return json({codes:data});}
   if(b.action==='promo_desk_redemption'){
    const {data,error}=await client.rpc('club_promo_desk_redemption',{p_worker:b.worker_id,p_id:b.id,p_code:b.code,p_uid:b.gizmo_user_id});if(error)throw error;
