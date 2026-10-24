@@ -2,6 +2,7 @@
 import hashlib
 import math
 import os
+import re
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -94,7 +95,29 @@ class Accounts:
             if any((actual.get(k) or '')!=v for k,v in payload.items()):raise UnsafeOperation('Не все изменения подтверждены Gizmo')
             if actual.get('birthDate')!=user.get('birthDate'):raise UnsafeOperation('Gizmo изменил дату рождения; нужна проверка администратора')
             return 'Профиль сохранён в Gizmo'
+        if kind=='topup':
+            amount=payload.get('amount')
+            if type(amount) is not int or not 100<=amount<=50000:raise UnsafeOperation('Некорректная сумма пополнения')
+            self.gizmo.user(uid)
+            method=self.online_method()
+            self.guard()
+            # Gizmo makes the T-Bank link and credits the deposit by itself once the guest pays.
+            created=self.gizmo.request('POST','v2.0/paymentintent/deposit',json={'userId':uid,'amount':amount,'paymentMethodId':method})
+            url=created.get('paymentUrl') if isinstance(created,dict) else None
+            if not isinstance(url,str) or not url.startswith('https://') or len(url)>300:raise UnsafeOperation('Gizmo не вернул ссылку на оплату')
+            return url
         raise UnsafeOperation('Неизвестная операция')
+    def online_method(self):
+        """Gizmo payment method for online top-ups: PAYMENT_ONLINE_METHOD_ID in .env, otherwise the only enabled T-Bank / online method."""
+        value=os.getenv('PAYMENT_ONLINE_METHOD_ID','').strip()
+        if value:return int(value)
+        rows=self.gizmo.request('GET','v2.0/paymentmethods')
+        rows=rows.get('data') if isinstance(rows,dict) else rows
+        found=[m for m in rows or [] if m.get('isEnabled') and not m.get('isDeleted') and re.search(r'т-?банк|тинькоф|tinkoff|t-?bank|онлайн|online',str(m.get('name','')),re.I)]
+        if len(found)!=1:
+            names=', '.join(f"{m.get('id')} {m.get('name')}" for m in rows or [] if not m.get('isDeleted'))
+            raise UnsafeOperation(('Укажите PAYMENT_ONLINE_METHOD_ID в .env. Способы оплаты Gizmo: '+names)[:250])
+        return int(found[0]['id'])
     def queue_password_result(self,id,outcome,verified=False):
         pending=self.store.get('password-outcomes',{})
         if id in pending and pending[id]['outcome']!=outcome:raise UnsafeOperation('Для заявки уже сохранён другой результат')
