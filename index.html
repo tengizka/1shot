@@ -55,6 +55,18 @@ h2{font-size:clamp(30px,6vw,56px);line-height:1;margin-bottom:28px}
 @keyframes bob{50%{transform:translateY(-14px)}}
 @media(max-width:760px){.mascot{position:relative;width:96px;top:0;margin-bottom:18px}}
 
+
+/* фото клуба на фоне шапки: показываются только те, что загрузились */
+.photos{position:absolute;left:0;right:0;top:0;height:min(100vh,820px);overflow:hidden;z-index:0;pointer-events:none}
+.photos img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.6s;filter:saturate(.9)}
+.photos img.on{opacity:1}
+.photos::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,.7) 55%,#000)}
+.photos:empty{display:none}
+body>.wrap,body>.run,body>main{position:relative;z-index:1}
+.notg-hint{display:inline-block;margin-top:14px;font-size:13px;color:#C9C9CC;border-bottom:1px solid #3a3a3c;padding-bottom:2px}
+.notg-hint b{color:var(--lime)}
+.notg-hint:hover{color:#fff;border-color:var(--lime)}
+
 /* бегущая строка */
 .run{overflow:hidden;background:var(--lime);color:#000;padding:12px 0;margin-top:30px}
 .run div{display:flex;width:max-content;animation:run 22s linear infinite}
@@ -126,10 +138,11 @@ footer{padding:40px 0 calc(110px + env(safe-area-inset-bottom));color:var(--mute
 .sticky{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:20;display:none}
 .sticky .cta{width:100%;box-shadow:0 10px 30px rgba(0,0,0,.6)}
 @media(max-width:760px){.sticky{display:block;transform:translateY(140%);transition:transform .3s}.sticky.on{transform:none}}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.run div{animation:run 45s linear infinite!important}}
 </style>
 </head>
 <body>
+<div class="photos" id="photos" aria-hidden="true"></div>
 <div class="wrap">
   <div class="top"><img src="landing/logo.svg" alt="1SHOT"><a href="tel:+74955837811">+7 (495) 583-78-11</a></div>
 
@@ -143,6 +156,7 @@ footer{padding:40px 0 calc(110px + env(safe-area-inset-bottom));color:var(--mute
       Забрать час в Telegram
     </a>
     <div class="code" id="code">Промокод <b></b> уже вставлен в анкету</div>
+    <a class="notg-hint" href="#notg">Нет Telegram? Назови админу слово <b class="js-word">GG</b> →</a>
     <div class="meta"><span><b>Мытищи, ул. Мира, 37</b></span><span>Круглосуточно</span><span>30 ПК и PS5</span></div>
   </header>
 </div>
@@ -160,7 +174,7 @@ footer{padding:40px 0 calc(110px + env(safe-area-inset-bottom));color:var(--mute
     </div>
   </section>
 
-  <section class="notg">
+  <section class="notg" id="notg">
     <div class="notg-text">
       <span class="kicker">Нет Telegram?</span>
       <h2 class="rs">Не проблема</h2>
@@ -242,9 +256,19 @@ if(window.YM_ID){(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||
   code=code||'GG';url='https://t.me/'+BOT+'?startapp='+encodeURIComponent(code);
   document.querySelectorAll('.js-open').forEach(function(a){a.href=url});
   var c=document.getElementById('code');c.querySelector('b').textContent=code;c.style.display='block';
-  document.getElementById('word').textContent=code;
+  document.getElementById('word').textContent=code;document.querySelectorAll('.js-word').forEach(function(w){w.textContent=code});
   var sticky=document.getElementById('sticky'),hero=document.querySelector('.hero .cta');
   if('IntersectionObserver' in window)new IntersectionObserver(function(e){sticky.classList.toggle('on',!e[0].isIntersecting)}).observe(hero);
+})();
+</script>
+<script>
+// Фото клуба: положи файлы landing/club-1.webp … club-6.webp — покажутся по очереди. Нет файлов — фона нет.
+(function(){
+  var box=document.getElementById('photos'),shown=[],i=0;
+  ['landing/club-1.webp','landing/club-2.webp','landing/club-3.webp','landing/club-4.webp','landing/club-5.webp','landing/club-6.webp'].forEach(function(src){
+    var img=new Image();img.alt='';img.onload=function(){box.appendChild(img);shown.push(img);if(shown.length===1)img.classList.add('on')};img.src=src;
+  });
+  setInterval(function(){if(shown.length<2)return;shown[i].classList.remove('on');i=(i+1)%shown.length;shown[i].classList.add('on')},5000);
 })();
 </script>
 </body>
