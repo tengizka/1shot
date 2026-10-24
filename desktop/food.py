@@ -45,7 +45,7 @@ def thumbnail(raw):
 class Food:
     def __init__(self,cloud,gizmo,store,host_ids=lambda:{}):
         self.cloud,self.gizmo,self.store,self.host_ids=cloud,gizmo,store,host_ids
-        self.type_id=None;self.menu_at=0;self.error='';self.status={'menu':0,'open':0}
+        self.type_id=None;self.menu_at=0;self.report_at=0;self.error='';self.status={'menu':0,'open':0}
         # Time packages and rentals are not food; FOOD_HIDE_GROUPS in .env replaces this list.
         self.hidden={g.strip().casefold() for g in os.getenv('FOOD_HIDE_GROUPS','Standart,VIP,TV,Аренда').split(',') if g.strip()}
 
@@ -112,6 +112,14 @@ class Food:
         for item in items:item['image']=self.image(item['id'])
         return items
 
+    def tax_report(self):
+        """Read-only: Gizmo's tax table and every product that carries a tax, for staff to review remotely."""
+        taxes=self.get('v2.0/taxes');taxes=taxes.get('data') if isinstance(taxes,dict) else taxes
+        products=self.paged('v2.0/products',{'Expand':'ProductTaxes'})
+        taxed=[{'id':p.get('id'),'name':p.get('name'),'type':p.get('productType'),'price':p.get('price'),'deleted':p.get('isDeleted'),'taxes':p.get('productTaxes')} for p in products if p.get('productTaxes')]
+        free=[{'id':p.get('id'),'name':p.get('name'),'taxes':p.get('productTaxes')} for p in products if str(p.get('name','')).strip().casefold()=='standart 1 h']
+        return {'taxes':taxes,'products_total':len(products),'products_with_taxes':taxed[:300],'standart_1h':free}
+
     def queue(self,order_id,status,**extra):
         updates=self.store.get('food.updates',{})
         updates[order_id]={'id':order_id,'status':status,**extra};self.store.set('food.updates',updates)
@@ -128,6 +136,10 @@ class Food:
                 if digest!=self.store.get('food.menu_hash') or self.status['menu']!=len(menu):body['menu']=menu
                 self.menu_at=time.time();self.status['menu']=len(menu)
             except Exception as error:self.menu_at=time.time()-540;self.error='меню: '+str(error)[:150]
+        if time.time()-self.report_at>600:
+            self.report_at=time.time()
+            try:self.cloud.desk('report',kind='gizmo_taxes',data=self.tax_report())
+            except Exception:pass  # Diagnostics never block seats and orders.
         result=self.cloud.desk('food_sync',**body)
         if 'menu' in body:self.store.set('food.menu_hash',digest)
         sent={u['id']:u for u in body['updates']};pending=self.store.get('food.updates',{})

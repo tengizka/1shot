@@ -31,6 +31,7 @@ class Gizmo:
         if method!='GET':self.writes.append((method,path,kw.get('json')))
         if path=='v2.0/assistancerequesttype':return {'data':self.types,'nextCursor':None}
         if path=='v2.0/productgroups':return {'data':[{'id':1,'name':'Напитки','displayOrder':0},{'id':2,'name':'Снеки','displayOrder':1},{'id':3,'name':'Аксессуары','displayOrder':2}],'nextCursor':None}
+        if path=='v2.0/taxes':return {'data':[{'id':1,'name':'24%','value':23},{'id':3,'name':'None','value':0}]}
         if path=='v2.0/productsstock':return {'data':[{'id':14,'onHand':0}],'nextCursor':None}
         if path=='v2.0/products':
             if kw['params'].get('Pagination.Cursor'):return {'data':self.products[3:],'nextCursor':None}
@@ -47,8 +48,9 @@ class Gizmo:
     def posts(self):return [w for w in self.writes if w[1]=='v2.0/assistancerequest']
 
 class Cloud:
-    def __init__(self):self.calls=[];self.orders=[];self.statuses={}
+    def __init__(self):self.calls=[];self.orders=[];self.statuses={};self.reports=[]
     def desk(self,action,**data):
+        if action=='report':self.reports.append(data);return {'ok':True}
         assert action=='food_sync'
         self.calls.append(data)
         for u in data['updates']:self.statuses[u['id']]=u
@@ -149,5 +151,13 @@ class FoodTests(unittest.TestCase):
 
     def test_time_and_rental_groups_hidden_by_default(self):
         self.assertTrue({'standart','vip','tv','аренда'}<=self.food.hidden)
+
+    def test_tax_report_is_read_only(self):
+        self.gizmo.products[0]['productTaxes']=[{'taxId':1,'isEnabled':True}]
+        self.food.tick([])
+        report=self.cloud.reports[0];self.assertEqual(report['kind'],'gizmo_taxes')
+        self.assertEqual([p['name'] for p in report['data']['products_with_taxes']],['Red Bull']);self.assertEqual(report['data']['taxes'][0]['value'],23)
+        self.assertEqual(self.gizmo.writes,[],'report never writes to Gizmo')
+        self.food.tick([]);self.assertEqual(len(self.cloud.reports),1,'every 10 minutes, not every tick')
 
 if __name__=='__main__':unittest.main()
