@@ -45,7 +45,7 @@ class PromoTests(unittest.TestCase):
   self.api=RegistrationApproval(self.cloud,self.gizmo,self.store,lambda:None)
  def setUp(self):
   self.temp=tempfile.TemporaryDirectory();self.store=Store(Path(self.temp.name)/'desk.sqlite3');self.secret='fixture-secret';self.gizmo=Gizmo()
-  self.env=patch.dict(os.environ,{'AGENT_SECRET':self.secret});self.env.start()
+  self.env=patch.dict(os.environ,{'AGENT_SECRET':self.secret,'PROMO_AUTO_HOUR':'true'});self.env.start()
  def tearDown(self):self.env.stop();self.temp.cleanup()
  def test_grants_once_with_note(self):
   self.build();result=self.api.approve(self.id,True)
@@ -60,6 +60,9 @@ class PromoTests(unittest.TestCase):
   self.assertEqual(result['promo']['result'],'failed');self.assertEqual(self.gizmo.orders(),[]);self.assertEqual(self.cloud.rewards,['failed'])
  def test_wrong_duration_is_refused(self):
   self.gizmo.minutes=30;self.build();self.assertEqual(self.api.approve(self.id,True)['promo']['result'],'failed');self.assertEqual(self.gizmo.orders(),[])
+ def test_auto_hour_off_by_default(self):
+  os.environ.pop('PROMO_AUTO_HOUR');self.build()
+  r=self.api.approve(self.id,True);self.assertEqual(r['promo']['result'],'failed');self.assertIn('вручную',r['promo']['error']);self.assertEqual(self.gizmo.orders(),[])
  def test_minutes_inside_time_product_block(self):
   self.gizmo.products=[{'id':41,'name':'Standart 1 h','price':0,'timeProduct':{'minutes':60}}];self.build()
   r=self.api.approve(self.id,True);self.assertEqual(r['promo']['result'],'granted')
