@@ -10,9 +10,12 @@ PRODUCT='standart 1 h'
 def free_hour_product(gizmo):
     items=gizmo.request('GET','products/time')
     found=[p for p in items if isinstance(p,dict) and not p.get('isDeleted') and str(p.get('name','')).strip().casefold()==PRODUCT] if isinstance(items,list) else []
-    if len(found)!=1 or type(found[0].get('id')) is not int:raise ValueError('Нужен ровно один товар standart 1 h')
-    if float(found[0].get('price') or 0)!=0:raise ValueError('Товар standart 1 h должен стоить 0 ₽')
-    if found[0].get('minutes')!=60:raise ValueError('Товар standart 1 h должен давать ровно 60 минут')
+    if len(found)!=1 or type(found[0].get('id')) is not int:raise ValueError(f'Нужен ровно один товар «standart 1 h», найдено: {len(found)}')
+    if float(found[0].get('price') or 0)!=0:raise ValueError(f'Товар standart 1 h должен стоить 0 ₽, в Gizmo: {found[0].get("price")} ₽')
+    # Gizmo keeps the minutes either on the product or in its nested timeProduct block.
+    nested=found[0].get('timeProduct') if isinstance(found[0].get('timeProduct'),dict) else {}
+    minutes=found[0].get('minutes',nested.get('minutes'))
+    if minutes!=60:raise ValueError(f'Товар standart 1 h должен давать ровно 60 минут, в Gizmo: {minutes}')
     return found[0]['id']
 
 
@@ -53,8 +56,9 @@ class PromoReward:
         record={'phase':'outcome','result':'failed','code':code,'gizmo_user_id':uid,'note':False}
         try:
             self.guard();product=free_hour_product(self.gizmo);method=payment_method()
-        except Exception:
-            self.store.set(key,record);return self.report(id,record)
+        except Exception as error:
+            # Nothing was ordered; the reason is shown to the admin, who can give the hour by hand.
+            record['error']=str(error)[:160] or 'Проверка товара не прошла';self.store.set(key,record);return self.report(id,record)
         self.store.set(key,{'phase':'ordering','code':code,'gizmo_user_id':uid})
         try:
             invoice=self.gizmo.request('POST',f'users/{int(uid)}/order/{product}/invoice/payment/{method}')

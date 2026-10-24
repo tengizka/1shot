@@ -60,6 +60,12 @@ class PromoTests(unittest.TestCase):
   self.assertEqual(result['promo']['result'],'failed');self.assertEqual(self.gizmo.orders(),[]);self.assertEqual(self.cloud.rewards,['failed'])
  def test_wrong_duration_is_refused(self):
   self.gizmo.minutes=30;self.build();self.assertEqual(self.api.approve(self.id,True)['promo']['result'],'failed');self.assertEqual(self.gizmo.orders(),[])
+ def test_minutes_inside_time_product_block(self):
+  self.gizmo.products=[{'id':41,'name':'Standart 1 h','price':0,'timeProduct':{'minutes':60}}];self.build()
+  r=self.api.approve(self.id,True);self.assertEqual(r['promo']['result'],'granted')
+ def test_failure_reason_is_shown(self):
+  self.gizmo.products=[{'id':41,'name':'standart 1 h','price':50,'minutes':60}];self.build()
+  r=self.api.approve(self.id,True);self.assertEqual(r['promo']['result'],'failed');self.assertIn('0 ₽',r['promo']['error']);self.assertEqual(self.gizmo.orders(),[])
  def test_note_says_automatic(self):
   self.build();self.api.approve(self.id,True);note=unquote(self.gizmo.notes()[0][1])
   self.assertIn('Автоматически (1SHOT Desk): выдан 1 час STANDART за промокод HEADSHOT',note)
