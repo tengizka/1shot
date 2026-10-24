@@ -45,6 +45,7 @@ jobs:
           node tests/admin-tools-browser.cjs
           node tests/desk-availability-browser.cjs
           node tests/desk-registration-browser.cjs
+          node tests/food-browser.cjs
   build:
     runs-on: windows-latest
     steps:
