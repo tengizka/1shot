@@ -8,6 +8,7 @@ from .engine import Controller,Store
 from .accounts import Accounts
 from .registration_approval import RegistrationApproval
 from .guest_passwords import GuestPasswords
+from .food import Food
 from .polling import PollBudget
 from .sound import Sound
 from .notifications import NotificationGate
@@ -32,6 +33,7 @@ class App:
         self.accounts=Accounts(self.gizmo,self.cloud,self.store,self.controller.guard)
         self.registration=RegistrationApproval(self.cloud,self.gizmo,self.store,self.controller.guard)
         self.guest_passwords=GuestPasswords(self.cloud,self.gizmo,self.store,self.controller.guard)
+        self.food=Food(self.cloud,self.gizmo,self.store,lambda:{r['host_id']:r['gizmo_host_id'] for r in self.host_rows})
         self.password_grants=[];self.password_ready=False
         self.registrations=[];self.registration_ready=False
         self.sound=Sound(HOME,self.store);self.host_rows=[];self.password_requests=[];self.protocol_ready=False;self.maximized=False
@@ -286,7 +288,7 @@ class App:
 
     def snapshot(self):
         with self.lock:
-            return {'rentals':self.rentals.list(),'rental_history':self.rentals.history()[-200:],'rental_items':RENTAL_ITEMS,'password_grants':self.password_grants,'password_ready':self.password_ready and self.online,'registrations':self.registrations,'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':self.error,'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'update':self.updater.snapshot(),'version':VERSION,'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
+            return {'rentals':self.rentals.list(),'rental_history':self.rentals.history()[-200:],'rental_items':RENTAL_ITEMS,'password_grants':self.password_grants,'password_ready':self.password_ready and self.online,'registrations':self.registrations,'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':' · '.join(x for x in (self.error,'Еда: '+self.food.error if self.food.error else '') if x),'food':dict(self.food.status),'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'update':self.updater.snapshot(),'version':VERSION,'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
     def acknowledge(self):
         with self.lock:self.store.set('alerts',{})
         self.sound.stop()
@@ -338,6 +340,12 @@ class App:
                 pass
             delay=budget.interval(self.rows,failed)
             self.stop.wait(max(1,delay-(time.monotonic()-started)))
+    def food_loop(self):
+        # Food orders run beside bookings: a slow menu refresh never delays the booking loop.
+        while not self.stop.wait(8):
+            if not self.online or os.getenv('FOOD_ENABLED','true').lower()!='true':continue
+            try:self.food.tick(self.gizmo.sessions())
+            except Exception as error:self.food.error=str(error)[:160]
     def sync_loop(self):
         while not self.stop.is_set():
             try:self.host_rows=self.bridge.collect_hosts();self.last_sync=time.time();self.sync_error=''
@@ -371,7 +379,7 @@ class App:
             return (s.width,s.height) if s else (1920,1080)
         self.toaster=Toaster(factory,screen,ROOT)
         threading.Thread(target=self.update_loop,daemon=True).start()
-        threading.Thread(target=self.work,daemon=True).start();threading.Thread(target=self.sync_loop,daemon=True).start()
+        threading.Thread(target=self.work,daemon=True).start();threading.Thread(target=self.sync_loop,daemon=True).start();threading.Thread(target=self.food_loop,daemon=True).start()
 
 def main():
     if not getattr(sys,'frozen',False):
