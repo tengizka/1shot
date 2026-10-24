@@ -58,12 +58,10 @@ class PromoReward:
         self._seller=None
 
     def seller(self):
-        """The free hour is sold by its own Gizmo operator (PROMO_GIZMO_LOGIN), never by Desk's main login."""
+        """The Gizmo login that sells the free hour: PROMO_GIZMO_LOGIN when set, otherwise Desk's main login."""
         if self._seller is None:
             login,password=os.getenv('PROMO_GIZMO_LOGIN','').strip(),os.getenv('PROMO_GIZMO_PASSWORD','')
-            if not login or not password or 'YOUR-' in login:raise ValueError('нужна отдельная учётка: PROMO_GIZMO_LOGIN и PROMO_GIZMO_PASSWORD в .env')
-            if login==os.getenv('GIZMO_LOGIN','').strip():raise ValueError('PROMO_GIZMO_LOGIN должен отличаться от GIZMO_LOGIN')
-            self._seller=Gizmo(login,password)
+            self._seller=Gizmo(login,password) if login and password and 'YOUR-' not in login else self.gizmo
         return self._seller
 
     def report(self,id,record):

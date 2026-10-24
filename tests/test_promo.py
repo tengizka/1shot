@@ -54,11 +54,10 @@ class PromoTests(unittest.TestCase):
  def tearDown(self):self.seller.stop();self.env.stop();self.temp.cleanup()
  def test_hour_is_sold_by_its_own_login(self):
   self.build();self.assertEqual(self.api.approve(self.id,True)['promo']['result'],'granted');self.assertEqual(self.made,['promo'])
- def test_no_separate_login_no_order(self):
-  for env in ({'PROMO_GIZMO_LOGIN':''},{'PROMO_GIZMO_LOGIN':'desk'}):
-   with patch.dict(os.environ,env):
-    self.build();r=self.api.approve(self.id,True)
-    self.assertEqual(r['promo']['result'],'failed');self.assertIn('PROMO_GIZMO_LOGIN',r['promo']['error']);self.assertEqual(self.gizmo.orders(),[])
+ def test_without_separate_login_desk_login_sells(self):
+  with patch.dict(os.environ,{'PROMO_GIZMO_LOGIN':''}):
+   self.made.clear();self.build();r=self.api.approve(self.id,True)
+   self.assertEqual(r['promo']['result'],'granted');self.assertEqual(self.made,[]);self.assertEqual(len(self.gizmo.orders()),1)
  def test_grants_once_with_note(self):
   self.build();result=self.api.approve(self.id,True)
   self.assertEqual(result['promo']['result'],'granted');self.assertEqual(self.gizmo.orders(),[('POST','users/7/order/41/invoice/payment/-1')])
