@@ -14,7 +14,7 @@ from desktop.engine import Store
 from desktop.registration_approval import RegistrationApproval
 
 class Gizmo:
- def __init__(self):self.writes=[];self.member=None;self.price=0;self.products=None;self.lines=None;self.order_error=False;self.invoice={'id':900,'total':0,'subTotal':0,'outstanding':0}
+ def __init__(self):self.writes=[];self.member=None;self.price=0;self.minutes=60;self.products=None;self.lines=None;self.order_error=False;self.invoice={'id':900,'total':0,'subTotal':0,'outstanding':0}
  def request(self,method,path,**kwargs):
   if method in ('PUT','POST'):self.writes.append((method,path))
   if path=='usergroups':return [{'id':8,'name':'18+'},{'id':15,'name':'Клиенты'}]
@@ -22,7 +22,7 @@ class Gizmo:
   if path=='users' and method=='GET':return []
   if path=='users' and method=='PUT':self.member={k[0].lower()+k[1:]:v for k,v in kwargs['params'].items()};return 7
   if path.endswith('/valid'):return {'result':0,'identity':{'userId':7}}
-  if path=='products/time':return self.products if self.products is not None else [{'id':41,'name':'standart 1 h','price':self.price},{'id':42,'name':'standart 30 min','price':0}]
+  if path=='products/time':return self.products if self.products is not None else [{'id':41,'name':'standart 1 h','price':self.price,'minutes':self.minutes},{'id':42,'name':'standart 30 min','price':0,'minutes':30}]
   if '/order/' in path:
    if self.order_error:raise RuntimeError('timeout')
    return self.invoice
@@ -58,8 +58,13 @@ class PromoTests(unittest.TestCase):
  def test_paid_product_is_refused(self):
   self.gizmo.price=150;self.build();result=self.api.approve(self.id,True)
   self.assertEqual(result['promo']['result'],'failed');self.assertEqual(self.gizmo.orders(),[]);self.assertEqual(self.cloud.rewards,['failed'])
+ def test_wrong_duration_is_refused(self):
+  self.gizmo.minutes=30;self.build();self.assertEqual(self.api.approve(self.id,True)['promo']['result'],'failed');self.assertEqual(self.gizmo.orders(),[])
+ def test_note_says_automatic(self):
+  self.build();self.api.approve(self.id,True);note=unquote(self.gizmo.notes()[0][1])
+  self.assertIn('Автоматически (1SHOT Desk): выдан 1 час STANDART за промокод HEADSHOT',note)
  def test_ambiguous_product_is_refused(self):
-  self.gizmo.products=[{'id':41,'name':'standart 1 h','price':0},{'id':43,'name':'Standart 1 H ','price':0}];self.build()
+  self.gizmo.products=[{'id':41,'name':'standart 1 h','price':0,'minutes':60},{'id':43,'name':'Standart 1 H ','price':0,'minutes':60}];self.build()
   self.assertEqual(self.api.approve(self.id,True)['promo']['result'],'failed');self.assertEqual(self.gizmo.orders(),[])
  def test_unverified_order_needs_attention(self):
   self.gizmo.lines=[];self.build();result=self.api.approve(self.id,True)

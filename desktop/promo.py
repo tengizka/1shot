@@ -12,6 +12,7 @@ def free_hour_product(gizmo):
     found=[p for p in items if isinstance(p,dict) and not p.get('isDeleted') and str(p.get('name','')).strip().casefold()==PRODUCT] if isinstance(items,list) else []
     if len(found)!=1 or type(found[0].get('id')) is not int:raise ValueError('Нужен ровно один товар standart 1 h')
     if float(found[0].get('price') or 0)!=0:raise ValueError('Товар standart 1 h должен стоить 0 ₽')
+    if found[0].get('minutes')!=60:raise ValueError('Товар standart 1 h должен давать ровно 60 минут')
     return found[0]['id']
 
 
@@ -67,7 +68,8 @@ class PromoReward:
         except Exception:
             record['result']='attention'
         try:
-            text=f'Промокод {code}: час Standart в подарок за регистрацию' if record['result']=='granted' else f'Промокод {code}: проверьте начисление часа Standart'
+            text=(f'Автоматически (1SHOT Desk): выдан 1 час STANDART за промокод {code} при регистрации' if record['result']=='granted'
+                  else f'Автоматически (1SHOT Desk): промокод {code} — начисление часа STANDART не подтверждено, проверьте вручную')
             self.guard();self.gizmo.request('PUT',f'users/{int(uid)}/note/{quote(text,safe="")}/0');record['note']=True
         except Exception:pass
         self.store.set(key,record)
