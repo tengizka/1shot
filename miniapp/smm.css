@@ -658,3 +658,15 @@ body:has(.overlay.open) :is(#session-screen,#my-session-banner,#booking-bar){vis
 #auth .auth-photos img.on{opacity:.5;transform:scale(1)}
 #auth .auth-photos::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,.35) 35%,rgba(0,0,0,.85) 70%,#000 100%)}
 @media(prefers-reduced-motion:reduce){#auth .auth-photos img{transition:none;transform:none}}
+
+/* Session screen: «Пока играешь» fills the middle with what a seated guest needs */
+#session-screen .session-quick{margin:auto 0 0;padding-top:16px}
+#session-screen .session-quick-title{margin:0 0 8px;font:700 10px Unbounded,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#9a9a9a}
+#session-screen .session-quick-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#session-screen .session-quick button{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:92px;padding:14px;background:#000;border:2px solid var(--smm-rule);color:#fff;text-align:left;cursor:pointer;transition:border-color .15s}
+#session-screen .session-quick button:active{border-color:var(--smm-lime)}
+#session-screen .session-quick svg{width:22px;height:22px;margin-bottom:6px;fill:none;stroke:var(--smm-lime);stroke-width:2}
+#session-screen .session-quick b{font:800 12px Unbounded,sans-serif;letter-spacing:.04em;text-transform:uppercase}
+#session-screen .session-quick small{font:500 10px/1.4 Unbounded,sans-serif;color:#9a9a9a}
+#session-screen .session-actions{margin-top:8px!important;padding-top:0!important}
+@media(max-height:700px){#session-screen .session-quick button{min-height:72px;padding:10px}#session-screen .session-quick small{display:none}}
