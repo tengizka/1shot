@@ -46,6 +46,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   assert.doesNotMatch(await food.innerText(),/когда сидишь за ПК/i,'no hint text under the menu');
   assert.equal(await page.evaluate(()=>{const b=document.querySelector('#ov-food .ov-body');return b.scrollWidth<=b.clientWidth}),true,'the market never scrolls sideways');
   assert.equal((await page.locator('#nav-food').textContent()).trim(),'Маркет');
+  assert.equal(await page.evaluate(()=>{const n=document.querySelector('.bottom-nav').getBoundingClientRect(),o=document.querySelector('#ov-food').getBoundingClientRect(),hit=document.elementFromPoint(n.left+n.width/2,n.top+n.height/2);return n.height>0&&Math.abs(o.bottom-n.top)<=1&&!!hit?.closest('.bottom-nav')}),true,'the bottom menu stays visible and the section ends right on top of it');
   await food.locator('.market-tabs button',{hasText:'Пакеты часов'}).click();assert.match(await food.innerText(),/Скоро/i);
   await food.locator('.market-tabs button',{hasText:'Еда'}).click();await page.waitForSelector('#ov-food .food-card');
 

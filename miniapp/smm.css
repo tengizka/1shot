@@ -644,9 +644,9 @@
 /* No scroll indicators anywhere: the app should feel like an app, not a scrolled site */
 *{scrollbar-width:none}
 *::-webkit-scrollbar{display:none;width:0;height:0}
-/* Sections run to the very bottom under the menu, so nothing behind them peeks through */
-.overlay{bottom:0!important;background:#000!important}
-.overlay .ov-body{padding-bottom:calc(90px + var(--safe-bot,0px))!important}
+/* Sections end exactly at the measured top of the bottom menu: no gap to peek through, menu stays visible */
+.overlay{bottom:var(--nav-h,calc(70px + var(--safe-bot,0px)))!important;background:#000!important}
+.overlay .ov-body{padding-bottom:20px!important}
 /* While a section is open the session screen and the hall behind it are not drawn at all (keyboard resizes included) */
 body:has(.overlay.open) :is(#session-screen,#my-session-banner,#booking-bar){visibility:hidden}
 /* «КОМПЬЮТЕРНЫЙ КЛУБ» under the logo: an ordinary word space, not stretched */

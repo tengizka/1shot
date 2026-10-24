@@ -19,7 +19,7 @@
 .food-qty button{height:100%;min-height:38px;background:var(--smm-lime);color:#000;border:0;font:800 20px Unbounded,sans-serif;cursor:pointer}
 .food-qty button:disabled{background:#2a2a2a;color:#777}
 .food-qty b{text-align:center;font:700 18px var(--smm-display);color:#fff}
-.food-bar{position:fixed;left:0;right:0;bottom:calc(70px + var(--safe-bot,0px));z-index:5;display:flex;align-items:center;gap:12px;padding:10px 16px;background:#000;border-top:2px solid var(--smm-rule)}
+.food-bar{position:fixed;left:0;right:0;bottom:var(--nav-h,calc(70px + var(--safe-bot,0px)));z-index:5;display:flex;align-items:center;gap:12px;padding:10px 16px;background:#000;border-top:2px solid var(--smm-rule)}
 .food-bar .btn-main{flex:1;margin:0;font-size:12px}
 .food-bar-count{font:700 20px var(--smm-display);color:#fff;white-space:nowrap}
 .food-order{display:flex;flex-direction:column;gap:12px;padding:16px;border:2px solid var(--smm-lime)}

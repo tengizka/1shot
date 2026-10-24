@@ -8,3 +8,9 @@
   e.preventDefault();t.blur();
  },true);
 })();
+/* The bottom menu's real height (it differs between phones): sections end exactly on top of it. */
+(()=>{
+ const nav=document.querySelector('.bottom-nav');if(!nav)return;
+ const set=()=>{const h=nav.offsetHeight;if(h)document.documentElement.style.setProperty('--nav-h',h+'px')};
+ set();if(window.ResizeObserver)new ResizeObserver(set).observe(nav);addEventListener('resize',set);
+})();
