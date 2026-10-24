@@ -14,6 +14,7 @@ from .polling import PollBudget
 from .sound import Sound
 from .notifications import NotificationGate
 from .rentals import Rentals,ITEMS as RENTAL_ITEMS
+from .test_accounts import TestAccounts
 from .services import ApiError,Cloud,Gizmo,LegacyBridge
 from .toast import Toaster,describe
 from .updater import Updater
@@ -42,6 +43,7 @@ class App:
         self.online=False;self.error='Подключение…';self.sync_error='';self.last_sync=0
         self.notifications=NotificationGate(self.store)
         self.rentals=Rentals(self.store)
+        self.tests=TestAccounts(self.cloud,self.gizmo)
         self.rows=[];self.alerts={};self.notified_cursor=0;self.muted_until=0;self.window=None;self.tray=None;self.exiting=False
         self.toaster=None;self.updater=Updater(HOME,VERSION)
     def alarm(self,kind=None):self.sound.play(kind)
@@ -93,6 +95,13 @@ class App:
                 self.host_rows=self.bridge.collect_hosts();self.last_sync=time.time()
             return {'ok':True}
         except Exception as error:return {'error':str(error)[:160] or 'Gizmo не подтвердил блокировку'}
+    def test_accounts(self):
+        try:return {'ok':True,'accounts':self.tests.list()}
+        except Exception as error:return {'error':str(error)[:160] or 'Не удалось получить список'}
+    def delete_test_account(self,uid):
+        try:
+            with self.operations:return self.tests.delete(uid)
+        except Exception as error:return {'error':str(error)[:160] or 'Не удалось удалить аккаунт'}
     def _locked(self,fn):
         # Food reads and adds rentals under the same lock as the Desk buttons.
         with self.lock:return fn()

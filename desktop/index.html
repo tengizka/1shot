@@ -73,7 +73,7 @@
 </section>
 
 <section id="panel-sound" hidden>
- <div class="page-head"><h2>Настройки</h2><div class="settings-tabs" role="tablist"><button type="button" role="tab" data-settings="sound" aria-selected="true">Звук</button><button type="button" role="tab" data-settings="update" aria-selected="false">Обновление</button></div></div>
+ <div class="page-head"><h2>Настройки</h2><div class="settings-tabs" role="tablist"><button type="button" role="tab" data-settings="sound" aria-selected="true">Звук</button><button type="button" role="tab" data-settings="update" aria-selected="false">Обновление</button><button type="button" role="tab" data-settings="tests" aria-selected="false">Тесты</button></div></div>
  <div class="settings-pane" data-settings="sound">
   <section class="surface sound-settings">
    <div class="sound-top"><label class="switch"><input type="checkbox" id="sound-enabled" checked><i aria-hidden="true"></i><span>Звук уведомлений</span></label>
@@ -91,7 +91,16 @@
    <div class="actions"><button type="button" id="update-check">Проверить обновления</button><button type="button" id="update-run" hidden>Обновить</button></div>
   </section>
  </div>
+ <div class="settings-pane" data-settings="tests" hidden>
+  <section class="surface test-box" id="test-box">
+   <h3>Тестовые аккаунты</h3>
+   <p class="note">Аккаунты, созданные из мини-аппа с Telegram тестеров. Удаление стирает аккаунт в Gizmo и все его следы на сервере, в статистику они не попадают.</p>
+   <div id="test-list" class="test-list"></div>
+   <p id="test-message" class="note" role="status"></p>
+   <div class="actions"><button type="button" id="test-refresh">Обновить список</button></div>
+  </section>
+ </div>
 </section>
 </main>
 
-<script src="brand.js"></script><script src="assets/hall-map.js"></script><script src="assets/arrival-time.js"></script><script src="assets/oneshot-loader.js"></script><script src="desk.js"></script><script src="admin-tools.js"></script><script src="desk-menu.js"></script><script src="rentals.js"></script><script src="registrations.js"></script><script src="desk-registration.js"></script><script src="guest-passwords.js"></script><script src="desk-shell.js"></script></body></html>
+<script src="brand.js"></script><script src="assets/hall-map.js"></script><script src="assets/arrival-time.js"></script><script src="assets/oneshot-loader.js"></script><script src="test-accounts.js" defer></script><script src="desk.js"></script><script src="admin-tools.js"></script><script src="desk-menu.js"></script><script src="rentals.js"></script><script src="registrations.js"></script><script src="desk-registration.js"></script><script src="guest-passwords.js"></script><script src="desk-shell.js"></script></body></html>

@@ -408,3 +408,8 @@ nav .exit span{white-space:normal}
 .booking-lock svg{width:9px;height:9px;fill:none;stroke:var(--lime);stroke-width:2.6}
 .desk-ps5 .booking-lock{right:4px;top:4px}
 [data-who]:hover::after{content:"Бронь · " attr(data-who);position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);z-index:20;white-space:nowrap;padding:6px 8px;background:#000;border:1.5px solid var(--lime);color:#fff;font:600 10px/1.2 var(--body,sans-serif);letter-spacing:0;text-transform:none;pointer-events:none}
+/* Settings → Тесты */
+.test-list{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+.test-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border:2px solid var(--rule)}
+.test-row b{display:block;font-size:12px}.test-row small{display:block;margin-top:3px;font-size:10px;color:var(--muted)}
+.test-row .danger{border-color:var(--pink);color:var(--pink);background:transparent}
