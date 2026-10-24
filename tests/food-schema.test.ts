@@ -6,7 +6,7 @@ Deno.test('food: menu from Desk, order only while seated, prices from the menu, 
  await db.exec(`create role anon;create role authenticated;create role service_role;
  create table profiles(telegram_id bigint primary key,gizmo_user_id integer,username text,first_name text,last_name text);
  create table club_worker(worker_id uuid primary key,lease_until timestamptz);`);
- await db.exec(await Deno.readTextFile('supabase/migrations/202610240023_food_orders.sql'));
+ await db.exec(await Deno.readTextFile('supabase/migrations/202610240023_food_orders.sql'));await db.exec(await Deno.readTextFile('supabase/migrations/202610240024_food_seats_where.sql'));
  const worker=crypto.randomUUID();await db.query("insert into club_worker values($1,now()+interval '1 minute')",[worker]);
  await db.exec("insert into profiles values(1,77,'neo','Нео','А'),(2,null,'new','Н','Б')");
  type Row=Record<string,unknown>;
