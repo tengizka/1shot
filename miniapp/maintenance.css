@@ -1,0 +1,6 @@
+/* The strip takes its height from --safe-top, so every header moves down with it. */
+body.maintenance{--safe-top:calc(env(safe-area-inset-top,0px) + 34px)}
+#maintenance-bar{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;z-index:10000;height:34px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 12px;background:var(--smm-amber,#FFB10B);color:#000;font:800 10px/1.2 Unbounded,sans-serif;letter-spacing:.06em;text-transform:uppercase;text-align:center;pointer-events:none}
+#maintenance-bar .mt-dot{flex:none;width:7px;height:7px;background:#000;animation:mt-blink 1.2s steps(2) infinite}
+@keyframes mt-blink{50%{opacity:0}}
+@media(prefers-reduced-motion:reduce){#maintenance-bar .mt-dot{animation:none}}
