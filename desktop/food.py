@@ -105,7 +105,7 @@ class Food:
             group=groups.get(p.get('productGroupId'))
             price=p.get('price')
             if not group or type(p.get('id')) is not int or p.get('isDeleted') or p.get('productType')==TIME_PRODUCT:continue
-            if p.get('disallowClientOrder') or p.get('restrictSale') or not isinstance(price,(int,float)) or isinstance(price,bool) or price<=0:continue
+            if p.get('disallowClientOrder') or p.get('restrictSale') or p.get('isService') or not isinstance(price,(int,float)) or isinstance(price,bool) or price<=0:continue
             if str(group.get('name','')).strip().casefold() in self.hidden or not str(p.get('name') or '').strip():continue
             if stock is not None and p.get('enableStock') and p.get('disallowSaleIfOutOfStock') and not (stock.get(p['id']) or 0)>0:continue
             items.append({'id':p['id'],'group':str(group.get('name') or 'Меню').strip()[:45],'group_order':int(group.get('displayOrder') or 0),'name':str(p['name']).strip()[:60],'price':round(float(price),2),'sort':int(p.get('displayOrder') or 0)})

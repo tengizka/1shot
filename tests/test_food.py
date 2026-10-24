@@ -22,7 +22,8 @@ class Gizmo:
             {'id':12,'productType':2,'productGroupId':1,'name':'standart 1 h','price':0},
             {'id':13,'productType':0,'productGroupId':1,'name':'Секрет','price':50,'disallowClientOrder':True},
             {'id':14,'productType':0,'productGroupId':1,'name':'Кончился','price':90,'enableStock':True,'disallowSaleIfOutOfStock':True},
-            {'id':15,'productType':0,'productGroupId':3,'name':'Мышь','price':900}]
+            {'id':15,'productType':0,'productGroupId':3,'name':'Мышь','price':900},
+            {'id':16,'productType':0,'productGroupId':1,'name':'Подогрев','price':30,'isService':True}]
     def request(self,method,path,**kw):
         self.calls.append((method,path,kw))
         if method!='GET':self.writes.append((method,path,kw.get('json')))
