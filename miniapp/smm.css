@@ -670,3 +670,6 @@ body:has(.overlay.open) :is(#session-screen,#my-session-banner,#booking-bar){vis
 #session-screen .session-quick small{font:500 10px/1.4 Unbounded,sans-serif;color:#9a9a9a}
 #session-screen .session-actions{margin-top:8px!important;padding-top:0!important}
 @media(max-height:700px){#session-screen .session-quick button{min-height:72px;padding:10px}#session-screen .session-quick small{display:none}}
+/* Club photos only on the welcome screen («Привет. Ты с нами?»); forms and the application wait stay dark */
+#auth>.auth-photos{transition:opacity .4s ease}
+#auth:has(#auth-choice[hidden])>.auth-photos{opacity:0}
