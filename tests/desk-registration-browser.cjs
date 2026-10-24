@@ -26,10 +26,11 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   await page.locator('#registration-search').fill('олег');assert.deepEqual(await titles(),['oldguest']);
   await page.locator('#registration-search').fill('');await page.selectOption('#registration-sort','old');assert.deepEqual(await titles(),['oldguest','newguest']);
 
+  assert.equal(await page.locator('#desk-reg [name=username]').count(),0,'no nickname field');
   // Reception registration: everything filled, sex and promo picked by buttons, identity confirmed.
   await page.locator('#desk-reg-open').click();const submit=page.locator('#desk-reg-submit');
   await page.waitForSelector('#desk-reg [data-group="code"] button');assert.equal(await submit.isDisabled(),true);
-  for(const [n,v] of [['username','neo'],['password','x'],['first_name','Нео'],['last_name','Андерсон'],['mobile_phone','8 999 123 45 67']])await page.locator(`#desk-reg [name=${n}]`).fill(v);
+  for(const [n,v] of [['password','x'],['first_name','Нео'],['last_name','Андерсон'],['mobile_phone','8 999 123 45 67']])await page.locator(`#desk-reg [name=${n}]`).fill(v);
   await page.locator('#desk-reg [name=birth_date]').fill('2000-01-01');
   await page.locator('#desk-reg [data-group="sex"] button[data-value="1"]').click();
   await page.locator('#desk-reg [name=checked]').check();assert.equal(await submit.isDisabled(),true,'promo choice is required, even "without"');
@@ -37,13 +38,13 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   await submit.click();await page.waitForFunction(()=>calls.length===1);
   const [id,data,code,confirmed]=await page.evaluate(()=>calls[0]);
   assert.match(id,/^[0-9a-f-]{36}$/);assert.equal(code,'HEADSHOT');assert.equal(confirmed,true);
-  assert.deepEqual(data,{username:'neo',password:'x',first_name:'Нео',last_name:'Андерсон',mobile_phone:'8 999 123 45 67',birth_date:'2000-01-01',sex:1});
-  assert.match(await page.locator('#desk-reg-message').innerText(),/Готово: neo · ID 77\. Час STANDART начислен \(HEADSHOT\)/);
+  assert.deepEqual(data,{password:'x',first_name:'Нео',last_name:'Андерсон',mobile_phone:'8 999 123 45 67',birth_date:'2000-01-01',sex:1});
+  assert.match(await page.locator('#desk-reg-message').innerText(),/Ник для входа: neo · ID 77\. Час STANDART начислен \(HEADSHOT\)/);
   assert.equal(await page.locator('#desk-reg [name=password]').inputValue(),'');
 
   // A duplicate keeps the form and starts a fresh attempt id; "without promo" sends no code.
   await page.evaluate(()=>{reply={ok:false,status:'rejected'}});
-  for(const [n,v] of [['username','neo'],['password','y'],['first_name','Нео'],['last_name','Андерсон'],['mobile_phone','+79991234567']])await page.locator(`#desk-reg [name=${n}]`).fill(v);
+  for(const [n,v] of [['password','y'],['first_name','Нео'],['last_name','Андерсон'],['mobile_phone','+79991234567']])await page.locator(`#desk-reg [name=${n}]`).fill(v);
   await page.locator('#desk-reg [name=birth_date]').fill('2000-01-01');await page.locator('#desk-reg [data-group="sex"] button[data-value="1"]').click();
   await page.locator('#desk-reg [data-group="code"] button[data-value=""]').click();await page.locator('#desk-reg [name=checked]').check();await submit.click();
   await page.waitForFunction(()=>calls.length===2);assert.equal(await page.evaluate(()=>calls[1][2]),null);

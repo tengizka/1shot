@@ -78,6 +78,15 @@ class DeskRegistrationTests(unittest.TestCase):
   self.assertIn('error',self.api.register_at_desk(self.id,dict(GUEST,mobile_phone='12'),None,True))
   self.assertIn('error',self.api.register_at_desk(self.id,GUEST,'vk; drop',True))
   self.assertEqual(self.gizmo.writes,[])
+ def test_nickname_is_picked_when_empty(self):
+  taken={'ivan4567'}
+  real=self.gizmo.request
+  def exist(method,path,**kw):
+   if path.startswith('users/loginname/'):return unquote(path.split('/')[2]) in taken
+   return real(method,path,**kw)
+  self.gizmo.request=exist
+  r=self.api.register_at_desk(self.id,dict(GUEST,username='',first_name='Иван'),None,True)
+  self.assertTrue(r['ok']);self.assertEqual(r['username'],'ivan234567');self.assertEqual(self.gizmo.creates()[0][2]['Username'],'ivan234567')
  def test_promo_codes_for_buttons(self):
   self.assertEqual([c['code'] for c in self.api.promo_codes()],['HEADSHOT','GG'])
 if __name__=='__main__':unittest.main()

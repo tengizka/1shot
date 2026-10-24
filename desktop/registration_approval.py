@@ -40,6 +40,19 @@ def create_gizmo_account(gizmo,guard,req,remember):
     return 'done',uid
 
 
+_LATIN=dict(zip('абвгдеёжзийклмнопрстуфхцчшщъыьэюя',['a','b','v','g','d','e','e','zh','z','i','y','k','l','m','n','o','p','r','s','t','u','f','h','ts','ch','sh','sch','','y','','e','yu','ya']))
+
+
+def free_username(gizmo,first_name,phone):
+    """Reception guests do not pick a nickname: name in Latin + the phone's last digits, the first one Gizmo has free."""
+    base=re.sub(r'[^a-z0-9]','',''.join(_LATIN.get(c,c) for c in str(first_name).strip().lower()))[:16] or 'guest'
+    digits=re.sub(r'\D','',str(phone))
+    for tail in (digits[-4:],digits[-6:],digits[-8:])+tuple(digits[-4:]+str(n) for n in range(2,10)):
+        name=(base+tail)[:30]
+        if len(name)>=3 and gizmo.request('GET',f'users/loginname/{quote(name,safe="")}/exist') is False:return name
+    raise ApiError('Не удалось подобрать свободный ник')
+
+
 class RegistrationApproval:
     def __init__(self,cloud,gizmo,store,guard):
         self.cloud,self.gizmo,self.store,self.guard=cloud,gizmo,store,guard
@@ -120,7 +133,11 @@ class RegistrationApproval:
             if not isinstance(data,dict):return {'error':'Заполните анкету'}
             digits=re.sub(r'\D','',str(data.get('mobile_phone','')))
             phone='+7'+digits[1:] if len(digits)==11 and digits[0] in '78' else ('+7'+digits if len(digits)==10 else str(data.get('mobile_phone','')).strip())
-            req={'username':str(data.get('username','')).strip(),'password':data.get('password'),'first_name':str(data.get('first_name','')),'last_name':str(data.get('last_name','')),
+            username=str(data.get('username','')).strip()
+            if not username:
+                try:username=free_username(self.gizmo,data.get('first_name',''),phone)
+                except Exception as error:return {'error':str(error) if isinstance(error,ApiError) else 'Не удалось подобрать ник. Проверьте связь'}
+            req={'username':username,'password':data.get('password'),'first_name':str(data.get('first_name','')),'last_name':str(data.get('last_name','')),
                  'mobile_phone':phone,'birth_date':str(data.get('birth_date','')),'sex':data.get('sex')}
             try:registration_params(req,self.gizmo)
             except Exception as error:return {'error':str(error) if isinstance(error,ApiError) else 'Проверьте поля анкеты'}

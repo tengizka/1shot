@@ -386,8 +386,8 @@ nav .exit span{white-space:normal}
 #desk-reg-open{width:auto;align-self:flex-start;padding:0 18px;margin:0 0 12px;background:var(--lime);border-color:var(--lime);color:#000}
 .desk-reg{display:flex;flex-direction:column;gap:12px;margin:0 0 16px;padding:16px;border:2px solid var(--lime);background:#050505}
 .desk-reg-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.desk-reg-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
-.desk-reg-label{min-width:110px;color:var(--muted);font-size:9px;letter-spacing:.12em;text-transform:uppercase}
+.desk-reg-row{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.desk-reg-label{color:var(--muted);font-size:9px;letter-spacing:.12em;text-transform:uppercase}
 .desk-reg .chips{display:flex;flex-wrap:wrap;gap:6px}
 .desk-reg .chips button{min-height:32px;font-size:9.5px;text-transform:none;letter-spacing:.02em}
 .desk-reg .chips button[aria-pressed=true]{background:var(--lime);border-color:var(--lime);color:#000}
