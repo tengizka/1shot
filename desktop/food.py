@@ -4,10 +4,12 @@ Nothing is created or changed in Gizmo except that call itself: the menu and pic
 the admin accepts the call and rings the order up in Gizmo as usual. The guest sees sent → accepted → closed;
 a rejected call is shown as closed too, never as cancelled."""
 import base64
+import difflib
 import hashlib
 import io
 import json
 import os
+import re
 import time
 from datetime import datetime,timedelta,timezone
 from .services import ApiError
@@ -27,6 +29,41 @@ def plain(name):
 def norm(name):
     """Same goods under slightly different names: case, quotes, spaces and a trailing dot do not matter."""
     return ' '.join(plain(name).casefold().replace('ё','е').split()).rstrip('.').strip()
+
+def key(name):
+    """Name for matching copies: case, quotes, «л», commas vs dots and punctuation do not matter."""
+    text=norm(name).replace(',','.')
+    text=re.sub(r'(?<=\d)\s*л\b\.?|\bл\b\.?','',text)
+    return ' '.join(re.sub(r'[^0-9a-zа-я.]+',' ',text).replace(' .',' ').split()).strip('. ')
+
+def volume(name):
+    return set(re.findall(r'\d+\.\d+|\d+',key(name)))
+
+def till_card(p):
+    """Cards the till sells carry a barcode or a stock count; the client shop copies have neither."""
+    return bool(p.get('enableStock') or str(p.get('barcode') or '').strip())
+
+def pair_cards(cards):
+    """Groups of the same goods: exact matches first, then each shop card joins its most similar till card."""
+    groups={}
+    for c in cards:groups.setdefault((c[1].get('id'),key(c[0].get('name'))),[]).append(c)
+    lonely_shop=[g for g in groups.values() if not any(till_card(c[0]) for c in g)]
+    lonely_till=[g for g in groups.values() if not any(not till_card(c[0]) for c in g)]
+    pairs=[]
+    for g in lonely_shop:
+        name=key(g[0][0].get('name'));best,score=None,0.0
+        for t in lonely_till:
+            if t[0][1].get('id')!=g[0][1].get('id'):continue
+            other=key(t[0][0].get('name'))
+            if volume(name)!=volume(other):continue
+            ratio=difflib.SequenceMatcher(None,name,other).ratio()
+            if ratio>score:best,score=t,ratio
+        if best is not None and score>=0.8:pairs.append((score,g,best))
+    taken=set()
+    for score,g,t in sorted(pairs,key=lambda x:-x[0]):
+        if id(t) in taken or id(g) in taken:continue
+        taken.update((id(t),id(g)));g.extend(t);t.clear()
+    return [g for g in groups.values() if g]
 
 def tag(order_id):return '#'+str(order_id).replace('-','')[:6].upper()
 
@@ -115,22 +152,26 @@ class Food:
         # Only goods sold in the last FOOD_SOLD_DAYS (default 60): old duplicates with stale stock drop out.
         try:sold_ids,sold_names=self.sold()
         except Exception:sold_ids,sold_names=set(),set()
-        # The till sells the old cards (barcode, stock); the client shop shows newer copies of the same goods.
-        # Copies are grouped by name: the newest card is shown, sales and stock count for the whole group.
-        same={}
+        # The till sells the old cards (barcode, stock); the client shop shows newer copies of the same goods,
+        # often typed a little differently. Each shop card is paired with the most similar till card of its group:
+        # the shop card is shown, sales and stock come from the till card.
+        cards=[]
         for p in self.paged('v2.0/products',{'IsDeleted':'false'}):
             group=groups.get(p.get('productGroupId'))
             price=p.get('price')
             if not group or type(p.get('id')) is not int or p.get('isDeleted') or p.get('productType')==TIME_PRODUCT or p.get('timeProduct'):continue
             if p.get('disallowClientOrder') or p.get('restrictSale') or p.get('isService') or not isinstance(price,(int,float)) or isinstance(price,bool) or price<=0:continue
             if str(group.get('name','')).strip().casefold() in self.hidden or not plain(p.get('name')):continue
-            same.setdefault(norm(p.get('name')),[]).append((p,group))
-        sold_norm={norm(n) for n in sold_names}
+            cards.append((p,group))
+        sold_keys={key(n) for n in sold_names}
         items=[]
-        for copies in same.values():
-            p,group=max(copies,key=lambda c:c[0]['id'])
+        for copies in pair_cards(cards):
+            shop=[c for c in copies if not till_card(c[0])]
+            p,group=max(shop or copies,key=lambda c:c[0]['id'])
             rental=str(group.get('name','')).strip().casefold()==RENTAL_GROUP
-            if not rental and (sold_ids or sold_names) and not any(c[0]['id'] in sold_ids for c in copies) and norm(p.get('name')) not in sold_norm:continue
+            till=[c[0] for c in copies if till_card(c[0])]
+            # Sales only decide for goods sold at the till; a shop card on its own is what the club chose to show.
+            if not rental and till and (sold_ids or sold_names) and not any(t['id'] in sold_ids or key(t.get('name')) in sold_keys for t in till):continue
             # Rental items come back after use: their stock count says nothing, they are always offered.
             tracked=[] if rental else [c[0] for c in copies if c[0].get('enableStock')]
             if tracked and not any(self.in_stock(t['id'],stock) for t in tracked):continue

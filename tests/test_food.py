@@ -182,6 +182,7 @@ class FoodTests(unittest.TestCase):
         self.food.tick([]);self.assertIn('Кончился',[m['name'] for m in self.cloud.calls[0]['menu']])
 
     def test_only_goods_sold_in_two_months(self):
+        for p in self.gizmo.products:p['barcode']='46%05d'%p['id']  # till cards
         now=datetime.now(timezone.utc)
         # The shape Gizmo returns at the club: date without zone, lines with productName and product null.
         day=lambda d:(now-timedelta(days=d)).replace(tzinfo=None).isoformat()
@@ -230,6 +231,27 @@ class FoodTests(unittest.TestCase):
         hqd=[m for m in menu if 'hqd' in m['name'].casefold()]
         self.assertEqual([(m['id'],m['name']) for m in hqd],[(41,'HQD Sparky Boom 0.45 л.')],'one card: the newest, without quotes')
         self.assertFalse(any('lit' in m['name'].casefold() for m in menu),'old card out of stock hides the pair')
+
+    def test_shop_card_paired_despite_typos_and_shown_without_sales(self):
+        now=datetime.now(timezone.utc);day=lambda d:(now-timedelta(days=d)).replace(tzinfo=None).isoformat()
+        self.gizmo.products+=[{'id':50,'productType':0,'productGroupId':1,'name':'HQD ENERGY SOUR SKITTLES 0.45 л.','price':179,'barcode':'4601','enableStock':True},
+                              {'id':51,'productType':0,'productGroupId':1,'name':'"HQD Eenergy Sour Skitlez 0.45 л"','price':179},
+                              {'id':52,'productType':0,'productGroupId':1,'name':'Red Bull 0,473 л','price':229,'barcode':'4602','enableStock':True},
+                              {'id':53,'productType':0,'productGroupId':1,'name':'Red Bull 0.473','price':229},
+                              {'id':54,'productType':0,'productGroupId':1,'name':'HQD Blago White Cherry 0.45','price':179},
+                              {'id':55,'productType':0,'productGroupId':1,'name':'LIT ENERGY 0.25 л','price':129,'barcode':'4603'}]
+        self.gizmo.on_hand={50:5,52:3}
+        real=self.gizmo.request
+        def no_list(method,path,**kw):
+            if path=='v2.0/productsstock':raise ApiError('Gizmo: HTTP 500')
+            return real(method,path,**kw)
+        self.gizmo.request=no_list
+        self.gizmo.invoices=[{'id':1,'date':day(1),'invoiceLines':[{'productName':'HQD ENERGY SOUR SKITTLES 0.45 л.'},{'productName':'Red Bull 0,473 л'}]}]
+        self.food.tick([]);names={m['id']:m['name'] for m in self.cloud.calls[0]['menu']}
+        self.assertIn(51,names);self.assertNotIn(50,names,'shop card shown instead of the till card despite the typo')
+        self.assertIn(53,names);self.assertNotIn(52,names,'0.473 and 0,473 л are the same drink')
+        self.assertIn(54,names,'a shop card on its own is shown even without sales')
+        self.assertNotIn(55,names,'a till card nobody bought in two months stays hidden')
 
     def test_tax_report_is_read_only(self):
         self.gizmo.products[0]['productTaxes']=[{'taxId':1,'isEnabled':True}]
