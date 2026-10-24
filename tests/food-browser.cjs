@@ -55,10 +55,11 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   assert.match(await bar.innerText(),/1\s?065 ₽/);
   if(process.env.SHOTS)await page.screenshot({path:process.env.SHOTS+'/food-cart.png'});
 
-  // Checkout: payment is required, a refusal keeps the cart and makes a fresh attempt id.
-  await bar.click();await page.waitForSelector('#ov-food .food-pay');
-  const send=food.getByRole('button',{name:/Выбери способ оплаты|Отправить на ресепшен/});assert.equal(await send.isDisabled(),true);
-  await food.locator('.food-pay button',{hasText:'Картой'}).click();assert.equal(await send.isDisabled(),false);
+  // Checkout: deposit only, no fine print; a refusal keeps the cart and makes a fresh attempt id.
+  await bar.click();await page.waitForSelector('#ov-food .food-pay-one');
+  const send=food.getByRole('button',{name:'Отправить на ресепшен'});assert.equal(await send.isDisabled(),false,'deposit is the only payment, nothing to pick');
+  assert.equal(await food.locator('.food-pay button').count(),0);assert.match(await food.locator('.food-pay-one').innerText(),/депозит/i);
+  assert.doesNotMatch(await food.innerText(),/не списывает|администратор/i,'no fine print under the cart');
   if(process.env.SHOTS)await page.screenshot({path:process.env.SHOTS+'/food-checkout.png'});
   server.fail='Прошлый заказ ещё у администратора. Дождитесь ответа';await send.click();
   await page.waitForFunction(()=>document.querySelector('#toasts .toast.err'));assert.match(await page.locator('#toasts').innerText(),/Прошлый заказ/);
@@ -66,7 +67,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   server.fail=null;await food.getByRole('button',{name:'Отправить на ресепшен'}).click();
   await page.waitForSelector('#ov-food .food-order');
   const orders=calls.filter(c=>c.action==='food_order');assert.equal(orders.length,2);assert.notEqual(orders[1].request_id,first.request_id);
-  assert.deepEqual(orders[1].items,[{id:10,qty:5},{id:11,qty:1}]);assert.equal(orders[1].payment,'card');assert.equal(orders[1].price,undefined,'the client never sends prices');
+  assert.deepEqual(orders[1].items,[{id:10,qty:5},{id:11,qty:1}]);assert.equal(orders[1].payment,'deposit');assert.equal(orders[1].price,undefined,'the client never sends prices');
   assert.match(await food.locator('.food-order').innerText(),/Отправлен/i);assert.equal(await food.locator('.food-bar').count(),0,'cart is empty after sending');
 
   // Accepted, then closed; a rejected call would also read "Закрыт", never "отменён".
@@ -78,6 +79,6 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   assert.equal(calls.filter(c=>c.action==='food_state'&&c.menu).length,2,'the menu with pictures loads only when missing (empty, then real)');
   await page.screenshot({path:process.env.SHOT||'/tmp/food.png'});
   assert.deepEqual(errors,[]);
-  console.log('Food PASS: menu by groups, safe pictures, seat required, max 5, payment required, refusal retried with a new id, statuses without "cancelled".');
+  console.log('Food PASS: menu by groups, safe pictures, seat required, max 5, deposit only, refusal retried with a new id, statuses without "cancelled".');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});

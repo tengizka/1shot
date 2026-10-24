@@ -40,14 +40,9 @@
 .food-sum{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;text-transform:uppercase;letter-spacing:.1em}
 .food-sum b{font:700 30px var(--smm-display)}
 .food-label{margin:6px 0 0;font:800 11px Unbounded,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#9a9a9a}
-.food-pay{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0}
-.food-pay button{display:flex;flex-direction:column;gap:4px;align-items:flex-start;min-height:64px;padding:10px;background:#000;border:2px solid var(--smm-rule);color:#fff;text-align:left;cursor:pointer}
-.food-pay button+button{border-left:0}
-.food-pay b{font:800 11px Unbounded,sans-serif;letter-spacing:.04em;text-transform:uppercase}
-.food-pay small{font-size:9px;line-height:1.3;color:#9a9a9a}
-.food-pay button[aria-pressed="true"]{background:var(--smm-lime);border-color:var(--smm-lime);color:#000}
-.food-pay button[aria-pressed="true"] small{color:#000}
-@media(max-width:360px){.food-line{grid-template-columns:minmax(0,1fr) 120px}.food-line>b{grid-column:1/-1;text-align:left}.food-pay{grid-template-columns:1fr}.food-pay button+button{border-left:2px solid var(--smm-rule);border-top:0}}
+.food-pay-one{display:flex;justify-content:space-between;align-items:center;padding:14px 12px;border:2px solid var(--smm-rule);font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:#9a9a9a}
+.food-pay-one b{font:800 12px Unbounded,sans-serif;letter-spacing:.04em;color:var(--smm-lime)}
+@media(max-width:360px){.food-line{grid-template-columns:minmax(0,1fr) 120px}.food-line>b{grid-column:1/-1;text-align:left}}
 .food-soon-title{font-size:clamp(40px,13vw,56px);white-space:pre-line}
 
 /* Маркет: sections on top, no sideways swipe, loading cup in the middle. */

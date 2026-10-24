@@ -3,9 +3,10 @@
 (()=>{
  const body=document.querySelector('#ov-food .ov-body');if(!body)return;
  const PAY=[['card','Картой','при получении'],['cash','Наличными','при получении'],['deposit','С депозита','спишет администратор']];
+ // Only deposit for now: the order lands in Gizmo, the admin rings it up there as usual.
  const STEPS=[['sent','Отправлен'],['accepted','Принят'],['closed','Закрыт']];
  const TITLES={new:'Отправлен',sent:'Отправлен',accepted:'Принят, несём',closed:'Закрыт'};
- const state={section:'food',menu:null,version:null,seat:null,account:true,desk:true,orders:[],cart:new Map(),group:null,payment:null,view:'menu',busy:false,request:null,error:''};
+ const state={section:'food',menu:null,version:null,seat:null,account:true,desk:true,orders:[],cart:new Map(),group:null,payment:'deposit',view:'menu',busy:false,request:null,error:''};
  let timer=null,open=false,loading=false,shown='';
  const rub=n=>Number(n).toLocaleString('ru-RU',{maximumFractionDigits:2})+' ₽';
  const el=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e};
@@ -115,13 +116,10 @@
   const list=el('div','food-lines');
   for(const [id,q] of state.cart){const m=item(id);if(!m)continue;const row=el('div','food-line');row.append(el('span','',m.name),stepper(id,q),el('b','',rub(m.price*q)));list.append(row)}
   frag.append(list,el('div','food-sum'));frag.lastChild.append(el('span','','Итого'),el('b','',rub(total())));
-  frag.append(el('p','food-label','Как оплатишь'));
-  const pays=el('div','food-pay');
-  for(const [key,label,hint] of PAY){const b=el('button','');b.type='button';b.setAttribute('aria-pressed',String(state.payment===key));b.append(el('b','',label),el('small','',hint));b.onclick=()=>{state.payment=key;tap('select');render()};pays.append(b)}
-  frag.append(pays);
-  const why=blocker()||(!state.payment?'Выбери способ оплаты':'')||(!count()?'Корзина пустая':'');
+  const pay=el('div','food-pay-one');pay.append(el('span','','Оплата'),el('b','','С депозита'));frag.append(pay);
+  const why=blocker()||(!count()?'Корзина пустая':'');
   const send=el('button','btn-main',state.busy?'Отправляем…':why||'Отправить на ресепшен');send.type='button';send.disabled=!!why||state.busy;send.onclick=submit;
-  frag.append(send,el('p','smm-note','Приложение не списывает деньги. Администратор примет заказ и рассчитает тебя как обычно.'));
+  frag.append(send);
   return frag;
  }
 
@@ -131,7 +129,7 @@
    const items=[...state.cart].map(([id,qty])=>({id,qty}));
    const r=await call('food_order',{request_id:state.request,items,payment:state.payment});
    state.orders=[r.order,...state.orders.filter(o=>o.id!==r.order.id)];
-   state.cart.clear();state.request=null;state.payment=null;state.view='menu';tap('ok');toast('Заказ отправлен на ресепшен','ok');
+   state.cart.clear();state.request=null;state.view='menu';tap('ok');toast('Заказ отправлен на ресепшен','ok');
   }catch(e){
    const text=String(e.message||'Не получилось отправить').replace(/^HTTP \d+: /,'');
    // A refused order is not created: a new attempt gets a new id; a lost answer keeps it so a retry is not a second order.
