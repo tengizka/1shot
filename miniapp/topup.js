@@ -1,5 +1,5 @@
 /* 1SHOT top-up: the balance chip sits on top of every section, a tap on it (or «Пополнить» in the profile) opens the top-up sheet.
- * Payment goes through a Telegram invoice that the server creates (club-bookings action «topup»). */
+ * Payment: Desk asks Gizmo for a deposit payment intent, the guest pays on the T-Bank page, Gizmo credits the deposit. */
 (()=>{
  const tg=window.Telegram?.WebApp;
  const AMOUNTS=[500,700,1000,2000,3000];
@@ -31,7 +31,6 @@
   dialog.querySelector('.topup-chips').addEventListener('click',e=>{const b=e.target.closest('[data-sum]');if(!b)return;amount=+b.dataset.sum;input.value=amount.toLocaleString('ru-RU');paint()});
   dialog.querySelector('.topup-close').addEventListener('click',close);
   dialog.addEventListener('click',e=>{if(e.target===dialog)close()});
-  dialog.querySelector('.topup-pay').addEventListener('click',pay);
  }
  function paint(){
   const ok=amount>=MIN;
@@ -39,7 +38,7 @@
   const bonus=BONUS.find(([from])=>amount>=from);
   const line=dialog.querySelector('.topup-bonus');line.hidden=!bonus;
   if(bonus)line.innerHTML='<b>+ в подарок</b>'+bonus[1];
-  const btn=dialog.querySelector('.topup-pay');
+  const btn=dialog.querySelector('.topup-pay');btn.onclick=pay;
   btn.textContent=ok?'Оплатить '+rub(amount):'От '+rub(MIN);btn.disabled=!ok||busy;
  }
  function say(text,kind=''){const m=dialog.querySelector('.topup-msg');m.textContent=text;m.dataset.kind=kind}
@@ -52,22 +51,34 @@
  }
  function close(){if(dialog?.open)dialog.close()}
 
+ const call=(action,data={})=>apiFetch(`${SUPA}/club-bookings`,{method:'POST',body:JSON.stringify({action,initData:tg?.initData||'',...data})});
+ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+ const clean=t=>(window.clubText?clubText(String(t||'')):String(t||'')).replace(/^HTTP \d+:\s*/,'');
+ function openPay(url){
+  if(tg?.openLink)tg.openLink(url);else window.open(url,'_blank','noopener');
+  const btn=dialog.querySelector('.topup-pay');btn.textContent='Открыть оплату ещё раз';btn.disabled=false;btn.onclick=()=>openPay(url);
+  say('Оплати на странице Т-Банка. Деньги придут на баланс сами, как только оплата пройдёт','ok');
+  // Back from the bank: the balance refreshes a few times while Gizmo credits the deposit.
+  const back=()=>{if(document.hidden)return;document.removeEventListener('visibilitychange',back);for(const t of [1500,8000,20000,45000])setTimeout(()=>dispatchEvent(new Event('club:resume')),t)};
+  document.addEventListener('visibilitychange',back);
+ }
+ // Desk asks Gizmo for a deposit payment intent and returns the T-Bank link as the command result.
  async function pay(){
   if(busy||amount<MIN)return;
-  busy=true;paint();say('');
+  busy=true;paint();say('');const btn=dialog.querySelector('.topup-pay');btn.textContent='Готовим оплату…';
+  let text='';
   try{
-   const r=await apiFetch(`${SUPA}/club-bookings`,{method:'POST',body:JSON.stringify({action:'topup',initData:tg?.initData||'',amount})});
-   if(!r?.url)throw new Error('no_invoice');
-   const done=status=>{
-    busy=false;paint();
-    if(status==='paid'){close();toast('Оплата прошла. Деньги придут на баланс в течение минуты','ok');setTimeout(()=>dispatchEvent(new Event('club:resume')),20000)}
-    else if(status==='failed')say('Оплата не прошла. Попробуй ещё раз или другой картой','err');
-   };
-   if(tg?.openInvoice)tg.openInvoice(r.url,done);else{location.href=r.url;done('pending')}
-  }catch(e){
-   busy=false;paint();
-   say(/not_configured|no_invoice|unknown_action/i.test(String(e?.message||e))?'Онлайн-оплата скоро заработает. Пока пополнить можно на ресепшене клуба':'Не получилось открыть оплату. Попробуй ещё раз','err');
-  }
+   const {id}=await call('command',{kind:'topup',payload:{amount},request_id:crypto.randomUUID()});
+   const until=Date.now()+30000;
+   while(Date.now()<until){
+    await sleep(1500);
+    const c=(await call('account')).commands?.find(x=>x.id===id);
+    if(c?.status==='done'&&/^https:\/\//.test(c.message||'')){busy=false;return openPay(c.message)}
+    if(c&&['attention','rejected','failed'].includes(c.status)){text=/Неизвестная операция/.test(c.message||'')?'Онлайн-оплата заработает после обновления Desk в клубе':clean(c.message)||'Не получилось создать оплату';break}
+   }
+   text=text||'Клуб не ответил. Попробуй ещё раз через минуту';
+  }catch(e){text=clean(e?.message)||'Не получилось открыть оплату. Попробуй ещё раз'}
+  busy=false;paint();say(text,'err');
  }
 
  function mount(){
