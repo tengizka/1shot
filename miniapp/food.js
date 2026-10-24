@@ -97,6 +97,9 @@
   if(groups.length>1){
    const tabs=el('div','food-groups');tabs.setAttribute('role','tablist');
    for(const g of groups){const b=el('button','',g);b.type='button';b.setAttribute('aria-selected',String(g===state.group));b.onclick=()=>{state.group=g;tap('select');render();body.scrollTop=0};tabs.append(b)}
+   // The strip keeps its scroll across re-renders; the picked group only slides into view if it is cut off.
+   tabs.onscroll=()=>{state.tabsLeft=tabs.scrollLeft};
+   requestAnimationFrame(()=>{tabs.scrollLeft=state.tabsLeft||0;tabs.querySelector('[aria-selected="true"]')?.scrollIntoView({block:'nearest',inline:'nearest'})});
    frag.append(tabs);
   }
   const grid=el('div','food-grid');state.menu.filter(m=>m.group===state.group).forEach(m=>grid.append(product(m)));frag.append(grid);

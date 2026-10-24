@@ -597,3 +597,21 @@
 #session-screen .session-time-box dd{color:var(--smm-lime)}
 #session-screen .session-time-box.low dd{color:#FF8A1F}
 @media(prefers-reduced-motion:reduce){.session-scene *{animation:none!important}}
+/* Club tab: no sideways swipe; each hall in its own color and shape */
+#ov-tariffs .ov-body,#ov-profile .ov-body{overflow-x:hidden;touch-action:pan-y;overscroll-behavior-x:none}
+.hw-card[data-hw="std"]{--hw:#fff}
+.hw-card[data-hw="vip"]{--hw:var(--smm-orange)}
+.hw-card[data-hw="tv"]{--hw:#5B7BFF}
+.hw-card{border-color:var(--hw)!important}
+.hw-card .hw-count{color:var(--hw)}
+.hw-card .hw-specs svg{stroke:var(--hw)}
+.hw-card .hw-specs li{border-top-color:color-mix(in srgb,var(--hw) 35%,#000)}
+.hw-card[data-hw="vip"]{border-image:linear-gradient(135deg,var(--smm-orange),var(--smm-pink)) 1}
+.hw-mesh{opacity:.75!important}
+.hw-switch button[data-hw="std"][aria-selected="true"]{background:#fff;border-color:#fff;color:#000}
+.hw-switch button[data-hw="vip"][aria-selected="true"]{background:var(--smm-orange);border-color:var(--smm-orange);box-shadow:inset 0 -4px 0 var(--smm-pink);color:#000}
+.hw-switch button[data-hw="tv"][aria-selected="true"]{background:#5B7BFF;border-color:#5B7BFF;color:#000}
+.review-links{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.review-links a{display:flex;align-items:center;justify-content:center;min-height:48px;padding:0 10px;font:800 11px Unbounded,sans-serif;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;color:#000}
+.review-links a:first-child{background:#FC3F1D}
+.review-links a:last-child{background:#19AA1E}
