@@ -673,3 +673,22 @@ body:has(.overlay.open) :is(#session-screen,#my-session-banner,#booking-bar){vis
 /* Club photos only on the welcome screen («Привет. Ты с нами?»); forms and the application wait stay dark */
 #auth>.auth-photos{transition:opacity .4s ease}
 #auth:has(#auth-choice[hidden])>.auth-photos{opacity:0}
+/* Promotions: the benefit is a big number, conditions are short chips, not a paragraph */
+.promo2{border:2px solid var(--smm-rule)!important;border-left:4px solid var(--pc)!important;padding:18px 16px!important;margin-bottom:12px;background:#000}
+.promo2 .p2-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.promo2 .p2-tag{display:inline-block;padding:5px 9px;background:var(--pc);color:#000;font:800 10px Unbounded,sans-serif;letter-spacing:.1em;text-transform:uppercase}
+.promo2 .p2-big{font:700 40px/.9 var(--smm-display);color:var(--pc);white-space:nowrap}
+.promo2 .p2-title{margin:14px 0 12px;font:700 22px/1.05 var(--smm-display);text-transform:uppercase;color:#fff}
+.promo2 .p2-ladder{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.promo2 .p2-ladder div{display:flex;flex-direction:column;gap:4px;padding:10px;border:2px solid var(--smm-rule)}
+.promo2 .p2-ladder b{font:700 18px var(--smm-display);color:var(--pc)}
+.promo2 .p2-ladder span{font:600 10px/1.45 Unbounded,sans-serif;color:#d9d9d9}
+.promo2 .p2-steps{list-style:none;counter-reset:s;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.promo2 .p2-steps li{counter-increment:s;display:flex;gap:10px;align-items:flex-start;font:600 11px/1.5 Unbounded,sans-serif;color:#e6e6e6}
+.promo2 .p2-steps li::before{content:counter(s);flex:none;width:22px;height:22px;display:grid;place-items:center;background:var(--pc);color:#000;font:800 11px Unbounded,sans-serif}
+.promo2 .review-links{margin-top:14px}
+.promo2 .p2-friends{display:flex;align-items:baseline;gap:10px;padding:12px;border:2px solid var(--smm-rule)}
+.promo2 .p2-friends b{font:700 24px var(--smm-display);color:var(--pc);white-space:nowrap}
+.promo2 .p2-friends span{font:600 11px/1.45 Unbounded,sans-serif;color:#e6e6e6}
+.promo2 .p2-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.promo2 .p2-chips span{padding:6px 9px;border:1px solid #3a3a3a;font:600 9px/1.3 Unbounded,sans-serif;letter-spacing:.04em;color:#bdbdbd}

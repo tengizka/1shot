@@ -487,29 +487,32 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
       <div class="price-row"><span>12 часов</span><b>1399 ₽</b><b>1599 ₽</b></div>
       <div class="price-row price-morning"><span>Утро<small>8:00–13:00</small></span><b>399 ₽</b><b>499 ₽</b></div>
       <div class="price-row price-night"><span>Ночь<small>22:00–8:00</small></span><b>899 ₽</b><b>999 ₽</b></div>
-      <div class="price-row price-one"><span>TV-зона PS5, 1 час<small>бронь по телефону</small></span><b>299 ₽</b></div>
-      <p class="smm-note">Время оплачивается в клубе. Здесь только бронь места.</p>
+      <div class="price-row price-one"><span>TV-зона PS5, 1 час</span><b>299 ₽</b></div>
     </section>
     <section class="seg-pane" data-pane="promo" role="tabpanel" hidden>
-      <article class="promo-card">
-        <span class="smm-tag">Пополнение</span>
-        <h2 class="smm-title">Пополни и играй больше</h2>
-        <div class="promo-row"><b>700 ₽</b><span>1 ч PC</span></div>
-        <div class="promo-row"><b>1000 ₽</b><span>2 ч PC / 1 ч VIP / 1 ч TV</span></div>
-        <div class="promo-row"><b>2000 ₽</b><span>4 ч PC / 2 ч VIP / 2 ч TV</span></div>
-        <div class="promo-row"><b>3000 ₽</b><span>6 ч PC / 3 ч VIP / 3 ч TV</span></div>
-        <p class="smm-note">Одним чеком, 1 раз в месяц. Можно не на кассе.</p>
+      <article class="promo-card promo2" style="--pc:var(--smm-lime)">
+        <div class="p2-head"><span class="p2-tag">Пополнение</span><span class="p2-big">до 6 ч</span></div>
+        <h2 class="p2-title">Пополни и играй больше</h2>
+        <div class="p2-ladder">
+          <div><b>700 ₽</b><span>1 ч PC</span></div>
+          <div><b>1000 ₽</b><span>2 ч PC<br>1 ч VIP · 1 ч TV</span></div>
+          <div><b>2000 ₽</b><span>4 ч PC<br>2 ч VIP · 2 ч TV</span></div>
+          <div><b>3000 ₽</b><span>6 ч PC<br>3 ч VIP · 3 ч TV</span></div>
+        </div>
+        <div class="p2-chips"><span>Одним чеком</span><span>1 раз в месяц</span><span>Можно не на кассе</span></div>
       </article>
-      <article class="promo-card">
-        <span class="smm-tag smm-tag-white">Подарок</span>
-        <h2 class="smm-title">Час за отзыв</h2>
-        <p class="smm-text">Отзыв на Яндекс Картах или в 2ГИС. После модерации дарим 1 час в STANDART. Один отзыв на гостя.</p>
+      <article class="promo-card promo2" style="--pc:#fff">
+        <div class="p2-head"><span class="p2-tag">Подарок</span><span class="p2-big">+1 ч</span></div>
+        <h2 class="p2-title">Час за отзыв</h2>
+        <ol class="p2-steps"><li>Оставь отзыв на Яндекс Картах или в 2ГИС</li><li>После модерации дарим 1 час в STANDART</li></ol>
         <div class="review-links"><a href="https://yandex.ru/profile/204221279175" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5a7.5 7.5 0 0 0-7.5 7.5c0 5.6 7.5 13.5 7.5 13.5s7.5-7.9 7.5-13.5A7.5 7.5 0 0 0 12 1.5Z"/><text x="12" y="12.9" text-anchor="middle" font-family="Unbounded,sans-serif" font-weight="800" font-size="8.5" fill="#000">Я</text></svg><span>Яндекс</span></a><a href="https://2gis.ru/mytishchi/search/1SHOT%20%D0%9C%D0%B8%D1%80%D0%B0%2037" target="_blank" rel="noopener"><b class="gis">2GIS</b></a></div>
+        <div class="p2-chips"><span>Один отзыв на гостя</span></div>
       </article>
-      <article class="promo-card">
-        <span class="smm-tag smm-tag-pink">День рождения</span>
-        <h2 class="smm-title">3 часа имениннику</h2>
-        <p class="smm-text">И по 1 часу друзьям, до 5 человек. В день рождения и 3 дня после. Нужен оригинал паспорта, прав или свидетельства. Госуслуги не подходят.</p>
+      <article class="promo-card promo2" style="--pc:var(--smm-pink)">
+        <div class="p2-head"><span class="p2-tag">День рождения</span><span class="p2-big">3 ч</span></div>
+        <h2 class="p2-title">Имениннику в подарок</h2>
+        <div class="p2-friends"><b>+1 ч</b><span>каждому другу, до 5 человек</span></div>
+        <div class="p2-chips"><span>В ДР и 3 дня после</span><span>Оригинал паспорта, прав или свидетельства</span><span>Госуслуги не подходят</span></div>
       </article>
     </section>
     <section class="seg-pane" data-pane="hw" role="tabpanel" hidden>
@@ -535,7 +538,7 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
           <img class="hw-mesh" src="img/mesh-tv.svg" alt="" aria-hidden="true">
           <div class="hw-top"><span class="hw-count">PS5</span><span class="hw-tag">До 2 человек</span></div>
           <h2>TV-<br>зона</h2>
-          <ul class="hw-specs"><li><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 12h20c6 0 8 5 9 10l2 10c1 7-5 9-9 4l-5-5H17l-5 5c-4 5-10 3-9-4l2-10c1-5 3-10 9-10Z"/><path d="M15 19v8M11 23h8"/><circle cx="32" cy="21" r="1.5"/><circle cx="36" cy="25" r="1.5"/></svg><span>PlayStation 5</span></li><li><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="8" width="42" height="28" rx="2"/><path d="M14 36l-4 6M34 36l4 6"/></svg><span>Samsung 65" · 4K · 60 Гц</span></li><li><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="17" cy="16" r="7"/><path d="M4 42v-4a10 10 0 0 1 10-10h6a10 10 0 0 1 10 10v4"/><path d="M31 9a7 7 0 0 1 0 14M36 28a10 10 0 0 1 8 10v4"/></svg><span>Диваны, до 2 человек</span></li></ul>
+          <ul class="hw-specs"><li><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 12h20c6 0 8 5 9 10l2 10c1 7-5 9-9 4l-5-5H17l-5 5c-4 5-10 3-9-4l2-10c1-5 3-10 9-10Z"/><path d="M15 19v8M11 23h8"/><circle cx="32" cy="21" r="1.5"/><circle cx="36" cy="25" r="1.5"/></svg><span>PlayStation 5</span></li><li><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="8" width="42" height="28" rx="2"/><path d="M14 36l-4 6M34 36l4 6"/></svg><span>Samsung 65" · 4K · 60 Гц</span></li><li><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="17" cy="16" r="7"/><path d="M4 42v-4a10 10 0 0 1 10-10h6a10 10 0 0 1 10 10v4"/><path d="M31 9a7 7 0 0 1 0 14M36 28a10 10 0 0 1 8 10v4"/></svg><span>Диван, до 2 человек</span></li></ul>
         </article>
       </div>
     </section>
@@ -1217,7 +1220,7 @@ function clearProfile() {
 <link rel="stylesheet" href="registration-wait.css?v=2.6.0"><script src="registration-wait.js?v=2.8.0"></script><script src="password-choice.js?v=2.4.0"></script>
 <script src="club-booking.js?v=3.1.0"></script>
 <link rel="stylesheet" href="polish.css?v=1.6.0"><script src="polish.js?v=2.3.0"></script>
-<link rel="stylesheet" href="smm.css?v=4.0.0">
+<link rel="stylesheet" href="smm.css?v=4.1.0">
 <link rel="stylesheet" href="food.css?v=2.8.0"><script src="food.js?v=2.7.0"></script>
 <script src="tel-links.js?v=2"></script><script src="auth-photos.js?v=1"></script><script src="keyboard.js?v=2"></script>
 <link rel="stylesheet" href="maintenance.css?v=7"><script src="maintenance.js?v=7"></script>
