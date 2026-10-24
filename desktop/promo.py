@@ -3,6 +3,7 @@ Granted at most once per application; an interrupted order is never repeated aut
 import os
 import re
 from urllib.parse import quote
+from .services import Gizmo
 
 PRODUCT='standart 1 h'
 
@@ -28,6 +29,16 @@ def payment_method():
 class PromoReward:
     def __init__(self,cloud,gizmo,store,guard):
         self.cloud,self.gizmo,self.store,self.guard=cloud,gizmo,store,guard
+        self._seller=None
+
+    def seller(self):
+        """The free hour is sold by its own Gizmo operator (PROMO_GIZMO_LOGIN), never by Desk's main login."""
+        if self._seller is None:
+            login,password=os.getenv('PROMO_GIZMO_LOGIN','').strip(),os.getenv('PROMO_GIZMO_PASSWORD','')
+            if not login or not password or 'YOUR-' in login:raise ValueError('нужна отдельная учётка: PROMO_GIZMO_LOGIN и PROMO_GIZMO_PASSWORD в .env')
+            if login==os.getenv('GIZMO_LOGIN','').strip():raise ValueError('PROMO_GIZMO_LOGIN должен отличаться от GIZMO_LOGIN')
+            self._seller=Gizmo(login,password)
+        return self._seller
 
     def report(self,id,record):
         if record.get('result') in ('granted','failed') and not record.get('synced'):
@@ -58,18 +69,18 @@ class PromoReward:
         if os.getenv('PROMO_AUTO_HOUR','false').strip().lower()!='true':
             record['error']='автоначисление выключено, выдайте час вручную';self.store.set(key,record);return self.report(id,record)
         try:
-            self.guard();product=free_hour_product(self.gizmo);method=payment_method()
+            self.guard();seller=self.seller();product=free_hour_product(self.gizmo);method=payment_method()
         except Exception as error:
             # Nothing was ordered; the reason is shown to the admin, who can give the hour by hand.
             record['error']=str(error)[:160] or 'Проверка товара не прошла';self.store.set(key,record);return self.report(id,record)
         self.store.set(key,{'phase':'ordering','code':code,'gizmo_user_id':uid})
         try:
-            invoice=self.gizmo.request('POST',f'users/{int(uid)}/order/{product}/invoice/payment/{method}')
+            invoice=seller.request('POST',f'users/{int(uid)}/order/{product}/invoice/payment/{method}')
             if not isinstance(invoice,dict) or type(invoice.get('id')) is not int:raise ValueError('Unknown order outcome')
             record['invoice_id']=invoice['id']
             # Accounting guard: the free hour must never move money. Any non-zero invoice stops for staff review.
             if any(float(invoice.get(k) or 0)!=0 for k in ('total','subTotal','outstanding')):raise ValueError('Non-zero invoice')
-            lines=self.gizmo.request('GET',f'users/{int(uid)}/producttime')
+            lines=seller.request('GET',f'users/{int(uid)}/producttime')
             ok=isinstance(lines,list) and any(isinstance(t,dict) and t.get('invoiceId')==invoice['id'] and not (t.get('isVoided') or t.get('isDeleted')) and float(t.get('totalSeconds') or 0)>=3600 for t in lines)
             record['result']='granted' if ok else 'attention'
         except Exception:
@@ -77,7 +88,7 @@ class PromoReward:
         try:
             text=(f'Автоматически (1SHOT Desk): выдан 1 час STANDART за промокод {code} при регистрации' if record['result']=='granted'
                   else f'Автоматически (1SHOT Desk): промокод {code} — начисление часа STANDART не подтверждено, проверьте вручную')
-            self.guard();self.gizmo.request('PUT',f'users/{int(uid)}/note/{quote(text,safe="")}/0');record['note']=True
+            self.guard();seller.request('PUT',f'users/{int(uid)}/note/{quote(text,safe="")}/0');record['note']=True
         except Exception:pass
         self.store.set(key,record)
         return self.report(id,record)

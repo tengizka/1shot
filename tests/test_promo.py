@@ -45,8 +45,17 @@ class PromoTests(unittest.TestCase):
   self.api=RegistrationApproval(self.cloud,self.gizmo,self.store,lambda:None)
  def setUp(self):
   self.temp=tempfile.TemporaryDirectory();self.store=Store(Path(self.temp.name)/'desk.sqlite3');self.secret='fixture-secret';self.gizmo=Gizmo()
-  self.env=patch.dict(os.environ,{'AGENT_SECRET':self.secret,'PROMO_AUTO_HOUR':'true'});self.env.start()
- def tearDown(self):self.env.stop();self.temp.cleanup()
+  self.env=patch.dict(os.environ,{'AGENT_SECRET':self.secret,'PROMO_AUTO_HOUR':'true','GIZMO_LOGIN':'desk','PROMO_GIZMO_LOGIN':'promo','PROMO_GIZMO_PASSWORD':'pw'});self.env.start()
+  # The hour is sold by its own operator login; the fake records both clients in one place.
+  self.made=[];self.seller=patch('desktop.promo.Gizmo',lambda login,password:(self.made.append(login),self.gizmo)[1]);self.seller.start()
+ def tearDown(self):self.seller.stop();self.env.stop();self.temp.cleanup()
+ def test_hour_is_sold_by_its_own_login(self):
+  self.build();self.assertEqual(self.api.approve(self.id,True)['promo']['result'],'granted');self.assertEqual(self.made,['promo'])
+ def test_no_separate_login_no_order(self):
+  for env in ({'PROMO_GIZMO_LOGIN':''},{'PROMO_GIZMO_LOGIN':'desk'}):
+   with patch.dict(os.environ,env):
+    self.build();r=self.api.approve(self.id,True)
+    self.assertEqual(r['promo']['result'],'failed');self.assertIn('PROMO_GIZMO_LOGIN',r['promo']['error']);self.assertEqual(self.gizmo.orders(),[])
  def test_grants_once_with_note(self):
   self.build();result=self.api.approve(self.id,True)
   self.assertEqual(result['promo']['result'],'granted');self.assertEqual(self.gizmo.orders(),[('POST','users/7/order/41/invoice/payment/-1')])
