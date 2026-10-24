@@ -30,7 +30,10 @@
  function accept(r){
   if(!r||profile)return;current=r;
   if(r.status==='done'){
-   if(r.profile&&typeof r.profile.gizmo_user_id==='number'&&r.profile.gizmo_user_id>0){password.value='';profile=r.profile;saveProfile(profile);spin(false);visible(false);showApp()}
+   // An approved application signs the guest in once; after «Выйти» it never signs them back in.
+   let used=null,out=null;try{used=localStorage.getItem('1shot_registration_used');out=localStorage.getItem('1shot_logged_out')}catch{}
+   if(used===String(r.id)||out)return;
+   if(r.profile&&typeof r.profile.gizmo_user_id==='number'&&r.profile.gizmo_user_id>0){try{localStorage.setItem('1shot_registration_used',String(r.id))}catch{}password.value='';profile=r.profile;saveProfile(profile);spin(false);visible(false);showApp()}
    else{title.textContent='Анкета подтверждена';message.textContent='Войди в свой аккаунт с ником и паролем из анкеты.';retry.hidden=true;cancel.hidden=true;spin(false);visible(true)}
    return;
   }
@@ -58,7 +61,7 @@
   busy=true;setAuthLoading('form-register',true);
   try{
    const result=await apiFetch(`${SUPA}/club-auth`,{method:'POST',body:JSON.stringify(data)});if(!result.request_id)throw Error('Нет подтверждения приёма анкеты');
-   password.value='';dismissed=null;accept({id:result.request_id,status:'awaiting_admin'});
+   try{localStorage.removeItem('1shot_logged_out')}catch{}password.value='';dismissed=null;accept({id:result.request_id,status:'awaiting_admin'});
   }catch(error){showAuthErr('form-register',error.message||'Нет подтверждения. Проверьте связь с клубом')}
   finally{busy=false;setAuthLoading('form-register',false);button.textContent='Отправить анкету'}
  };

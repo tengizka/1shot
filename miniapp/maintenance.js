@@ -16,8 +16,9 @@
  for(const n of wide?[1,2]:[3,4,1,2]){const img=document.createElement('img');img.src='../landing/club-'+n+'.webp';img.alt='';img.decoding='async';photos.append(img)}
  photos.firstChild.classList.add('on');screen.prepend(photos);
  let shown=0;setInterval(()=>{const all=photos.children;all[shown].classList.remove('on');shown=(shown+1)%all.length;all[shown].classList.add('on')},5000);
- const logo=document.querySelector('.auth-logo')?.cloneNode(true);
- if(logo){logo.removeAttribute('class');logo.classList.add('mt-logo');logo.setAttribute('focusable','false');logo.setAttribute('aria-hidden','true');screen.append(logo)}
+ // The same 1SHOT loader as everywhere: the mascot changes faces, the logo keeps filling.
+ const loaderHost=document.createElement('div');loaderHost.className='mt-logo';screen.append(loaderHost);
+ window.oneshotLoader?.build(loaderHost).cycle(2600);
  const lock=()=>{for(const el of document.body.children)if(el!==screen)el.inert=true};
  document.body.append(screen);document.body.classList.add('maintenance');lock();
  // Screens added later (splash, dialogs, toasts) are locked too.

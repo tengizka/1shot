@@ -269,7 +269,7 @@ window.addEventListener('pywebviewready',()=>{refresh();window.initClubManagemen
 panel('hall');
 
 // Splash: the 1SHOT logo fills, then the desk fades in. No club requests are made for it.
-(()=>{const loader=window.oneshotLoader?.build($('splash-loader'),{caption:'Запускаем Desk'});if(loader&&!matchMedia('(prefers-reduced-motion: reduce)').matches)loader.run(2200);else loader?.set(1)})();
+(()=>{const loader=window.oneshotLoader?.build($('splash-loader'));if(loader&&!matchMedia('(prefers-reduced-motion: reduce)').matches)loader.run(2200);else loader?.set(1)})();
 setTimeout(()=>$('desk-splash').classList.add('done'),2500);setTimeout(()=>$('desk-splash').remove(),3200);
 
 // Moscow clock in the status bar.

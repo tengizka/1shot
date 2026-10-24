@@ -16,7 +16,7 @@
  function render(){
   dialog.dataset.state=reason;
   title.textContent=reason==='checking'?'Проверяем связь с клубом':reason==='network'?'Не удалось проверить связь':'Ведутся тех. работы';
-  copy.textContent=reason==='checking'?'Это займёт несколько секунд.':reason==='network'?'Проверьте интернет или откройте приложение заново. Мы повторим проверку автоматически.':'Скоро вернёмся. Приложение откроется автоматически, когда связь восстановится.';
+  copy.textContent=reason==='checking'?'Это займёт несколько секунд.':reason==='network'?'Проверьте интернет или откройте приложение заново.\nМы повторим проверку автоматически.':'Скоро вернёмся.\nПриложение откроется автоматически, когда связь восстановится.';
   // Keep the startup animation; gate all writes even while the splash is visible.
   if(blocked&&!document.getElementById('splash')?.classList.contains('active')){
    if(!dialog.open){document.querySelectorAll('dialog[open]').forEach(d=>{if(d!==dialog)d.close()});dialog.showModal();}

@@ -243,7 +243,7 @@
 .ol-bar i{display:block;height:100%;background:var(--smm-lime);transform-origin:0 50%;transform:scaleX(0)}
 .ol-sub{margin:4px 0 0;min-height:1.6em;text-align:center;font:500 11px/1.6 Unbounded,sans-serif;color:#cfcfcf}
 .ol-sub:empty{display:none}
-#oneshot-overlay{position:fixed;inset:0;z-index:9500;display:grid;place-items:center;background:rgba(0,0,0,.86);opacity:0;transition:opacity .3s ease}
+#oneshot-overlay{position:fixed;inset:0;z-index:9500;display:grid;place-items:center;background:#000;opacity:0;transition:opacity .3s ease}
 #oneshot-overlay.open{opacity:1}
 #oneshot-overlay[hidden]{display:none}
 #splash{flex-direction:column;gap:26px}
@@ -300,7 +300,8 @@
 .auth-forgot .auth-title{font-size:clamp(28px,8.6vw,40px)}
 
 /* 2.2 · Matrix shows through the start and sign-in screens. */
-#splash,#auth{background:rgba(0,0,0,.28)!important}
+#splash{background:#000!important}
+#auth{background:rgba(0,0,0,.28)!important}
 #auth .step input:not([type=radio]),#auth .step #birthday-open,#auth .auth-choice .btn-outline,.wiz-back{background:rgba(0,0,0,.82)!important}
 
 /* 2.2 · Seat feedback: the picked PC glows lime, an unavailable one shakes. */
@@ -362,8 +363,8 @@
 #desk-availability::backdrop{background:rgba(0,0,0,.9)!important}
 #desk-availability section{flex:1;justify-content:center;gap:16px!important}
 #desk-availability h1{margin-top:14px!important;font:700 clamp(20px,6vw,26px)/1.1 ReSquare,Unbounded,sans-serif!important;text-transform:uppercase}
-#desk-availability p{max-width:300px}
-#desk-availability .da-loader .ol-meta{display:none}
+#desk-availability p{max-width:300px;white-space:pre-line}
+
 #desk-availability .da-call{display:flex!important;align-items:center;justify-content:center;gap:10px;width:min(100%,420px);min-height:58px;padding:0!important;font-size:13px!important;text-decoration:none}
 
 /* 2.2 · "Occupied" easter egg is back, in the SMM look. */

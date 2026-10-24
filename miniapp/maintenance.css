@@ -16,3 +16,4 @@ body.maintenance>*:not(#maintenance){pointer-events:none!important;user-select:n
 #maintenance .mt-actions{display:flex;flex-wrap:wrap;gap:10px}
 #maintenance .mt-call{display:flex;align-items:center;justify-content:center;min-height:52px;padding:0 18px;flex:1 1 220px;background:var(--smm-lime,#A3FF10);color:#000;font:800 15px Unbounded,sans-serif;letter-spacing:.04em;text-decoration:none;white-space:nowrap}
 @media(prefers-reduced-motion:reduce){#maintenance .mt-photos img{transition:none;transform:none}}
+#maintenance .mt-logo .oneshot-loader{width:100%;align-items:flex-start}#maintenance .mt-logo .ol-mascot{width:46%}

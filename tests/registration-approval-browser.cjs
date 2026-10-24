@@ -30,6 +30,9 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   registration={id:'request-1',status:'processing'};await page.evaluate(()=>window.dispatchEvent(new Event('club:resume')));await page.waitForTimeout(600);assert.equal(await page.locator('#registration-wait .rw-cancel').isVisible(),true,'cancel stays while the admin works on it');
   assert.doesNotMatch(await page.locator('#registration-wait').innerText(),/провер(яем|ка)|синхрон|подтверждени/i,'no technical wording');
   registration={id:'request-1',status:'done',profile:{telegram_id:123,gizmo_user_id:7,username:'new_guest'}};await page.evaluate(()=>window.dispatchEvent(new Event('club:resume')));await page.waitForFunction(()=>JSON.parse(localStorage.getItem('1shot_v2_profile')||'null')?.gizmo_user_id===7);
+  // «Выйти» really signs out: the approved application does not sign the guest back in.
+  await page.evaluate(()=>{localStorage.removeItem('1shot_v2_profile');localStorage.setItem('1shot_logged_out','1');profile=null});await page.evaluate(()=>window.dispatchEvent(new Event('club:resume')));await page.waitForTimeout(1500);
+  assert.equal(await page.evaluate(()=>localStorage.getItem('1shot_v2_profile')),null,'no automatic sign-in after logout');
   assert.deepEqual(errors,[]);
   const desk=await context.newPage();await desk.setViewportSize({width:1100,height:800});desk.on('pageerror',e=>errors.push(e.message));desk.on('dialog',d=>d.accept());
   await desk.addInitScript(()=>{
