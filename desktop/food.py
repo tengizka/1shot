@@ -20,6 +20,14 @@ PENDING,ACCEPTED=0,1
 TIME_PRODUCT=1  # Gizmo ProductType: 0 product, 1 time, 2 bundle
 RENTAL_GROUP='аренда'
 
+def plain(name):
+    """Product name without the quotes Gizmo copies sometimes carry: "Red Bull" → Red Bull."""
+    return str(name or '').strip().strip('"«»\'').strip()
+
+def norm(name):
+    """Same goods under slightly different names: case, quotes, spaces and a trailing dot do not matter."""
+    return ' '.join(plain(name).casefold().replace('ё','е').split()).rstrip('.').strip()
+
 def tag(order_id):return '#'+str(order_id).replace('-','')[:6].upper()
 
 def note(order,host):
@@ -107,17 +115,26 @@ class Food:
         # Only goods sold in the last FOOD_SOLD_DAYS (default 60): old duplicates with stale stock drop out.
         try:sold_ids,sold_names=self.sold()
         except Exception:sold_ids,sold_names=set(),set()
-        items=[]
+        # The till sells the old cards (barcode, stock); the client shop shows newer copies of the same goods.
+        # Copies are grouped by name: the newest card is shown, sales and stock count for the whole group.
+        same={}
         for p in self.paged('v2.0/products',{'IsDeleted':'false'}):
             group=groups.get(p.get('productGroupId'))
             price=p.get('price')
             if not group or type(p.get('id')) is not int or p.get('isDeleted') or p.get('productType')==TIME_PRODUCT or p.get('timeProduct'):continue
             if p.get('disallowClientOrder') or p.get('restrictSale') or p.get('isService') or not isinstance(price,(int,float)) or isinstance(price,bool) or price<=0:continue
-            if str(group.get('name','')).strip().casefold() in self.hidden or not str(p.get('name') or '').strip():continue
+            if str(group.get('name','')).strip().casefold() in self.hidden or not plain(p.get('name')):continue
+            same.setdefault(norm(p.get('name')),[]).append((p,group))
+        sold_norm={norm(n) for n in sold_names}
+        items=[]
+        for copies in same.values():
+            p,group=max(copies,key=lambda c:c[0]['id'])
             rental=str(group.get('name','')).strip().casefold()==RENTAL_GROUP
-            if not rental and (sold_ids or sold_names) and p['id'] not in sold_ids and str(p.get('name') or '').strip().casefold() not in sold_names:continue
-            if p.get('enableStock') and not self.in_stock(p['id'],stock):continue
-            items.append({'id':p['id'],'group':str(group.get('name') or 'Меню').strip()[:45],'group_order':int(group.get('displayOrder') or 0),'name':str(p['name']).strip()[:60],'price':round(float(price),2),'sort':int(p.get('displayOrder') or 0)})
+            if not rental and (sold_ids or sold_names) and not any(c[0]['id'] in sold_ids for c in copies) and norm(p.get('name')) not in sold_norm:continue
+            tracked=[c[0] for c in copies if c[0].get('enableStock')]
+            if tracked and not any(self.in_stock(t['id'],stock) for t in tracked):continue
+            items.append({'id':p['id'],'group':str(group.get('name') or 'Меню').strip()[:45],'group_order':int(group.get('displayOrder') or 0),'name':plain(p['name'])[:60],'price':round(float(p['price']),2),'sort':int(p.get('displayOrder') or 0)})
+        items.sort(key=lambda i:(i['group_order'],i['sort'],i['id']))
         for item in items:item['image']=self.image(item['id'])
         return items
 

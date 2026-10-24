@@ -212,6 +212,25 @@ class FoodTests(unittest.TestCase):
         self.assertEqual([item_for(n) for n in ['Аренда Power Bank','Аренда мышки Logitech G304 Lightspeed','Аренда мышки Logitech G PRO X Superlight','Аренда мышки Attack Shark X3 Black','Аренда мышки Logitech G PRO X Superlight 2','Аренда игрового коврика Logitech G740','Red Bull']],
                          ['powerbank','g304','gprox','x3','gprox2','pad',None])
 
+    def test_newest_copy_shown_with_sales_and_stock_of_the_old_card(self):
+        now=datetime.now(timezone.utc);day=lambda d:(now-timedelta(days=d)).replace(tzinfo=None).isoformat()
+        # Old till card: barcode, stock, sold. New shop card: same goods in quotes, never sold, no stock.
+        self.gizmo.products+=[{'id':40,'productType':0,'productGroupId':1,'name':'HQD SPARKY BOOM 0.45 л.','price':179,'enableStock':True,'disallowSaleIfOutOfStock':True},
+                              {'id':41,'productType':0,'productGroupId':1,'name':'"HQD Sparky Boom 0.45 л."','price':179},
+                              {'id':42,'productType':0,'productGroupId':1,'name':'LIT ENERGY 0.45 л','price':179,'enableStock':True},
+                              {'id':43,'productType':0,'productGroupId':1,'name':'"LIT Energy 0.45 л"','price':179}]
+        self.gizmo.on_hand={40:14,42:0}
+        real=self.gizmo.request
+        def no_list(method,path,**kw):
+            if path=='v2.0/productsstock':raise ApiError('Gizmo: HTTP 500')
+            return real(method,path,**kw)
+        self.gizmo.request=no_list
+        self.gizmo.invoices=[{'id':1,'date':day(2),'invoiceLines':[{'productName':'HQD SPARKY BOOM 0.45 л.'},{'productName':'LIT ENERGY 0.45 л'},{'productName':'Red Bull'}]}]
+        self.food.tick([]);menu=self.cloud.calls[0]['menu']
+        hqd=[m for m in menu if 'hqd' in m['name'].casefold()]
+        self.assertEqual([(m['id'],m['name']) for m in hqd],[(41,'HQD Sparky Boom 0.45 л.')],'one card: the newest, without quotes')
+        self.assertFalse(any('lit' in m['name'].casefold() for m in menu),'old card out of stock hides the pair')
+
     def test_tax_report_is_read_only(self):
         self.gizmo.products[0]['productTaxes']=[{'taxId':1,'isEnabled':True}]
         self.food.tick([])
