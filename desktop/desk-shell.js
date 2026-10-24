@@ -17,7 +17,7 @@
 
  // Self-update: check → download (verified) → install; Desk restarts by itself.
  const msg=$('update-message'),run=$('update-run'),check=$('update-check'),bar=$('update-progress');
- const texts={idle:'',checking:'Проверяем GitHub…',latest:'У вас последняя версия.',available:'Есть новая версия.',downloading:'Скачиваем обновление…',ready:'Обновление скачано.',installing:'Устанавливаем…'};
+ const texts={idle:'',checking:'Проверяем обновления…',latest:'У вас последняя версия.',available:'Есть новая версия.',downloading:'Скачиваем обновление…',ready:'Обновление скачано.',installing:'Устанавливаем…'};
  window.renderUpdate=s=>{
   const u=s.update;if(!u)return;
   setDeskText($('update-current'),'v'+(u.current||s.version||DESK_BUILD.version));setDeskText($('update-latest'),u.latest?'v'+u.latest:'—');
