@@ -575,28 +575,44 @@
 .bkw-note{margin:0 0 20px;font-size:12px;line-height:1.45;color:#9a9a9a}
 .bk-welcome .btn-main{width:100%}
 @media(prefers-reduced-motion:reduce){.bk-welcome[open]{animation:none}.booking-bar .bb-dot{animation:none}}
-/* Session screen: the mascot plays behind its monitor */
-.session-scene{display:block;width:100%;max-width:300px;margin:14px auto 4px;overflow:visible}
+/* Session screen: one screen, no scroll. The mascot peeks over its monitor and plays a dino-style game as itself */
+#session-screen{padding:6px 20px 12px!important;display:flex;flex-direction:column}
+#session-screen .session-screen-content{display:flex;flex-direction:column;min-height:100%}
+.session-scene{display:block;width:100%;max-width:360px;max-height:36vh;margin:6px auto 0;overflow:visible}
 .session-scene .ms-head{fill:#fff;stroke:#fff;stroke-width:.12}
-.session-scene .ms-eyes{transform-box:fill-box;transform-origin:center;animation:ms-blink 4.2s infinite}
 .session-scene .ms-tilt{transform-box:fill-box;transform-origin:50% 100%;animation:ms-tilt 6s ease-in-out infinite}
+.session-scene .ms-eyes{transform-box:fill-box;transform-origin:center;animation:ms-blink 4.2s infinite}
 .session-scene .ms-light{animation:ms-flicker 2.6s steps(1) infinite}
 .session-scene .ms-monitor{fill:#000;stroke:var(--smm-lime);stroke-width:2}
-.session-scene .ms-logo{fill:var(--smm-lime);font:700 13px var(--smm-display);letter-spacing:.06em}
+.session-scene .ms-ground{stroke:var(--smm-lime);stroke-width:1}
+.session-scene .ms-dust{stroke:var(--smm-lime);stroke-width:1;stroke-dasharray:2 9;opacity:.6;animation:ms-dust .6s linear infinite}
+.session-scene .ms-runner{fill:var(--smm-lime);stroke:var(--smm-lime);stroke-width:.3;animation:ms-jump 1.8s infinite}
+.session-scene .ms-cactus{fill:var(--smm-lime);animation:ms-run 1.8s linear infinite}
+.session-scene .ms-cloud{fill:#3a5a10;animation:ms-cloud 7s linear infinite}
 .session-scene .ms-stand,.session-scene .ms-desk{fill:#3a3a3a}
 .session-scene .ms-keys{fill:#1c1c1c}
 .session-scene .ms-paw{fill:#fff;animation:ms-tap .32s ease-in-out infinite alternate}
 .session-scene .ms-paw-r{animation-delay:.16s}
+@keyframes ms-run{from{transform:translateX(0)}to{transform:translateX(-150px)}}
+@keyframes ms-jump{0%,60%{transform:translateY(0);animation-timing-function:ease-out}71%{transform:translateY(-15px);animation-timing-function:ease-in}84%,100%{transform:translateY(0)}}
+@keyframes ms-dust{to{stroke-dashoffset:11}}
+@keyframes ms-cloud{from{transform:translateX(0)}to{transform:translateX(-140px)}}
 @keyframes ms-blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
 @keyframes ms-tilt{0%,70%,100%{transform:rotate(0)}78%{transform:rotate(-4deg)}88%{transform:rotate(3deg)}}
 @keyframes ms-flicker{0%{opacity:.9}18%{opacity:.6}34%{opacity:1}52%{opacity:.75}70%{opacity:.95}86%{opacity:.65}}
-@keyframes ms-tap{to{transform:translateY(-4px)}}
-#session-screen h1{margin:10px 0 6px!important}
-#session-screen .session-host{margin:0 0 4px!important}
-#session-screen dl{margin:18px 0!important}
+@keyframes ms-tap{to{transform:translateY(-3px)}}
+#session-screen h1{margin:10px 0 0!important;font:700 11px Unbounded,sans-serif!important;letter-spacing:.16em;text-transform:uppercase;color:var(--smm-lime)}
+#session-screen .session-host{margin:4px 0 0!important;font-size:52px!important;line-height:.95}
+#session-screen .session-start{margin:8px 0 0!important;font-size:11px;color:#9a9a9a}
+#session-screen dl{margin:14px 0 0!important;gap:8px!important}
+#session-screen dl>div{padding:12px 14px!important}
+#session-screen dd{font-size:18px!important;margin:6px 0 0}
 #session-screen dl>.session-time-box{border-color:var(--smm-lime)!important}
 #session-screen .session-time-box dd{color:var(--smm-lime)}
 #session-screen .session-time-box.low dd{color:#FF8A1F}
+#session-screen .session-actions{margin:auto 0 0!important;padding-top:14px;gap:8px!important}
+#session-screen .session-actions button{min-height:48px;padding:10px!important}
+@media(max-height:700px){.session-scene{max-height:24vh}#session-screen .session-host{font-size:42px!important}}
 @media(prefers-reduced-motion:reduce){.session-scene *{animation:none!important}}
 /* Club tab: no sideways swipe; each hall in its own color and shape */
 #ov-tariffs .ov-body,#ov-profile .ov-body{overflow-x:hidden;touch-action:pan-y;overscroll-behavior-x:none}
