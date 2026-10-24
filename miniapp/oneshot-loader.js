@@ -23,23 +23,31 @@
 .oneshot-loader .ol-sub{margin:0;text-align:center;font:500 11px/1.6 Unbounded,sans-serif;color:#cfcfcf}
 .oneshot-loader .ol-caption:empty,.oneshot-loader .ol-sub:empty{display:none}
 @keyframes olm-bob{50%{transform:translateY(-5%)}}
+.oneshot-loader .ol-stage{position:relative;width:100%}
+.oneshot-loader .ol-rider{position:absolute;top:50%;left:-12%;width:30%;transform:translate(-50%,-50%) rotate(7deg);transition:opacity .35s ease;pointer-events:none}
+.oneshot-loader .ol-rider .ol-mascot{width:100%;stroke:#000;stroke-width:1.6;paint-order:stroke;animation:olm-drive .28s ease-in-out infinite alternate}
+.oneshot-loader.ol-done .ol-rider{opacity:0}
+@keyframes olm-drive{to{transform:translateY(-6%)}}
 @media(prefers-reduced-motion:reduce){.oneshot-loader .ol-mascot{animation:none}}`;document.head.append(s)}
  const FACES=['','blink','left','right','','wink','ears','wow',''];
  let seq=0;
- function build(host,{caption='',sub=''}={}){
+ function build(host,{caption='',sub='',ride=false}={}){
   const id='ol'+(++seq);
   host.insertAdjacentHTML('beforeend',`<div class="oneshot-loader" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="${caption||'Загрузка 1SHOT'}">
-   <svg class="ol-logo" viewBox="0 0 522 138" aria-hidden="true"><defs><clipPath id="${id}"><rect class="ol-clip" x="0" y="-4" width="522" height="146"/></clipPath></defs>
+   ${ride?'<div class="ol-stage">':''}<svg class="ol-logo" viewBox="0 0 522 138" aria-hidden="true"><defs><clipPath id="${id}"><rect class="ol-clip" x="0" y="-4" width="522" height="146"/></clipPath></defs>
     <path class="ol-base" fill-rule="evenodd" d="${LOGO}"/><path class="ol-fill" fill-rule="evenodd" d="${LOGO}" clip-path="url(#${id})"/><rect class="ol-edge" x="0" y="-4" width="3" height="146"/></svg>
-   ${MASCOT}<p class="ol-caption">${caption}</p><p class="ol-sub">${sub}</p></div>`);
-  const el=host.lastElementChild,clip=el.querySelector('.ol-clip'),edge=el.querySelector('.ol-edge');
+   ${ride?'<div class="ol-rider">'+MASCOT+'</div></div>':MASCOT}<p class="ol-caption">${caption}</p><p class="ol-sub">${sub}</p></div>`);
+  const el=host.lastElementChild,clip=el.querySelector('.ol-clip'),edge=el.querySelector('.ol-edge'),rider=el.querySelector('.ol-rider');
   let raf=0,value=0,face=0,faces=0;
   // The mascot keeps changing faces while the loader is on screen.
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const faceStep=()=>{face=(face+1)%FACES.length;if(FACES[face])el.dataset.face=FACES[face];else delete el.dataset.face};
   const startFaces=()=>{if(!faces&&!reduce)faces=setInterval(faceStep,520)};
   const stopFaces=()=>{clearInterval(faces);faces=0;delete el.dataset.face};
-  const set=v=>{value=Math.max(0,Math.min(1,v));const w=522*value;clip.setAttribute('width',w.toFixed(1));edge.setAttribute('x',(w-1.5).toFixed(1));edge.style.opacity=value>0&&value<1?1:0;el.setAttribute('aria-valuenow',Math.round(value*100))};
+  const set=v=>{value=Math.max(0,Math.min(1,v));const w=522*value;clip.setAttribute('width',w.toFixed(1));edge.setAttribute('x',(w-1.5).toFixed(1));edge.style.opacity=value>0&&value<1?1:0;
+   // Splash: the mascot drives across and the logo appears right behind it, then it leaves on the right.
+   if(rider){rider.style.left=(value*124-12).toFixed(1)+'%';el.classList.toggle('ol-done',value>=1)}
+   el.setAttribute('aria-valuenow',Math.round(value*100))};
   const ease=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
   const tween=(from,to,ms,done)=>{cancelAnimationFrame(raf);clearTimeout(raf);const t0=performance.now();const step=now=>{const k=Math.min(1,(now-t0)/ms);set(from+(to-from)*ease(k));if(k<1)raf=requestAnimationFrame(step);else done?.()};raf=requestAnimationFrame(step)};
   set(0);

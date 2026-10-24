@@ -643,3 +643,12 @@
 .overlay .ov-body{padding-bottom:calc(90px + var(--safe-bot,0px))!important}
 /* While a section is open the session screen and the hall behind it are not drawn at all (keyboard resizes included) */
 body:has(.overlay.open) :is(#session-screen,#my-session-banner,#booking-bar){visibility:hidden}
+/* «КОМПЬЮТЕРНЫЙ КЛУБ» under the logo: an ordinary word space, not stretched */
+.auth-descr{text-align:left!important;text-align-last:auto!important;letter-spacing:.14em;white-space:nowrap}
+/* Club photos behind the sign-in screens */
+#auth{isolation:isolate}
+#auth>.auth-photos{position:fixed;inset:0;z-index:-1;overflow:hidden;background:#000;pointer-events:none}
+#auth .auth-photos img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.05);transition:opacity 1.4s ease,transform 7s ease}
+#auth .auth-photos img.on{opacity:.5;transform:scale(1)}
+#auth .auth-photos::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,.35) 35%,rgba(0,0,0,.85) 70%,#000 100%)}
+@media(prefers-reduced-motion:reduce){#auth .auth-photos img{transition:none;transform:none}}
