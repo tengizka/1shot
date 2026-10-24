@@ -3,23 +3,41 @@
  const form=document.getElementById('form-register'),password=document.getElementById('r-pass'),button=document.getElementById('btn-reg');
  password.minLength=1;password.maxLength=64;button.textContent='Отправить анкету';
  const box=document.createElement('section');box.id='registration-wait';box.hidden=true;box.setAttribute('aria-live','polite');
- const title=document.createElement('h2'),message=document.createElement('p'),login=document.createElement('button');login.type='button';login.className='btn-main';login.textContent='У меня уже есть аккаунт';
- const retry=document.createElement('button');retry.type='button';retry.className='btn-main';retry.textContent='Заполнить новую анкету';box.append(title,message,login,retry);document.querySelector('#auth .auth-tabs').before(box);
- let ready=false,busy=false,dismissed=null,current=null;
- const messages={awaiting_admin:['Анкета отправлена','Подойди к администратору с документом — он подтвердит анкету.'],processing:['Проверяем анкету','Повторно отправлять не нужно.'],attention:['Нужна проверка','Подойди к администратору.'],rejected:['Анкета отклонена','Уточни у администратора. Если аккаунт уже есть — войди.'],expired:['Анкета устарела','Заполни новую.']};
+ const loaderHost=document.createElement('div');loaderHost.className='rw-loader';
+ const title=document.createElement('h2'),message=document.createElement('p');
+ const cancel=document.createElement('button');cancel.type='button';cancel.className='rw-cancel';cancel.textContent='Отменить анкету';
+ const retry=document.createElement('button');retry.type='button';retry.className='btn-main';retry.textContent='Заполнить новую анкету';
+ box.append(loaderHost,title,message,retry,cancel);document.querySelector('#auth .auth-tabs').before(box);
+ const loader=window.oneshotLoader?.build(loaderHost,{caption:'Анкета у администратора'});
+ let ready=false,busy=false,dismissed=null,current=null,armed=0;
+ // While the admin works on it the guest sees one calm screen with the 1SHOT loader, no technical states.
+ const WAIT=['Подойди к администратору','Возьми документ: администратор сверит данные, подтвердит анкету — и аккаунт откроется здесь сам.'];
+ const messages={awaiting_admin:WAIT,processing:WAIT,attention:WAIT,rejected:['Анкета отменена','Можно заполнить новую.'],expired:['Анкета устарела','Заполни новую — это минута.']};
  const visible=value=>{box.hidden=!value;form.hidden=value;document.querySelector('#auth .auth-tabs').hidden=value;document.getElementById('form-login').hidden=value};
- login.onclick=()=>{dismissed=current?.id;visible(false);switchAuthTab('login',document.querySelector('.auth-tab'))};
+ const waiting=()=>['awaiting_admin','processing','attention'].includes(current?.status);
+ const spin=on=>{if(!loader)return;loaderHost.hidden=!on;if(on&&!loader.spinning){loader.spinning=true;loader.cycle(2200)}if(!on&&loader.spinning){loader.spinning=false;loader.stop()}};
  retry.onclick=()=>{dismissed=current?.id;visible(false);switchAuthTab('register',document.querySelectorAll('.auth-tab')[1])};
+ cancel.onclick=async()=>{
+  if(busy)return;
+  // Second tap confirms; no system dialogs.
+  if(Date.now()-armed>4000){armed=Date.now();cancel.textContent='Точно отменить? Нажми ещё раз';cancel.classList.add('armed');setTimeout(()=>{if(Date.now()-armed>=4000){cancel.textContent='Отменить анкету';cancel.classList.remove('armed')}},4100);return}
+  busy=true;cancel.disabled=true;cancel.textContent='Отменяем…';
+  try{
+   await apiFetch(`${SUPA}/club-auth`,{method:'POST',body:JSON.stringify({action:'registration_cancel',initData:tg?.initData||''})});
+   dismissed=current?.id;current=null;spin(false);visible(false);switchAuthTab('register',document.querySelectorAll('.auth-tab')[1]);
+  }catch(error){message.textContent=String(error.message||'Не получилось отменить').replace(/^HTTP \d+: /,'')}
+  finally{busy=false;cancel.disabled=false;armed=0;cancel.textContent='Отменить анкету';cancel.classList.remove('armed')}
+ };
  function accept(r){
   if(!r||profile)return;current=r;
   if(r.status==='done'){
-   if(r.profile&&typeof r.profile.gizmo_user_id==='number'&&r.profile.gizmo_user_id>0){password.value='';profile=r.profile;saveProfile(profile);visible(false);showApp()}
-   else{title.textContent='Проверьте вход';message.textContent='Анкета обработана. Войдите в свой аккаунт';retry.hidden=true;visible(true)}
+   if(r.profile&&typeof r.profile.gizmo_user_id==='number'&&r.profile.gizmo_user_id>0){password.value='';profile=r.profile;saveProfile(profile);spin(false);visible(false);showApp()}
+   else{title.textContent='Анкета подтверждена';message.textContent='Войди в свой аккаунт с ником и паролем из анкеты.';retry.hidden=true;cancel.hidden=true;spin(false);visible(true)}
    return;
   }
   if(!messages[r.status]||dismissed===r.id)return;
   const [heading,text]=messages[r.status];if(title.textContent!==heading)title.textContent=heading;if(message.textContent!==text)message.textContent=text;
-  retry.hidden=!['rejected','expired'].includes(r.status);visible(true);
+  retry.hidden=waiting();cancel.hidden=r.status!=='awaiting_admin';spin(waiting());visible(true);
  }
  // Extend the existing guest capabilities request, never add a polling loop.
  const originalFetch=apiFetch;

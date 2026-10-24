@@ -37,6 +37,9 @@ Deno.serve(async req=>{
   if(b.action==='registration_status'){
    const {data,error}=await client.rpc('club_registration_status',{p_user:user});if(error)throw error;return json({registration:data});
   }
+  if(b.action==='registration_cancel'){
+   const {error}=await client.rpc('club_registration_cancel',{p_user:user});if(error)throw error;return json({ok:true});
+  }
   if(b.action==='status'){
    const {data,error}=await client.from('club_auth_requests').select('status,created_at,gizmo_user_id').eq('id',b.request_id).eq('telegram_id',user).single();if(error)throw error;
    if(['pending','running'].includes(data.status)&&Date.now()-Date.parse(data.created_at)>180000)return json({status:'failed'});

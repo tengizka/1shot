@@ -14,7 +14,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
    }
    if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*'}});
    if(url.pathname.endsWith('/club-bookings')){const b=route.request().postDataJSON();calls.push(b);return route.fulfill({contentType:'application/json',body:JSON.stringify(b.action==='capabilities'?{enabled:true,protocol:2,poll_bundle:1,registration_approval:1,registration,desk:{online:true,valid_for_ms:30000}}:{bookings:[],hosts:[],account:null,commands:[],desk:{online:true,valid_for_ms:30000}})})}
-   if(url.pathname.endsWith('/club-auth')){const b=route.request().postDataJSON();calls.push(b);assert.equal(b.action,'register_application');registration={id:'request-1',status:'awaiting_admin'};return route.fulfill({contentType:'application/json',body:JSON.stringify({request_id:'request-1'})})}
+   if(url.pathname.endsWith('/club-auth')){const b=route.request().postDataJSON();calls.push(b);if(b.action==='registration_cancel'){registration={id:'request-1',status:'rejected'};return route.fulfill({contentType:'application/json',body:'{"ok":true}'})}assert.equal(b.action,'register_application');registration={id:'request-1',status:'awaiting_admin'};return route.fulfill({contentType:'application/json',body:JSON.stringify({request_id:'request-1'})})}
    if(url.pathname.endsWith('/hosts'))return route.fulfill({contentType:'application/json',body:'{"hosts":[]}'});return route.abort();
   });
   await page.goto('https://club.test/');await page.waitForSelector('#splash',{state:'hidden'});await page.getByRole('button',{name:'Регистрация',exact:true}).click();
@@ -25,7 +25,10 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   assert.equal(await page.locator('#r-promo').inputValue(),'HEADSHOT');await page.locator('#r-promo').fill('blogger1');await page.locator('#btn-reg').click();
   await page.waitForSelector('#registration-wait:not([hidden])');assert.match(await page.locator('#registration-wait').innerText(),/администратор/);assert.equal(await page.locator('#r-pass').inputValue(),'');assert.equal(calls.filter(c=>c.action==='register_application').length,1);assert.equal(calls.find(c=>c.action==='register_application').password,'x');const sent=calls.find(c=>c.action==='register_application');assert.equal(sent.mobile_phone,'+79991234567','phone normalised to +7');assert.equal(sent.promo_code,'BLOGGER1','promo code sent upper-case');
   await page.reload();await page.waitForSelector('#registration-wait:not([hidden])');assert.ok(calls.some(c=>c.action==='capabilities'&&c.registration_pending===true));assert.equal(calls.filter(c=>c.action==='registration_status').length,0);
-  registration={id:'request-1',status:'processing'};await page.evaluate(()=>window.dispatchEvent(new Event('club:resume')));await page.waitForFunction(()=>document.querySelector('#registration-wait').textContent.includes('Проверяем анкету'));
+  assert.equal(await page.locator('#registration-wait .rw-cancel').isVisible(),true,'a waiting application can be cancelled');
+  assert.equal(await page.locator('#registration-wait .oneshot-loader').count(),1,'1SHOT loader instead of technical text');
+  registration={id:'request-1',status:'processing'};await page.evaluate(()=>window.dispatchEvent(new Event('club:resume')));await page.waitForFunction(()=>document.querySelector('#registration-wait .rw-cancel').hidden);
+  assert.doesNotMatch(await page.locator('#registration-wait').innerText(),/провер(яем|ка)|синхрон|подтверждени/i,'no technical wording');
   registration={id:'request-1',status:'done',profile:{telegram_id:123,gizmo_user_id:7,username:'new_guest'}};await page.evaluate(()=>window.dispatchEvent(new Event('club:resume')));await page.waitForFunction(()=>JSON.parse(localStorage.getItem('1shot_v2_profile')||'null')?.gizmo_user_id===7);
   assert.deepEqual(errors,[]);
   const desk=await context.newPage();await desk.setViewportSize({width:1100,height:800});desk.on('pageerror',e=>errors.push(e.message));desk.on('dialog',d=>d.accept());
