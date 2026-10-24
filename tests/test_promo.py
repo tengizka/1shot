@@ -23,7 +23,7 @@ class Gizmo:
   if path=='users' and method=='PUT':self.member={k[0].lower()+k[1:]:v for k,v in kwargs['params'].items()};return 7
   if path.endswith('/valid'):return {'result':0,'identity':{'userId':7}}
   if path.startswith('v2.0/products/'):return {'id':41,'productTaxes':getattr(self,'taxes_linked',[{'taxId':3,'isEnabled':True}])}
-  if path=='v2.0/taxes':return {'data':[{'id':1,'name':'НДС','value':23},{'id':2,'name':'16%','value':16},{'id':3,'name':'None','value':0}]}
+  if path=='v2.0/taxes':return {'data':getattr(self,'tax_table',[{'id':1,'name':'НДС','value':23},{'id':2,'name':'16%','value':16},{'id':3,'name':'None','value':0}])}
   if path.startswith('v2.0/invoices/'):return getattr(self,'invoice_v2',{'id':900,'taxTotal':0,'invoiceLines':[{'productName':'standart 1 h','taxRate':0,'taxTotal':0}]})
   if path=='products/time':return self.products if self.products is not None else [{'id':41,'name':'standart 1 h','price':self.price,'minutes':self.minutes},{'id':42,'name':'standart 30 min','price':0,'minutes':30}]
   if '/order/' in path:
@@ -77,6 +77,11 @@ class PromoTests(unittest.TestCase):
    self.gizmo=Gizmo();self.gizmo.taxes_linked=linked;self.build();r=self.api.approve(self.id,True)
    self.assertEqual(r['promo']['result'],'granted' if ok else 'failed',linked)
    if not ok:self.assertEqual(self.gizmo.orders(),[]);self.assertIn('налог',r['promo']['error'])
+ def test_no_product_tax_ok_only_when_every_gizmo_tax_is_zero(self):
+  for taxes,ok in (([{'id':1,'value':23},{'id':3,'value':0}],False),([{'id':1,'value':0},{'id':2,'value':0},{'id':3,'value':0}],True),([{'id':1,'value':0}],True)):
+   self.gizmo=Gizmo();self.gizmo.taxes_linked=[];self.gizmo.tax_table=taxes;self.build();r=self.api.approve(self.id,True)
+   self.assertEqual(r['promo']['result'],'granted' if ok else 'failed',taxes)
+   if not ok:self.assertIn('23%',r['promo']['error']);self.assertEqual(self.gizmo.orders(),[])
  def test_tax_in_the_invoice_needs_a_check(self):
   self.gizmo.invoice=dict(self.gizmo.invoice,taxTotal=0.5);self.build()
   self.assertEqual(self.api.approve(self.id,True)['promo']['result'],'attention')

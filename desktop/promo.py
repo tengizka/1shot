@@ -21,17 +21,20 @@ def free_hour_product(gizmo):
 
 
 def zero_tax(gizmo,product):
-    """The product must be linked to 0% taxes only. With no tax linked, Gizmo's API sale takes its default (23%)."""
+    """Only 0% may apply. A product without taxes gets Gizmo's default on API sales, so then every tax in Gizmo must be 0%."""
     item=gizmo.request('GET',f'v2.0/products/{int(product)}',params={'Expand':'ProductTaxes'})
     links=item.get('productTaxes') if isinstance(item,dict) else None
     if not isinstance(links,list):raise ValueError('не удалось проверить налог товара standart 1 h')
-    used={t.get('taxId') for t in links if isinstance(t,dict) and t.get('isEnabled',True)}
-    if not used:raise ValueError('у товара standart 1 h не выбран налог «None» (0%): без него Gizmo ставит 23%')
     taxes=gizmo.request('GET','v2.0/taxes')
     taxes=taxes.get('data') if isinstance(taxes,dict) else taxes
-    values={t.get('id'):t.get('value') for t in taxes or [] if isinstance(t,dict)}
-    bad=[values.get(i) for i in used if not isinstance(values.get(i),(int,float)) or values.get(i)!=0]
-    if bad:raise ValueError(f'у товара standart 1 h есть налог {bad[0]}%: оставьте только «None» (0%)')
+    if not isinstance(taxes,list):raise ValueError('не удалось прочитать налоги Gizmo')
+    values={t.get('id'):t.get('value') for t in taxes if isinstance(t,dict)}
+    used={t.get('taxId') for t in links if isinstance(t,dict) and t.get('isEnabled',True)}
+    # No tax on the product: Gizmo picks a default, which is only safe when no tax in Gizmo is above 0%.
+    checked=used or set(values)
+    bad=sorted({values.get(i) for i in checked if not isinstance(values.get(i),(int,float)) or values.get(i)!=0},key=str)
+    if bad and not used:raise ValueError(f'у товара standart 1 h нет налога, а в Gizmo есть налог {bad[-1]}%: его Gizmo и подставит. Сделайте налоги 0%')
+    if bad:raise ValueError(f'у товара standart 1 h есть налог {bad[-1]}%: оставьте только «None» (0%)')
 
 
 def invoice_tax_free(gizmo,invoice_id):

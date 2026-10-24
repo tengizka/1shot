@@ -1,6 +1,6 @@
 """Single source of desktop release identity (also used by Windows resources)."""
-VERSION = '3.5.7'
-VERSION_INFO = (3, 5, 7, 0)
+VERSION = '3.5.8'
+VERSION_INFO = (3, 5, 8, 0)
 AUTHOR = 'made tengizka'
 APP_TITLE = f'1SHOT / CLUB DESK · v{VERSION}'
 APP_ID = 'tengizka.1shot.ClubDesk'
