@@ -51,7 +51,7 @@ class Food:
         # Time packages and rentals are not food; FOOD_HIDE_GROUPS in .env replaces this list.
         # Rentals are sold in the market too (their own tab), so the «Аренда» group is never hidden.
         self.hidden={g.strip().casefold() for g in os.getenv('FOOD_HIDE_GROUPS','Standart,VIP,TV').split(',') if g.strip()}-{RENTAL_GROUP}
-        self.busy_seen=None
+
 
     def get(self,path,params=None):
         # Errors name the endpoint, so "HTTP 500" on the Desk screen says which Gizmo call failed.
@@ -107,7 +107,6 @@ class Food:
         # Only goods sold in the last FOOD_SOLD_DAYS (default 60): old duplicates with stale stock drop out.
         try:sold_ids,sold_names=self.sold()
         except Exception:sold_ids,sold_names=set(),set()
-        busy=self.busy_items()
         items=[]
         for p in self.paged('v2.0/products',{'IsDeleted':'false'}):
             group=groups.get(p.get('productGroupId'))
@@ -116,18 +115,11 @@ class Food:
             if p.get('disallowClientOrder') or p.get('restrictSale') or p.get('isService') or not isinstance(price,(int,float)) or isinstance(price,bool) or price<=0:continue
             if str(group.get('name','')).strip().casefold() in self.hidden or not str(p.get('name') or '').strip():continue
             rental=str(group.get('name','')).strip().casefold()==RENTAL_GROUP
-            if rental:
-                # A rental item already in someone's hands is not offered until it is returned.
-                if item_for(p.get('name')) in busy:continue
-            elif (sold_ids or sold_names) and p['id'] not in sold_ids and str(p.get('name') or '').strip().casefold() not in sold_names:continue
+            if not rental and (sold_ids or sold_names) and p['id'] not in sold_ids and str(p.get('name') or '').strip().casefold() not in sold_names:continue
             if p.get('enableStock') and not self.in_stock(p['id'],stock):continue
             items.append({'id':p['id'],'group':str(group.get('name') or 'Меню').strip()[:45],'group_order':int(group.get('displayOrder') or 0),'name':str(p['name']).strip()[:60],'price':round(float(price),2),'sort':int(p.get('displayOrder') or 0)})
         for item in items:item['image']=self.image(item['id'])
         return items
-
-    def busy_items(self):
-        try:return frozenset(r.get('item') for r in self.rentals.list()) if self.rentals else frozenset()
-        except Exception:return frozenset()
 
     def rent_out(self,order,host,journal):
         """Accepted order: its rental items go to the Desk rentals list on this PC, once."""
@@ -193,12 +185,10 @@ class Food:
         self.error=''
         seats=[{'uid':int(s['userId']),'host':str(s['hostNumber'])} for s in sessions if s.get('userId') and s.get('hostNumber') is not None]
         body={'seats':seats,'updates':list(self.store.get('food.updates',{}).values())[:50]}
-        # A rental taken or returned refreshes the menu at once, not in ten minutes.
-        if self.busy_items()!=self.busy_seen:self.menu_at=0
         if time.time()-self.menu_at>600:
             # A broken menu read never stops seats and orders; it is retried in a minute.
             try:
-                self.busy_seen=self.busy_items();menu=self.menu();digest=hashlib.sha256(json.dumps(menu,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
+                menu=self.menu();digest=hashlib.sha256(json.dumps(menu,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
                 if digest!=self.store.get('food.menu_hash') or self.status['menu']!=len(menu):body['menu']=menu
                 self.menu_at=time.time();self.status['menu']=len(menu)
             except Exception as error:self.menu_at=time.time()-540;self.error='меню: '+str(error)[:150]

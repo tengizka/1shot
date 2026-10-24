@@ -34,7 +34,7 @@ class App:
         self.accounts=Accounts(self.gizmo,self.cloud,self.store,self.controller.guard)
         self.registration=RegistrationApproval(self.cloud,self.gizmo,self.store,self.controller.guard)
         self.guest_passwords=GuestPasswords(self.cloud,self.gizmo,self.store,self.controller.guard)
-        self.food=Food(self.cloud,self.gizmo,self.store,lambda:{r['host_id']:r['gizmo_host_id'] for r in self.host_rows},rentals=types.SimpleNamespace(list=lambda:self._locked(lambda:self.rentals.list()),add=lambda *a:self._locked(lambda:self.rentals.add(*a))))
+        self.food=Food(self.cloud,self.gizmo,self.store,lambda:{r['host_id']:r['gizmo_host_id'] for r in self.host_rows},rentals=types.SimpleNamespace(add=lambda *a:self._locked(lambda:self.rentals.add(*a))))
         self.password_grants=[];self.password_ready=False
         self.registrations=[];self.registration_ready=False
         self.sound=Sound(HOME,self.store);self.host_rows=[];self.password_requests=[];self.protocol_ready=False;self.maximized=False

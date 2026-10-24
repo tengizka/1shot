@@ -205,10 +205,7 @@ class FoodTests(unittest.TestCase):
         self.cloud.orders=[order(items=[{'id':30,'name':'Аренда мышки Logitech G PRO X Superlight','price':199,'qty':1}],total=199)]
         food.tick(SEATED);self.gizmo.status=1;food.tick(SEATED);food.tick(SEATED)
         self.assertEqual([(r['item'],r['host'],r.get('user_id')) for r in rentals.list()],[('gprox','13',77)],'one rental on the PC, not one per tick')
-        names=[m['name'] for m in self.cloud.calls[-1]['menu']]
-        self.assertNotIn('Аренда мышки Logitech G PRO X Superlight',names,'taken item leaves the market at once');self.assertIn('Аренда Power Bank',names)
-        rentals.returned(rentals.list()[0]['id']);food.tick(SEATED)
-        self.assertIn('Аренда мышки Logitech G PRO X Superlight',[m['name'] for m in self.cloud.calls[-1]['menu']],'returned item is back')
+        self.assertIn('Аренда мышки Logitech G PRO X Superlight',[m['name'] for m in food.menu()],'items in hands stay in the market')
 
     def test_rental_names_map_to_desk_items(self):
         from desktop.rentals import item_for
