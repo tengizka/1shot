@@ -61,7 +61,6 @@ h2{font-size:clamp(30px,6vw,56px);line-height:1;margin-bottom:28px}
 .photos img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.6s;filter:saturate(.9)}
 .photos img.on{opacity:1}
 .photos::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,.7) 55%,#000)}
-.photos:empty{display:none}
 body>.wrap,body>.run,body>main{position:relative;z-index:1}
 .notg-hint{display:inline-block;margin-top:14px;font-size:13px;color:#C9C9CC;border-bottom:1px solid #3a3a3c;padding-bottom:2px}
 .notg-hint b{color:var(--lime)}
@@ -262,13 +261,12 @@ if(window.YM_ID){(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||
 })();
 </script>
 <script>
-// Фото клуба: положи файлы landing/club-1.webp … club-6.webp — покажутся по очереди. Нет файлов — фона нет.
+// Фото клуба: на широком экране — горизонтальные кадры, на телефоне сначала вертикальные. Нет файлов — фона нет.
 (function(){
-  var box=document.getElementById('photos'),shown=[],i=0;
-  ['landing/club-1.webp','landing/club-2.webp','landing/club-3.webp','landing/club-4.webp','landing/club-5.webp','landing/club-6.webp'].forEach(function(src){
-    var img=new Image();img.alt='';img.onload=function(){box.appendChild(img);shown.push(img);if(shown.length===1)img.classList.add('on')};img.src=src;
-  });
-  setInterval(function(){if(shown.length<2)return;shown[i].classList.remove('on');i=(i+1)%shown.length;shown[i].classList.add('on')},5000);
+  var box=document.getElementById('photos'),wide=innerWidth>innerHeight,i=0;
+  var list=wide?['landing/club-1.webp','landing/club-2.webp']:['landing/club-3.webp','landing/club-4.webp','landing/club-1.webp','landing/club-2.webp'];
+  var slots=list.map(function(src){var img=new Image();img.alt='';img.onload=function(){img.ok=true;if(!box.querySelector('img.on')){img.classList.add('on');i=slots.indexOf(img)}};img.src=src;box.appendChild(img);return img});
+  setInterval(function(){var ok=slots.filter(function(x){return x.ok});if(ok.length<2)return;var cur=slots[i];cur.classList.remove('on');do{i=(i+1)%slots.length}while(!slots[i].ok);slots[i].classList.add('on')},5000);
 })();
 </script>
 </body>
