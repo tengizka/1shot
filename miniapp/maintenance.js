@@ -1,7 +1,7 @@
 /* Maintenance: a full screen over the whole app; nothing behind it can be tapped or focused.
    To switch off: set ON to false (or drop this script). */
 (()=>{
- const ON=false;
+ const ON=true;
  // Automated test browsers (navigator.webdriver) see the app itself; real guests never have this flag.
  if(!ON||navigator.webdriver)return;
  const screen=document.createElement('div');screen.id='maintenance';screen.setAttribute('role','alert');
