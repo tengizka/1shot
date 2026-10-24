@@ -29,6 +29,15 @@ class RegistrationTests(unittest.TestCase):
   self.assertEqual(login_name(self.gizmo,'+7 (999) 123-45-67'),'guest')
   self.gizmo.users*=2
   with self.assertRaises(ApiError):login_name(self.gizmo,'+79991234567')
+ def test_phone_any_prefix_matches_main_number(self):
+  for stored in ['+79991234567','89991234567','79991234567','9991234567','+7 (999) 123-45-67']:
+   self.gizmo.users=[{'username':'guest','mobilePhone':stored}]
+   for typed in ['+79991234567','79991234567','89991234567','+89991234567','9991234567','8 (999) 123-45-67']:
+    self.assertEqual(login_name(self.gizmo,typed),'guest',(stored,typed))
+  self.gizmo.users=[{'username':'guest','mobilePhone':'+79991234567'},{'username':'other','phone':'89991234567'}]
+  with self.assertRaises(ApiError):login_name(self.gizmo,'9991234567')
+  self.gizmo.users=[{'username':'guest','mobilePhone':'+79991234568'}]
+  with self.assertRaises(ApiError):login_name(self.gizmo,'+79991234567')
  def test_nickname_not_changed(self):self.assertEqual(login_name(self.gizmo,'nickname'),'nickname')
 
 class AuthQueueTests(unittest.TestCase):

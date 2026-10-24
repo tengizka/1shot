@@ -12,12 +12,13 @@
  const occupiedActions=['Выберу другой','Посмотрю рядом','Не отвлекаем','Пойду дальше','Ладно, другой ПК','Мой ещё найдётся','Ищу свой трон','Окей, принято'];
  let lastLine=-1,lastAction=-1;const next=(n,old)=>old<0?Math.floor(Math.random()*n):(old+1+Math.floor(Math.random()*(n-1)))%n;
  let handIndex=Math.floor(Math.random()*hands.length);
- window.showOccupied=()=>{
+ window.showOccupied=(hostId)=>{
   let box=document.getElementById('occupied-dialog');
-  if(!box){box=document.createElement('dialog');box.id='occupied-dialog';box.className='occupied-dialog';box.innerHTML='<div class="occupied-art"></div><p>Прости, но он занят..</p><button class="btn-main" autofocus>Другой ПК</button>';box.querySelector('button').onclick=()=>box.close();document.body.append(box)}
+  if(!box){box=document.createElement('dialog');box.id='occupied-dialog';box.className='occupied-dialog';box.innerHTML='<div class="occupied-art"></div><p>Прости, но он занят..</p><button class="btn-main" autofocus>Другой ПК</button><button type="button" class="occupied-queue">Сообщи, когда освободится</button>';box.querySelector('.btn-main').onclick=()=>box.close();box.addEventListener('click',e=>{if(e.target===box)box.close()});box.addEventListener('close',()=>window.pickSeat?.(null));document.body.append(box)}
+  const queue=box.querySelector('.occupied-queue');queue.hidden=!hostId||!window.joinQueue;queue.onclick=()=>{box.close();window.joinQueue(hostId)};
   handIndex=(handIndex+1)%hands.length;const hand=hands[handIndex];box.dataset.variant=String(handIndex);
   box.querySelector('.occupied-art').innerHTML='<svg viewBox="0 0 110 145" aria-hidden="true"><path d="'+hand[0]+'"/><path d="'+hand[1]+'"/></svg>';
-  lastLine=next(occupiedLines.length,lastLine);lastAction=next(occupiedActions.length,lastAction);box.querySelector('p').textContent=occupiedLines[lastLine];box.querySelector('button').textContent=occupiedActions[lastAction];
+  lastLine=next(occupiedLines.length,lastLine);lastAction=next(occupiedActions.length,lastAction);box.querySelector('p').textContent=occupiedLines[lastLine];box.querySelector('.btn-main').textContent=occupiedActions[lastAction];
   window.hallMotion?.cancel();if(!box.open)box.showModal();
  };
  const logoShape='M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z';
@@ -37,7 +38,7 @@
  });
  const trigger=document.getElementById('birthday-open');if(!trigger)return;
  const now=new Date(),parts=[1,1,now.getFullYear()-18];
- const dialog=document.createElement('dialog');dialog.className='birthday-dialog';dialog.innerHTML='<h3>Дата рождения</h3><div class="birth-wheels"></div><p id="birth-error" role="status"></p><button type="button" class="btn-main">Выбрать дату</button>';document.body.append(dialog);
+ const dialog=document.createElement('dialog');dialog.className='birthday-dialog';dialog.innerHTML='<h3>Дата рождения</h3><div class="birth-labels" aria-hidden="true"><span>День</span><span>Месяц</span><span>Год</span></div><div class="birth-wheels"></div><p id="birth-error" role="status"></p><button type="button" class="btn-main">Выбрать дату</button>';document.body.append(dialog);
  const wheels=[];
  function build(i){const el=wheels[i];el.replaceChildren();const min=i===2?now.getFullYear()-110:1,max=i===2?now.getFullYear():i===1?12:new Date(parts[2],parts[1],0).getDate();parts[i]=Math.min(max,Math.max(min,parts[i]));for(let n=min;n<=max;n++){const b=document.createElement('button');b.type='button';b.textContent=String(n).padStart(2,'0');b.setAttribute('role','option');b.onclick=()=>el.scrollTo({top:(n-min)*44,behavior:'smooth'});el.append(b)}el.dataset.min=min;requestAnimationFrame(()=>{el.scrollTop=(parts[i]-min)*44;mark(i)})}
  function mark(i){[...wheels[i].children].forEach((e,n)=>e.setAttribute('aria-selected',String(n+Number(wheels[i].dataset.min)===parts[i])))}

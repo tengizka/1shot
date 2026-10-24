@@ -38,8 +38,24 @@ class TestClubController(unittest.TestCase):
  def test_busy_scheduled_cancelled_without_kicking_or_later_lock(self):
   self.gizmo.active=[{'hostId':50,'userId':99}];self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'cancelled');self.assertEqual(self.gizmo.locks,[])
   self.gizmo.active=[];self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'cancelled');self.assertEqual(self.gizmo.locks,[])
+ def test_ps5_reserved_without_gizmo_lock(self):
+  self.cloud.b['host_id']='1';self.cloud.b['starts_at']=iso(NOW+100);self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'requested')
+  self.now+=100;self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'holding');self.assertEqual(self.gizmo.locks,[]);self.assertEqual(self.gizmo.logins,[])
+  self.now+=4000;self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'expired');self.assertEqual(self.gizmo.locks,[])
+ def test_ps5_never_logs_in(self):
+  self.cloud.b.update(host_id='1',status='checkin_pending');self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'attention');self.assertEqual(self.gizmo.logins,[])
  def test_future_does_not_lock(self):
-  self.cloud.b['starts_at']=iso(NOW+100);self.ctrl.tick();self.assertEqual(self.gizmo.locks,[])
+  self.cloud.b.update(starts_at=iso(NOW+7201),hold_until=iso(NOW+9000));self.ctrl.tick();self.assertEqual(self.gizmo.locks,[]);self.assertEqual(self.cloud.b['status'],'requested')
+ def test_locked_two_hours_ahead(self):
+  self.cloud.b.update(starts_at=iso(NOW+7200),hold_until=iso(NOW+9000));self.ctrl.tick()
+  self.assertEqual(self.gizmo.locks,[True]);self.assertEqual(self.cloud.b['status'],'holding')
+ def test_busy_ahead_waits_then_locks_when_free(self):
+  self.cloud.b.update(starts_at=iso(NOW+3600),hold_until=iso(NOW+5400));self.gizmo.active=[{'hostId':50,'userId':99}]
+  self.ctrl.tick();self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'waiting');self.assertEqual(self.cloud.calls,['waiting'],'one waiting alert, not one per tick');self.assertEqual(self.gizmo.locks,[],'never kicks the player')
+  self.gizmo.active=[];self.now+=600;self.ctrl.tick();self.assertEqual(self.gizmo.locks,[True]);self.assertEqual(self.cloud.b['status'],'holding')
+ def test_busy_until_the_start_still_cancels(self):
+  self.cloud.b.update(starts_at=iso(NOW+3600),hold_until=iso(NOW+5400));self.gizmo.active=[{'hostId':50,'userId':99}]
+  self.ctrl.tick();self.now+=3600;self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'cancelled');self.assertEqual(self.gizmo.locks,[])
  def test_preexisting_lock_never_claimed_or_released(self):
   self.gizmo.h['state']=2;self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'attention');self.now+=4000;self.ctrl.tick();self.assertEqual(self.gizmo.locks,[])
  def test_external_change_never_unlocked(self):

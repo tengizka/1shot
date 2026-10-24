@@ -37,6 +37,9 @@ Deno.serve(async req=>{
   if(b.action==='registration_status'){
    const {data,error}=await client.rpc('club_registration_status',{p_user:user});if(error)throw error;return json({registration:data});
   }
+  if(b.action==='registration_cancel'){
+   const {error}=await client.rpc('club_registration_cancel',{p_user:user});if(error)throw error;return json({ok:true});
+  }
   if(b.action==='status'){
    const {data,error}=await client.from('club_auth_requests').select('status,created_at,gizmo_user_id').eq('id',b.request_id).eq('telegram_id',user).single();if(error)throw error;
    if(['pending','running'].includes(data.status)&&Date.now()-Date.parse(data.created_at)>180000)return json({status:'failed'});
@@ -51,6 +54,10 @@ Deno.serve(async req=>{
    if(!/^[\p{L}\p{N}_.-]{3,30}$/u.test(b.username)||!['first_name','last_name'].every(k=>typeof b[k]==='string'&&b[k].trim()&&b[k].length<=45)||typeof b.mobile_phone!=='string'||!/^\+?[0-9 ()-]{7,20}$/.test(b.mobile_phone)||![1,2].includes(b.sex)||typeof b.birth_date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(b.birth_date))return json({error:'Заполните все поля регистрации корректно'},400);
    const birth=new Date(b.birth_date+'T00:00:00Z');if(!Number.isFinite(birth.getTime())||birth.toISOString().slice(0,10)!==b.birth_date||birth.getTime()>Date.now()||Date.now()-birth.getTime()>111*366*86400000)return json({error:'Проверьте дату рождения'},400);
    for(const key of ['first_name','last_name','mobile_phone','sex','birth_date'])payload[key]=b[key];
+   if(b.promo_code!==undefined&&b.promo_code!==null&&b.promo_code!==''){
+    if(typeof b.promo_code!=='string'||!/^[A-Za-z0-9_-]{2,32}$/.test(b.promo_code.trim()))return json({error:'Промокод: латинские буквы, цифры, _ или -'},400);
+    payload.promo_code=b.promo_code.trim().toUpperCase();
+   }
   }
   const secret=Deno.env.get('AGENT_SECRET');if(!secret)throw Error('not_configured');
   const id=crypto.randomUUID(),iv=randomBytes(12),key=createHash('sha256').update('1shot-auth-v2:'+secret).digest();

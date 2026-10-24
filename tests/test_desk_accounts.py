@@ -19,12 +19,23 @@ class Gizmo:
    for key,value in kw['params'].items():
     if key!='UserId':self.member[key[0].lower()+key[1:]]=value
   if path.endswith('/valid'):return {'result':0,'identity':{'userId':7}}
+  if path=='v2.0/paymentmethods':return {'data':getattr(self,'methods',[{'id':-1,'name':'Депозит','isEnabled':True},{'id':4,'name':'Т-Банк онлайн','isEnabled':True}])}
+  if path=='v2.0/paymentintent/deposit':return {'paymentUrl':'https://pay.tbank.ru/abc','paymentIntent':'x'}
 class AccountsTests(unittest.TestCase):
  def setUp(self):
   self.temp=tempfile.TemporaryDirectory();self.store=Store(Path(self.temp.name)/'test.db');self.gizmo=Gizmo();self.api=Accounts(self.gizmo,None,self.store,lambda:None)
  def tearDown(self):self.temp.cleanup()
  def test_real_balance_and_session(self):
   data=self.api.read(7);self.assertEqual(data['balance'],123.45);self.assertEqual(data['session']['host_id'],'101')
+ def test_topup_returns_tbank_link(self):
+  self.assertEqual(self.api.execute({'kind':'topup','gizmo_user_id':7,'payload':{'amount':1000}}),'https://pay.tbank.ru/abc')
+  self.assertEqual(self.gizmo.writes[-1],('v2.0/paymentintent/deposit',{'json':{'userId':7,'amount':1000,'paymentMethodId':4}}))
+ def test_topup_rejects_bad_amount_and_unclear_method(self):
+  for amount in (50,100000,'1000',10.5):
+   with self.assertRaises(UnsafeOperation):self.api.execute({'kind':'topup','gizmo_user_id':7,'payload':{'amount':amount}})
+  self.gizmo.methods=[{'id':4,'name':'Т-Банк','isEnabled':True},{'id':5,'name':'Онлайн','isEnabled':True}]
+  with self.assertRaisesRegex(UnsafeOperation,'PAYMENT_ONLINE_METHOD_ID'):self.api.execute({'kind':'topup','gizmo_user_id':7,'payload':{'amount':1000}})
+  self.assertFalse(any(w[0]=='v2.0/paymentintent/deposit' for w in self.gizmo.writes))
  def test_lock_only_expected_session(self):
   payload=session_record(self.gizmo.active[0])
   res=self.api.execute({'kind':'lock','gizmo_user_id':7,'payload':payload})
@@ -101,7 +112,7 @@ class AccountsTests(unittest.TestCase):
   with self.assertRaises(UnsafeOperation):self.api.queue_password_result('r','done')
  def test_soft_sound_volume_and_saved_preferences(self):
   sound=Sound(Path(self.temp.name),self.store);self.assertEqual(sound.settings['preset'],'soft');self.assertTrue(sound.path().exists())
-  sound.configure({'preset':'chime','volume':25,'repeat':30,'enabled':False});other=Sound(Path(self.temp.name),self.store);self.assertEqual(other.settings['volume'],25);self.assertFalse(other.settings['enabled'])
+  sound.configure({'preset':'bell','volume':25,'enabled':False});other=Sound(Path(self.temp.name),self.store);self.assertEqual(other.settings['volume'],25);self.assertFalse(other.settings['enabled'])
 
 class ShutdownTests(unittest.TestCase):
  def test_close_hides_but_exit_destroys_before_tray_stop(self):

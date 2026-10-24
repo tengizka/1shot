@@ -5,6 +5,8 @@ Deno.serve(async req=>{
  if(!Deno.env.get('AGENT_SECRET')||req.headers.get('x-agent-secret')!==Deno.env.get('AGENT_SECRET'))return json({error:'Unauthorized'},403);
  try{
   const b=await req.json(),client=db();
+  // Read-only report for the analytics export, which runs without a Desk lease.
+  if(b.action==='promo_report'){const {data,error}=await client.rpc('club_promo_report');if(error)throw error;return json(data);}
   const {data:worker,error}=await client.from('club_worker').select('*').eq('worker_id',b.worker_id).gt('lease_until',new Date().toISOString()).single();
   if(error||!worker)return json({error:'lease_expired'},409);
   if(['password_context','password_authorize','password_claim','password_finish','password_review','password_resolve'].includes(b.action)){
@@ -28,6 +30,29 @@ Deno.serve(async req=>{
    else args.p_confirmed=b.confirmed===true;
    const {data,error}=await client.rpc('club_'+b.action,args);if(error)throw error;
    return b.action==='registration_claim'?json({request:data}):json({ok:data===true});
+  }
+  if(b.action==='report'){
+   const {data,error}=await client.rpc('club_desk_report',{p_worker:b.worker_id,p_kind:b.kind,p_data:b.data??null});if(error)throw error;
+   return json({ok:data===true});
+  }
+  if(b.action==='food_sync'){
+   const {data,error}=await client.rpc('club_food_sync',{p_worker:b.worker_id,p_seats:Array.isArray(b.seats)?b.seats:null,p_menu:Array.isArray(b.menu)?b.menu:null,p_updates:Array.isArray(b.updates)?b.updates.slice(0,50):[]});if(error)throw error;
+   return json(data);
+  }
+  if(b.action==='test_accounts'){const {data,error}=await client.rpc('club_test_accounts',{p_worker:b.worker_id});if(error)throw error;return json({accounts:data});}
+  if(b.action==='test_account_removed'){
+   if(!Number.isInteger(b.gizmo_user_id)||b.gizmo_user_id<=0)return json({error:'invalid_account'},400);
+   const {data,error}=await client.rpc('club_test_account_removed',{p_worker:b.worker_id,p_uid:b.gizmo_user_id});if(error)throw error;
+   return json({ok:data===true});
+  }
+  if(b.action==='promo_codes'){const {data,error}=await client.rpc('club_promo_codes_active');if(error)throw error;return json({codes:data});}
+  if(b.action==='promo_desk_redemption'){
+   const {data,error}=await client.rpc('club_promo_desk_redemption',{p_worker:b.worker_id,p_id:b.id,p_code:b.code,p_uid:b.gizmo_user_id});if(error)throw error;
+   return json({ok:data===true});
+  }
+  if(b.action==='promo_reward'){
+   const {data,error}=await client.rpc('club_promo_reward',{p_worker:b.worker_id,p_id:b.id,p_result:b.result});if(error)throw error;
+   return json({ok:data===true});
   }
   if(b.action==='poll'){
 

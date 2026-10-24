@@ -17,9 +17,10 @@ def unwrap(response, name):
     return data.get('result') if isinstance(data,dict) and 'result' in data else data
 
 class Gizmo:
-    def __init__(self):
+    def __init__(self,login=None,password=None):
         self.base=os.environ['GIZMO_BASE_URL'].rstrip('/')
-        self.auth={'Authorization':'Basic '+base64.b64encode((os.environ['GIZMO_LOGIN']+':'+os.environ['GIZMO_PASSWORD']).encode()).decode()}
+        login,password=(login,password) if login else (os.environ['GIZMO_LOGIN'],os.environ['GIZMO_PASSWORD'])
+        self.auth={'Authorization':'Basic '+base64.b64encode((login+':'+password).encode()).decode()}
         self.verify=os.getenv('GIZMO_VERIFY_SSL','true').lower()=='true'
     def request(self,method,path,**kwargs):
         # No URL containing credentials is included in errors/logs.

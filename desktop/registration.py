@@ -38,13 +38,19 @@ def registration_params(req,gizmo,today=None):
     return {'Username':req['username'],'UserGroupId':group,'FirstName':req['first_name'].strip(),'LastName':req['last_name'].strip(),'MobilePhone':phone,'Sex':req['sex'],'BirthDate':birth.isoformat()+'T00:00:00'}
 
 
+def main_number(value):
+    # +7 999…, 7 999…, 8 999… and 999… are the same Russian number: compare the last 10 digits.
+    digits=re.sub(r'\D','',str(value or ''))
+    if len(digits)==11 and digits[0] in '78':return digits[1:]
+    return digits or None
+
+
 def login_name(gizmo,identity):
     # A phone must match exactly one nondeleted/non-disabled guest; never try several passwords.
     if not re.fullmatch(r'\+?[\d ()-]{7,20}',identity):return identity
     if gizmo.request('GET',f'users/loginname/{quote(identity,safe="")}/exist') is True:return identity
-    normalized=lambda value:re.sub(r'\D','',str(value or ''))
     matches=[u for u in gizmo.request('GET','users',params={'IsDeleted':False,'IsDisabled':False})
-             if not u.get('isDeleted') and not u.get('isDisabled') and normalized(identity) in (normalized(u.get('mobilePhone')),normalized(u.get('phone')))]
+             if not u.get('isDeleted') and not u.get('isDisabled') and main_number(identity) in (main_number(u.get('mobilePhone')),main_number(u.get('phone')))]
     if len(matches)!=1:raise ApiError('Телефон не найден или неоднозначен; используйте никнейм')
     return matches[0]['username']
 

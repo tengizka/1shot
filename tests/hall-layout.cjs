@@ -1,4 +1,4 @@
-// Regression: persistent physical groups, stale hosts and the active-session banner must fit.
+// Regression: the schematic hall plan fits every viewport; zoomed zones keep 44px seats with no overlap.
 const {chromium}=require('playwright-core');
 const binary=require('@sparticuz/chromium').default;
 const fs=require('node:fs'),assert=require('node:assert/strict');
@@ -27,26 +27,28 @@ const fs=require('node:fs'),assert=require('node:assert/strict');
    }
    return route.abort();
   });
+  await page.emulateMedia({reducedMotion:'reduce'});
   await page.goto('https://club.test/');await page.waitForSelector('#splash',{state:'hidden'});
   await page.waitForFunction(()=>window.clubV2);
-  async function check(){
-   await page.waitForFunction(()=>!document.getElementById('seat-viewport').classList.contains('is-moving'));
+  async function check(zone){
    if(await page.locator('#session-screen').isVisible()){assert.equal(await page.locator('#hall-area').isVisible(),false);assert.ok(await page.locator('#session-screen').evaluate(e=>e.scrollWidth<=e.clientWidth+1));return}
-   const report=await page.evaluate(()=>{
+   const report=await page.evaluate(zone=>{
     const rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,width:r.width,height:r.height}};
-    return {containers:['app','hall-area','floor-shell','floor-map'].map(id=>{const e=document.getElementById(id)||document.querySelector('.'+id);return {id,h:e.scrollHeight,ch:e.clientHeight,w:e.scrollWidth,cw:e.clientWidth}}),map:rect(document.getElementById('floor-map')),pagination:rect(document.querySelector('.seat-pagination')),cards:[...document.querySelectorAll('.map-pc')].map(e=>({id:e.dataset.hid,...rect(e),number:rect(e.querySelector('.map-number'))})),phone:{color:getComputedStyle(document.querySelector('.ps5-phone-card')).color,decoration:getComputedStyle(document.querySelector('.ps5-phone-card')).textDecorationLine}};
-   });
+    return {containers:['app','hall-area','floor-shell'].map(id=>{const e=document.getElementById(id)||document.querySelector('.'+id);return {id,h:e.scrollHeight,ch:e.clientHeight,w:e.scrollWidth,cw:e.clientWidth}}),
+     plan:rect(document.getElementById('hall-plan')),all:document.querySelectorAll('.map-pc').length,
+     cards:[...document.querySelectorAll(zone==='all'?'.map-pc':`.map-pc[data-zone="${zone}"]`)].map(e=>({id:e.dataset.hid,...rect(e),number:rect(e.querySelector('.map-number'))})),
+     phone:{tag:document.querySelector('.ps5-phone-card').tagName,color:getComputedStyle(document.querySelector('.ps5-phone-card')).color,decoration:getComputedStyle(document.querySelector('.ps5-phone-card')).textDecorationLine}};
+   },zone);
    for(const c of report.containers)assert.ok(c.h<=c.ch+1&&c.w<=c.cw+1,JSON.stringify(c));
-   assert.ok(report.cards.length>0&&report.cards.length<=10);
+   assert.equal(report.all,30);assert.ok(report.cards.length>0);
    for(const c of report.cards){
-    assert.ok(c.width>=44&&c.height>=44,JSON.stringify(c));
-    assert.ok(c.y>=report.map.y-1&&c.bottom<=report.map.bottom+1,JSON.stringify(c));
-
-    assert.ok(c.number.y>=c.y&&c.number.bottom<=c.bottom&&c.number.right<=c.right,JSON.stringify(c));
+    if(zone==='all')assert.ok(c.x>=report.plan.x-1&&c.right<=report.plan.right+1&&c.y>=report.plan.y-1&&c.bottom<=report.plan.bottom+1,'overview fits '+JSON.stringify(c));
+    else assert.ok(c.width>=44&&c.height>=44,JSON.stringify(c));
+    assert.ok(c.number.y>=c.y-.5&&c.number.bottom<=c.bottom+.5&&c.number.right<=c.right+.5,JSON.stringify(c));
     for(const b of report.cards)if(b.id!==c.id)assert.ok(c.right<=b.x+.5||b.right<=c.x+.5||c.bottom<=b.y+.5||b.bottom<=c.y+.5,`overlap ${c.id}/${b.id}`);
    }
-   for(const id of report.cards.map(c=>c.id)){const card=page.locator(`[data-hid="${id}"]`);await card.evaluate(e=>e.scrollIntoView({block:'nearest'}));assert.ok(await card.evaluate(e=>{const r=e.getBoundingClientRect(),v=document.getElementById('seat-viewport').getBoundingClientRect();return r.top>=v.top-1&&r.bottom<=v.bottom+1}),'seat reachable '+id)}
-   assert.equal(report.phone.color,'rgb(255, 255, 255)');assert.equal(report.phone.decoration,'none');
+   if(zone!=='all')for(const id of report.cards.map(c=>c.id)){const card=page.locator(`[data-hid="${id}"]`);await card.evaluate(e=>e.scrollIntoView({block:'nearest',inline:'nearest'}));assert.ok(await card.evaluate(e=>{const r=e.getBoundingClientRect(),v=document.getElementById('hall-plan').getBoundingClientRect();return r.top>=v.top-1&&r.bottom<=v.bottom+1&&r.left>=v.left-1&&r.right<=v.right+1}),'seat reachable '+id)}
+   assert.equal(report.phone.decoration,'none');assert.equal(report.phone.tag,'BUTTON','PS5 is bookable from its card');
   }
   for(const active of [false,true]){
    sessionVisible=active;await page.reload();await page.waitForSelector('#splash',{state:'hidden'});await page.waitForFunction(()=>window.clubV2);
@@ -55,13 +57,13 @@ const fs=require('node:fs'),assert=require('node:assert/strict');
    live=online;await page.evaluate(()=>fetchHosts());
    for(const [width,height] of [[423,725],[423,756],[390,700],[375,681],[320,568],[844,390],[390,844],[390,950]]){
     await page.setViewportSize({width,height});
-    for(const [zone,num] of [['vip',0],['standard',0],['standard',1],['standard',2]]){
-     await page.evaluate(([zone,num])=>{switchZone(zone);seatPage=num;renderHall()},[zone,num]);await check();
-     if(width===423&&height===725&&zone==='standard'&&num===1)await page.screenshot({path:`/tmp/1shot-hall-${online?'live':'offline'}-fixed.png`});
+    for(const zone of ['all','vip','z1','z2','z34']){
+     await page.evaluate(zone=>{switchZone(zone);setPlanView(zone,false)},zone);await check(zone);
+     if(width===390&&height===844&&zone==='vip')await page.screenshot({path:`/tmp/1shot-hall-${online?'live':'offline'}-plan.png`});
     }
    }
   }
   }
-  assert.deepEqual(errors,[]);console.log('128 hall layouts passed: with/without active session, stale/live hosts, 8 viewports, 4 whole-zone pages, no overlap, 44px cards.');
+  assert.deepEqual(errors,[]);console.log('160 hall plan layouts passed: with/without active session, stale/live hosts, 8 viewports, overview + 4 zoomed zones, no overlap, 44px zoomed seats.');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});

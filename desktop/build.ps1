@@ -5,7 +5,7 @@ py -3 -m venv .venv
 if ($LASTEXITCODE -ne 0) { throw "Dependency installation failed" }
 & .\.venv\Scripts\python.exe -m desktop.write_metadata
 if ($LASTEXITCODE -ne 0) { throw "Metadata generation failed" }
-& .\.venv\Scripts\python.exe -m PyInstaller --noconfirm --clean --windowed --name "1SHOT-Desk" --paths . --icon desktop/assets/app.ico --version-file desktop/version-info.txt --add-data "desktop/assets;desktop/assets" --add-data "desktop/brand.js;desktop" --add-data "desktop/index.html;desktop" --add-data "desktop/desk.js;desktop" --add-data "desktop/reminders.js;desktop" --add-data "desktop/rota.js;desktop" --add-data "desktop/admin-tools.js;desktop" --add-data "desktop/registrations.js;desktop" --add-data "desktop/guest-passwords.js;desktop" --add-data "desktop/desk.css;desktop" --add-data "desktop/polish.css;desktop" --add-data "desktop/polish.js;desktop" --add-data "assets/fonts;assets/fonts" --collect-all webview --exclude-module webview.platforms.winforms --exclude-module webview.platforms.edgechromium --exclude-module clr --exclude-module pythonnet desktop\launcher.py
+& .\.venv\Scripts\python.exe -m PyInstaller --noconfirm --clean --windowed --name "1SHOT-Desk" --paths . --icon desktop/assets/app.ico --version-file desktop/version-info.txt --add-data "desktop/assets;desktop/assets" --add-data "desktop/*.js;desktop" --add-data "desktop/*.css;desktop" --add-data "desktop/index.html;desktop" --add-data "assets/fonts;assets/fonts" --collect-all webview --exclude-module webview.platforms.winforms --exclude-module webview.platforms.edgechromium --exclude-module clr --exclude-module pythonnet desktop\launcher.py
 if ($LASTEXITCODE -ne 0) { throw "Build failed" }
 @{format='1shot-desk-tools-v1';backup_mode=1;sha256=(Get-FileHash -Algorithm SHA256 'dist/1SHOT-Desk/1SHOT-Desk.exe').Hash.ToLowerInvariant()} | ConvertTo-Json | Set-Content -Encoding UTF8 'dist/1SHOT-Desk/backup-capabilities.json'
 $report = Join-Path (Get-Location) "dist\smoke-result.json"
@@ -14,4 +14,12 @@ if (-not $proc.WaitForExit(90000)) { Stop-Process -Id $proc.Id -Force; throw "UI
 if (-not (Test-Path $report)) { throw "UI smoke test did not produce a result" }
 $result = Get-Content $report -Raw | ConvertFrom-Json
 if (-not $result.ok) { throw "UI smoke test failed: $($result.error)" }
-Write-Host "Ready: dist\1SHOT-Desk\1SHOT-Desk.exe. Copy the ENTIRE folder."
+$iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+if (Test-Path $iscc) {
+  $version = & .\.venv\Scripts\python.exe -c "from desktop.version import VERSION; print(VERSION)"
+  & $iscc "/DAppVersion=$version" desktop\installer\1shot-desk.iss
+  if ($LASTEXITCODE -ne 0) { throw "Installer build failed" }
+  Write-Host "Ready: dist\1SHOT-Desk-Setup.exe"
+} else {
+  Write-Host "Ready: dist\1SHOT-Desk\1SHOT-Desk.exe. Copy the ENTIRE folder. Install Inno Setup 6 to also get dist\1SHOT-Desk-Setup.exe"
+}
