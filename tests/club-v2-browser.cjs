@@ -2,7 +2,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
 (async()=>{
  const browser=await chromium.launch({executablePath:await binary.executablePath(),args:binary.args,headless:true});
  try{
-  const page=await browser.newPage({viewport:{width:390,height:844}});const errors=[],requests=[];let rows=[],session=null,passwordRequest=null;
+  const page=await browser.newPage({viewport:{width:390,height:844}});const errors=[],requests=[];let rows=[],session=null,passwordRequest=null;const commands=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
   await page.addInitScript(()=>{window.Telegram={WebApp:{initData:'test-signed',initDataUnsafe:{user:{id:123}},ready(){},expand(){},enableClosingConfirmation(){},setHeaderColor(){},setBackgroundColor(){}}};localStorage.setItem('1shot_v2_profile',JSON.stringify({telegram_id:123,username:'guest',gizmo_user_id:7}))});
   await page.route('**/*',route=>{
@@ -17,9 +17,9 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
     const b=route.request().postDataJSON();requests.push(b);let result={ok:true};
     if(b.action==='capabilities')result={desk:{online:true,valid_for_ms:30000},enabled:true,protocol:2};
     if(b.action==='list')result={bookings:rows};
-    if(b.action==='account')result={account:{data:{username:'guest',firstName:'Андрей',lastName:'Тест',birthDate:'2000-01-02',balance:321.5,session},updated_at:new Date().toISOString()},commands:[],password_request:passwordRequest,telegram:{first_name:'Андрей',photo_url:'https://club.test/avatar.svg'}};
+    if(b.action==='account')result={account:{data:{username:'guest',firstName:'Андрей',lastName:'Тест',birthDate:'2000-01-02',balance:321.5,available_time:5400,session},updated_at:new Date().toISOString()},commands,password_request:passwordRequest,telegram:{first_name:'Андрей',photo_url:'https://club.test/avatar.svg'}};
     if(b.action==='create_v2'){const now=new Date().toISOString();rows.push({id:'b'+rows.length,host_id:b.host_id,mode:b.mode==='instant'?'arrival':b.mode,protocol:2,instant:b.mode==='instant',for_friend:b.for_friend,duration_kind:b.duration_kind,starts_at:now,ends_at:new Date(Date.now()+3600000).toISOString(),hold_until:new Date(Date.now()+3600000).toISOString(),status:b.mode==='instant'?'in_session':'holding'});if(b.mode==='instant')session={key:'session-1',host_id:b.host_id,last_login:now};result={booking_id:rows.at(-1).id}}
-    if(b.action==='release')rows.find(x=>x.id===b.id).status='completed';if(b.action==='command'&&b.kind==='lock')result={id:'cmd-lock-1'};
+    if(b.action==='release')rows.find(x=>x.id===b.id).status='completed';if(b.action==='command'&&['lock','logout'].includes(b.kind)){result={id:'cmd-'+b.kind+'-'+commands.length};commands.unshift({id:result.id,kind:b.kind,status:'done',message:''})}
     return route.fulfill({contentType:'application/json',body:JSON.stringify(result)});
    }
    return route.abort();
@@ -30,11 +30,13 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   await page.waitForTimeout(400);await page.locator('#instant-mode').click();await page.waitForSelector('#oneshot-overlay.open');assert.equal(requests.find(b=>b.action==='create_v2').mode,'instant');
   assert.equal(await page.locator('#club-booking').evaluate(d=>d.open),false,'sheet closes while the logo loader runs');
   await page.waitForSelector('#session-screen:not([hidden])');await page.waitForSelector('#oneshot-overlay',{state:'hidden'});
-  await page.locator('#btn-session-manage').click();await page.waitForSelector('.current-session');assert.equal(await page.locator('.club-reservation input').count(),0);
+  assert.equal(await page.locator('#session-screen .session-scene').isVisible(),true,'mascot at the PC');assert.match(await page.locator('#session-screen .session-time').innerText(),/1 ч 30 мин|1 ч 29 мин/);
+  assert.equal(await page.locator('#btn-session-manage').count(),0,'no «Управление сессией»');if(process.env.SHOTS)await page.screenshot({path:process.env.SHOTS+'/session.png'});
+  await page.locator('#my-session-banner').evaluate(b=>b.click());await page.waitForSelector('.current-session');assert.equal(await page.locator('.club-reservation input').count(),0);
   assert.equal(await page.locator('#friend-option').count(),0);assert.equal(await page.getByRole('button',{name:'Забронировать для друга',exact:true}).count(),0);
-  await page.getByRole('button',{name:'Завершить мою сессию',exact:true}).click();await page.locator('#ui-confirm .ok').click();await page.waitForFunction(()=>document.querySelector('#club-error').textContent.includes('Команда отправлена'));
+  await page.getByRole('button',{name:'Завершить мою сессию',exact:true}).click();await page.locator('#ui-confirm .ok').click();await page.waitForSelector('#oneshot-overlay.open');await page.waitForFunction(()=>/Сеанс завершён/.test(document.querySelector('#toasts')?.textContent||''));assert.doesNotMatch(await page.locator('body').innerText(),/подтвержд/i);
   const logout=requests.find(b=>b.action==='command'&&b.kind==='logout');assert.equal(logout.payload.session_key,'session-1');assert.ok(!('gizmo_user_id' in logout));
-  await page.locator('#club-close').click();await page.locator('#nav-profile').click();await page.waitForSelector('.prof-ava img');
+  await page.waitForSelector('#oneshot-overlay',{state:'hidden'});await page.locator('#nav-profile').click();await page.waitForSelector('.prof-ava img');
   assert.equal(await page.locator('#prof-name').textContent(),'Андрей');assert.match(await page.locator('#prof-balance').textContent(),/321/);assert.equal(await page.locator('#account-birthday').inputValue(),'2000-01-02');assert.equal(await page.locator('#account-birthday').getAttribute('readonly'),'');assert.equal(await page.locator('.profile-booking').count(),0);assert.equal(await page.locator('#ov-profile #club-my-bookings').count(),0);
   await page.locator('#account-toggle').click();
   await page.locator('#edit-account [name=username]').fill('new_guest');await page.locator('#edit-account .btn-main').click();await page.locator('#ui-confirm .ok').click();await page.waitForFunction(()=>document.querySelector('#account-result').textContent.includes('Запрос отправлен'));
@@ -45,10 +47,10 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
    passwordRequest={kind:'password_request',status,message:status==='done'?'Услуга предоставлена: пароль проверен в Gizmo':'Закрыта без выполнения'};await page.waitForFunction(s=>document.querySelector('#password-result')?.dataset.status===s,status);await page.evaluate(()=>navTo('hall'));await page.waitForSelector('#session-screen:not([hidden])');
    assert.equal(await page.locator('#club-booking[open]').count(),0,'session must not force a popup');
    await page.locator('#btn-lock-own-pc').click();await page.locator('#ui-confirm .ok').click();
-   await page.waitForFunction(()=>document.querySelector('#session-feedback')?.textContent.includes('заблокирован'));
+   await page.waitForFunction(()=>/Экран заблокирован/.test(document.querySelector('#toasts')?.textContent||''));await page.waitForSelector('#oneshot-overlay',{state:'hidden'});
    const lockCmd=requests.find(b=>b.action==='command'&&b.kind==='lock');
    assert.equal(lockCmd.payload.session_key,'session-1');
-   await page.locator('#btn-session-manage').click();await page.waitForSelector('.current-session');assert.match(await page.locator('.current-session').innerText(),/ПК 11/);await page.locator('#club-close').click();
+   await page.locator('#my-session-banner').evaluate(b=>b.click());await page.waitForSelector('.current-session');assert.match(await page.locator('.current-session').innerText(),/ПК 11/);await page.locator('#club-close').click();
    await page.locator('#nav-profile').click();await page.waitForFunction(s=>document.querySelector('#password-result')?.dataset.status===s,status);assert.match(await page.locator('#password-result').innerText(),status==='done'?/Услуга предоставлена/:/без выполнения/);
    assert.equal(await page.locator('#club-my-bookings').count(),0);assert.doesNotMatch(await page.locator('#ov-profile').innerText(),/gizmo/i);await page.evaluate(()=>navTo('hall'));
   }

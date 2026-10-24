@@ -573,3 +573,26 @@
 .bkw-note{margin:0 0 20px;font-size:12px;line-height:1.45;color:#9a9a9a}
 .bk-welcome .btn-main{width:100%}
 @media(prefers-reduced-motion:reduce){.bk-welcome[open]{animation:none}.booking-bar .bb-dot{animation:none}}
+/* Session screen: the mascot plays behind its monitor */
+.session-scene{display:block;width:100%;max-width:300px;margin:14px auto 4px;overflow:visible}
+.session-scene .ms-head{fill:#fff;stroke:#fff;stroke-width:.12}
+.session-scene .ms-eyes{transform-box:fill-box;transform-origin:center;animation:ms-blink 4.2s infinite}
+.session-scene .ms-ears{transform-box:fill-box;transform-origin:50% 100%;animation:ms-ear 6s ease-in-out infinite}
+.session-scene .ms-light{animation:ms-flicker 2.6s steps(1) infinite}
+.session-scene .ms-monitor{fill:#000;stroke:var(--smm-lime);stroke-width:2}
+.session-scene .ms-logo{fill:var(--smm-lime);font:700 13px var(--smm-display);letter-spacing:.06em}
+.session-scene .ms-stand,.session-scene .ms-desk{fill:#3a3a3a}
+.session-scene .ms-keys{fill:#1c1c1c}
+.session-scene .ms-paw{fill:#fff;animation:ms-tap .32s ease-in-out infinite alternate}
+.session-scene .ms-paw-r{animation-delay:.16s}
+@keyframes ms-blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes ms-ear{0%,80%,100%{transform:rotate(0)}85%{transform:rotate(-4deg)}90%{transform:rotate(3deg)}}
+@keyframes ms-flicker{0%{opacity:.9}18%{opacity:.6}34%{opacity:1}52%{opacity:.75}70%{opacity:.95}86%{opacity:.65}}
+@keyframes ms-tap{to{transform:translateY(-4px)}}
+#session-screen h1{margin:10px 0 6px!important}
+#session-screen .session-host{margin:0 0 4px!important}
+#session-screen dl{margin:18px 0!important}
+#session-screen dl>.session-time-box{border-color:var(--smm-lime)!important}
+#session-screen .session-time-box dd{color:var(--smm-lime)}
+#session-screen .session-time-box.low dd{color:#FF8A1F}
+@media(prefers-reduced-motion:reduce){.session-scene *{animation:none!important}}

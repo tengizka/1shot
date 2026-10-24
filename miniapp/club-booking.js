@@ -191,48 +191,62 @@ window.clubV2=false;
  document.querySelector('.app-header').insertAdjacentElement('afterend',sessionBanner);
  sessionBanner.onclick=()=>{state.host=null;showMine();$('club-pc').textContent='МОЯ СЕССИЯ'};
  const sessionScreen=document.createElement('section');sessionScreen.id='session-screen';sessionScreen.hidden=true;
- sessionScreen.innerHTML=`<div class="session-screen-content"><p class="session-eyebrow">1SHOT CLUB · ТВОЯ ИГРА</p><h1>Сессия активна</h1><div class="session-host"></div><p class="session-start"></p><dl><div><dt>Баланс клуба</dt><dd class="session-balance"></dd></div><div><dt>Осталось времени</dt><dd class="session-time">Нет данных</dd></div></dl><div class="session-actions"><button type="button" class="btn-main btn-lock-pc" id="btn-lock-own-pc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Заблокировать экран</button><button type="button" class="btn-danger btn-logout-pc" id="btn-logout-own-pc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Завершить сеанс</button></div><button type="button" class="btn-manage" id="btn-session-manage">Управление сессией</button><p class="session-feedback" id="session-feedback" role="status"></p><p class="session-freshness" role="status"></p></div>`;
+ sessionScreen.innerHTML=`<div class="session-screen-content"><p class="session-eyebrow">1SHOT CLUB · ТВОЯ ИГРА</p><svg class="session-scene" viewBox="0 0 200 140" aria-hidden="true"><defs><radialGradient id="ms-glow" cx="50%" cy="60%" r="50%"><stop offset="0" stop-color="#A3FF10" stop-opacity=".55"/><stop offset="1" stop-color="#A3FF10" stop-opacity="0"/></radialGradient></defs><ellipse class="ms-light" cx="100" cy="96" rx="86" ry="62" fill="url(#ms-glow)"/><g class="ms-head" transform="translate(50.5 2) scale(2.2)"><g class="ms-ears"><polygon points="4.62219,10.7343 4.0874,16.197 9.32084,8.74788 9.32084,12.7971 12.0713,12.7971 12.0713,0 4.62219,10.7343"/><polygon points="0,17.4576 0,22.309 2.75043,22.309 2.82684,18.9474 6.26485,18.9474 6.26485,16.2352 4.08744,16.197 4.62223,10.7344 0,17.4576"/><polygon points="33.6545,16.197 37.0162,16.197 42.2497,8.74788 42.2497,12.8353 45,12.8353 45,0 33.6545,16.197"/></g><g class="ms-face"><polygon points="2.75043,33.3106 2.75043,22.309 0,22.309 0,42.1732 12.0713,24.6393 12.0713,12.7971 9.32088,12.7971 9.32088,23.7988 2.75043,33.3106"/><polygon points="35.6793,33.3107 35.6793,22.309 32.929,22.309 32.929,42.1733 44.962,24.6393 44.962,16.197 38.7353,16.197 38.7353,18.9474 42.2498,18.9474 42.2498,23.7988 35.6793,33.3107"/><polygon points="26.7404,28.3445 26.7404,18.1833 24.1045,18.1833 24.1045,28.3445 26.7404,28.3445"/><polygon points="24.1044,25.6707 20.0552,25.6707 20.0552,28.3446 24.1044,28.3446 24.1044,25.6707"/><polygon points="25.4032,32.9495 20.4105,32.9495 19.5,32.9495 18.0918,32.9495 18.0918,35.6616 22.7292,35.6616 25.4032,35.6616 25.4032,32.9495"/></g><g class="ms-eyes"><polygon points="23.3114,15 18.3187,15 17.4082,15 16,15 16,17.7122 20.6374,17.7122 23.3114,17.7122 23.3114,15"/><polygon points="35.3114,15 30.3187,15 29.4082,15 28,15 28,17.7122 32.6374,17.7122 35.3114,17.7122 35.3114,15"/></g></g><g class="ms-paw ms-paw-l"><rect x="30" y="118" width="16" height="8"/></g><g class="ms-paw ms-paw-r"><rect x="154" y="118" width="16" height="8"/></g><rect class="ms-monitor" x="50" y="88" width="100" height="38"/><text class="ms-logo" x="100" y="112" text-anchor="middle">1SHOT</text><rect class="ms-stand" x="94" y="126" width="12" height="5"/><rect class="ms-desk" x="10" y="131" width="180" height="3"/><g class="ms-keys"><rect x="30" y="126" width="50" height="5"/><rect x="120" y="126" width="50" height="5"/></g></svg><h1>Сессия активна</h1><div class="session-host"></div><p class="session-start"></p><dl><div class="session-time-box"><dt>Осталось времени</dt><dd class="session-time">—</dd></div><div><dt>Баланс</dt><dd class="session-balance">—</dd></div></dl><div class="session-actions"><button type="button" class="btn-main btn-lock-pc" id="btn-lock-own-pc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Заблокировать экран</button><button type="button" class="btn-danger btn-logout-pc" id="btn-logout-own-pc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Завершить сеанс</button></div></div>`;
  sessionBanner.after(sessionScreen);
- sessionScreen.querySelector('#btn-session-manage').onclick=()=>sessionBanner.click();
+ /* Club actions on the own PC: the 1SHOT loader runs until Desk reports the result, then one short toast. */
+ async function runOnPc(kind,payload,caption){
+  window.oneshotLoader?.show(caption,'');let ok=false,text='';
+  try{
+   const {id}=await command(kind,payload);const until=Date.now()+25000;
+   while(Date.now()<until){
+    await sleep(1500);bundleCache=null;const res=await call('account');state.account=res.account?.data||null;state.accountTime=res.account?.updated_at;
+    const c=res.commands?.find(x=>x.id===id);
+    if(kind==='logout'&&!state.account?.session){ok=true;break}
+    if(c&&c.status==='done'){ok=true;break}
+    if(c&&['attention','rejected','failed'].includes(c.status)){text=clubText(c.message)||'Не получилось. Подойди к администратору';break}
+   }
+   if(!ok&&!text)text='Клуб не ответил. Попробуй ещё раз или подойди к администратору';
+  }catch(e){text=clubText(e.message)||'Не получилось. Попробуй ещё раз'}
+  window.oneshotLoader?.hide(ok);renderSessionBanner();
+  toast(ok?(kind==='logout'?'Сеанс завершён':'Экран заблокирован'):text,ok?'ok':'err');
+ }
  sessionScreen.querySelector('#btn-lock-own-pc').onclick=async()=>{
   const current=state.account?.session;if(!current||!accountFresh())return;
-  if(!await uiConfirm('Заблокировать экран ПК '+current.host_id+'? Сессия и игры не завершатся; для разблокировки введите ваш пароль на ПК.',{ok:'Заблокировать'}))return;
-  const btn=sessionScreen.querySelector('#btn-lock-own-pc'),fb=sessionScreen.querySelector('#session-feedback');
-  btn.disabled=true;fb.textContent='Блокируем экран ПК…';
-  try{await command('lock',{session_key:current.key});fb.textContent='Экран ПК заблокирован. Для продолжения введите пароль на ПК.'}
-  catch(e){fb.textContent=clubText(e.message)}
-  finally{btn.disabled=false}
+  if(!await uiConfirm('Заблокировать экран ПК '+current.host_id+'? Игры не закроются, для разблокировки введи пароль на ПК.',{ok:'Заблокировать'}))return;
+  runOnPc('lock',{session_key:current.key},'Блокируем ПК '+current.host_id);
  };
  sessionScreen.querySelector('#btn-logout-own-pc').onclick=async()=>{
   const current=state.account?.session;if(!current||!accountFresh())return;
-  if(!await uiConfirm('Завершить сеанс на ПК '+current.host_id+'? Сохраните игру перед выходом.',{ok:'Завершить',danger:true}))return;
-  const btn=sessionScreen.querySelector('#btn-logout-own-pc'),fb=sessionScreen.querySelector('#session-feedback');
-  btn.disabled=true;fb.textContent='Отправляем команду выхода…';
-  try{await command('logout',{session_key:current.key});fb.textContent='Команда выхода отправлена. Ждём подтверждение клуба.';await refresh()}
-  catch(e){fb.textContent=clubText(e.message)}
-  finally{btn.disabled=false}
+  if(!await uiConfirm('Завершить сеанс на ПК '+current.host_id+'? Сохрани игру перед выходом.',{ok:'Завершить',danger:true}))return;
+  runOnPc('logout',{session_key:current.key},'Завершаем сеанс');
  };
+ /* Time left counts down locally between account updates. */
+ function timeLeft(){
+  const sec=state.account?.available_time;if(!Number.isFinite(sec)||!state.accountTime)return null;
+  return Math.max(0,sec-(Date.now()-Date.parse(state.accountTime))/1000);
+ }
+ const hm=sec=>{const m=Math.floor(sec/60);return m>=60?Math.floor(m/60)+' ч '+String(m%60).padStart(2,'0')+' мин':m+' мин'};
  function renderSessionBanner(){checkConnecting();
   const current=state.account?.session,fresh=accountFresh();sessionBanner.hidden=!current;sessionScreen.hidden=!current;
   if($('ps-now'))$('ps-now').textContent=current?'ПК '+current.host_id:'—';
   document.getElementById('app').classList.toggle('has-session',!!current);document.getElementById('app').classList.toggle('session-mode',!!current);
   if(current){
-   sessionBanner.querySelector('small').textContent='ПК '+current.host_id+(fresh?' · управление и завершение':' · данные обновляются');
+   sessionBanner.querySelector('small').textContent='ПК '+current.host_id;
    const set=(selector,value)=>{const node=sessionScreen.querySelector(selector);if(node.textContent!==value)node.textContent=value};
-   set('h1',fresh?'Сессия активна':'Проверяем сессию');set('.session-host','ПК '+current.host_id);
-   set('.session-start',current.last_login?'Начало · '+fmt(current.last_login)+' МСК':'Время начала не получено');
-   set('.session-balance',fresh&&Number.isFinite(state.account.balance)?state.account.balance.toLocaleString('ru-RU')+' ₽':'Нет данных');
-   set('.session-freshness',fresh?'':'Показана последняя полученная сессия. Ждём связь с клубом.');
+   set('.session-host','ПК '+current.host_id);
+   set('.session-start',current.last_login?'В игре с '+fmt(current.last_login)+' МСК':'');
+   set('.session-balance',Number.isFinite(state.account.balance)?state.account.balance.toLocaleString('ru-RU')+' ₽':'—');
+   const left=timeLeft();set('.session-time',left===null?'—':hm(left));sessionScreen.querySelector('.session-time-box').classList.toggle('low',left!==null&&left<900);
   }
  }
 
  function renderSession(box){
   const current=state.account.session;const card=document.createElement('section');card.className='club-reservation current-session';
-  const title=document.createElement('h2');title.textContent=(accountFresh()?'Вы играете · ПК ':'Последняя сессия · ПК ')+current.host_id;card.append(title);
-  const p=document.createElement('p');p.className='club-note';p.textContent=current.last_login?'Начало '+fmt(current.last_login)+' МСК':'Время начала сессии пока недоступно';card.append(p);
-  const balance=document.createElement('p');balance.textContent=accountFresh()&&Number.isFinite(state.account.balance)?'Баланс клуба: '+state.account.balance+' ₽':'Баланс обновляется';card.append(balance);
+  const title=document.createElement('h2');title.textContent='Ты играешь · ПК '+current.host_id;card.append(title);
+  const p=document.createElement('p');p.className='club-note';p.textContent=current.last_login?'В игре с '+fmt(current.last_login)+' МСК':'';card.append(p);
+  const balance=document.createElement('p');balance.textContent=Number.isFinite(state.account.balance)?'Баланс: '+state.account.balance+' ₽':'';card.append(balance);
   const exit=document.createElement('button');exit.className='btn-main';exit.textContent='Завершить мою сессию';exit.disabled=!current.key||!accountFresh();
-  exit.onclick=async()=>{if(!await uiConfirm('Выйти из аккаунта на ПК '+current.host_id+'? Сохраните игру перед выходом.',{ok:'Выйти',danger:true}))return;exit.disabled=true;try{await command('logout',{session_key:current.key});$('club-error').textContent='Команда отправлена. Ждём подтверждение клуба.'}catch(e){$('club-error').textContent=clubText(e.message)}finally{exit.disabled=false}};
+  exit.onclick=async()=>{if(!await uiConfirm('Завершить сеанс на ПК '+current.host_id+'? Сохрани игру перед выходом.',{ok:'Завершить',danger:true}))return;close();runOnPc('logout',{session_key:current.key},'Завершаем сеанс')};
   card.append(exit);box.append(card);
  }
  let accountSetup=false,accountPending=false,accountFeedback,passwordFeedback;

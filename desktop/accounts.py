@@ -55,6 +55,7 @@ class Accounts:
         active=[s for s in self.gizmo.sessions() if s.get('userId')==int(uid)]
         return {k:user.get(k) for k in ('username','firstName','lastName','birthDate','email','mobilePhone')}|{
             'balance':balance.get('balance') if finite(balance.get('balance')) else None,
+            'available_time':balance.get('availableTime') if finite(balance.get('availableTime')) and balance.get('availableTime')>=0 else None,
             'session':session_record(active[0]) if len(active)==1 else None,
             'session_count':len(active),'statistics':self.statistics(uid)}
     def execute(self,cmd):
