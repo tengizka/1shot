@@ -71,20 +71,27 @@ class PromoTests(unittest.TestCase):
   self.assertEqual(result['promo']['result'],'failed');self.assertEqual(self.gizmo.orders(),[]);self.assertEqual(self.cloud.rewards,['failed'])
  def test_wrong_duration_is_refused(self):
   self.gizmo.minutes=30;self.build();self.assertEqual(self.api.approve(self.id,True)['promo']['result'],'failed');self.assertEqual(self.gizmo.orders(),[])
+ def test_tax_line_allowed_by_default_but_never_money(self):
+  self.gizmo.taxes_linked=[{'taxId':1,'isEnabled':True}];self.build();r=self.api.approve(self.id,True)
+  self.assertEqual(r['promo']['result'],'granted','the club accepts the 23% line on the free hour')
  def test_any_tax_on_the_product_stops_the_hour(self):
+  os.environ['PROMO_REQUIRE_ZERO_TAX']='true'  # strict mode, off by default since the club accepts the tax line
   for linked,ok in (([{'taxId':3,'isEnabled':True}],True),([],False),([{'taxId':1,'isEnabled':False}],False),([{'taxId':3},{'taxId':1,'isEnabled':False}],True),([{'taxId':1,'isEnabled':True}],False),([{'taxId':9}],False)):
    self.gizmo=Gizmo();self.gizmo.taxes_linked=linked;self.build();r=self.api.approve(self.id,True)
    self.assertEqual(r['promo']['result'],'granted' if ok else 'failed',linked)
    if not ok:self.assertEqual(self.gizmo.orders(),[]);self.assertIn('налог',r['promo']['error'])
  def test_no_product_tax_ok_only_when_every_gizmo_tax_is_zero(self):
+  os.environ['PROMO_REQUIRE_ZERO_TAX']='true'  # strict mode, off by default since the club accepts the tax line
   for taxes,ok in (([{'id':1,'value':23},{'id':3,'value':0}],False),([{'id':1,'value':0},{'id':2,'value':0},{'id':3,'value':0}],True),([{'id':1,'value':0}],True)):
    self.gizmo=Gizmo();self.gizmo.taxes_linked=[];self.gizmo.tax_table=taxes;self.build();r=self.api.approve(self.id,True)
    self.assertEqual(r['promo']['result'],'granted' if ok else 'failed',taxes)
    if not ok:self.assertIn('23%',r['promo']['error']);self.assertEqual(self.gizmo.orders(),[])
  def test_tax_in_the_invoice_needs_a_check(self):
+  os.environ['PROMO_REQUIRE_ZERO_TAX']='true'  # strict mode, off by default since the club accepts the tax line
   self.gizmo.invoice=dict(self.gizmo.invoice,taxTotal=0.5);self.build()
   self.assertEqual(self.api.approve(self.id,True)['promo']['result'],'attention')
  def test_23_percent_line_in_the_invoice_needs_a_check(self):
+  os.environ['PROMO_REQUIRE_ZERO_TAX']='true'  # strict mode, off by default since the club accepts the tax line
   for v2 in ({'id':900,'taxTotal':0,'invoiceLines':[{'productName':'standart 1 h','taxRate':23,'taxTotal':0}]},{'id':900},None):
    self.gizmo=Gizmo();self.gizmo.invoice_v2=v2;self.build()
    r=self.api.approve(self.id,True);self.assertEqual(r['promo']['result'],'attention',v2);self.assertIn('проверьте вручную',unquote(self.gizmo.notes()[0][1]))

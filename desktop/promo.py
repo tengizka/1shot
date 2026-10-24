@@ -37,6 +37,10 @@ def zero_tax(gizmo,product):
     if bad:raise ValueError(f'у товара standart 1 h есть налог {bad[-1]}%: оставьте только «None» (0%)')
 
 
+def strict_tax():
+    """The club decided the free hour may carry the product's tax line; PROMO_REQUIRE_ZERO_TAX=true brings the 0% check back."""
+    return os.getenv('PROMO_REQUIRE_ZERO_TAX','false').strip().lower()=='true'
+
 def invoice_tax_free(gizmo,invoice_id):
     """Every line of the new invoice has a 0% tax rate and zero tax; anything unreadable is not zero."""
     data=gizmo.request('GET',f'v2.0/invoices/{int(invoice_id)}',params={'Expand':'InvoiceLines'})
@@ -93,7 +97,8 @@ class PromoReward:
         if os.getenv('PROMO_AUTO_HOUR','false').strip().lower()!='true':
             record['error']='автоначисление выключено, выдайте час вручную';self.store.set(key,record);return self.report(id,record)
         try:
-            self.guard();seller=self.seller();product=free_hour_product(self.gizmo);zero_tax(self.gizmo,product);method=payment_method()
+            self.guard();seller=self.seller();product=free_hour_product(self.gizmo);method=payment_method()
+            if strict_tax():zero_tax(self.gizmo,product)
         except Exception as error:
             # Nothing was ordered; the reason is shown to the admin, who can give the hour by hand.
             record['error']=str(error)[:160] or 'Проверка товара не прошла';self.store.set(key,record);return self.report(id,record)
@@ -104,8 +109,9 @@ class PromoReward:
             record['invoice_id']=invoice['id']
             # Accounting guard: the free hour must never move money. Any non-zero invoice stops for staff review.
             if any(float(invoice.get(k) or 0)!=0 for k in ('total','subTotal','outstanding')):raise ValueError('Non-zero invoice')
-            if any('tax' in k.lower() and isinstance(v,(int,float)) and not isinstance(v,bool) and v!=0 for k,v in invoice.items()):raise ValueError('Non-zero tax')
-            if not invoice_tax_free(seller,invoice['id']):raise ValueError('Invoice tax not 0%')
+            if strict_tax():
+                if any('tax' in k.lower() and isinstance(v,(int,float)) and not isinstance(v,bool) and v!=0 for k,v in invoice.items()):raise ValueError('Non-zero tax')
+                if not invoice_tax_free(seller,invoice['id']):raise ValueError('Invoice tax not 0%')
             lines=seller.request('GET',f'users/{int(uid)}/producttime')
             ok=isinstance(lines,list) and any(isinstance(t,dict) and t.get('invoiceId')==invoice['id'] and not (t.get('isVoided') or t.get('isDeleted')) and float(t.get('totalSeconds') or 0)>=3600 for t in lines)
             record['result']='granted' if ok else 'attention'
