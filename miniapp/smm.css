@@ -553,3 +553,23 @@
 .bk-all-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .bk-all-grid button{min-height:44px;background:#000;border:2px solid var(--smm-rule);color:#fff;font:700 16px ReSquare,Unbounded,sans-serif;cursor:pointer}
 .bk-all-grid button[aria-selected="true"]{background:#fff;border-color:#fff;color:#000}
+/* Booking: green bar above the menu and the «Ждём вас» window */
+.booking-bar{flex:none;display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:8px 16px;border:0;border-top:2px solid #000;background:var(--smm-lime);color:#000;font:700 11px Unbounded,sans-serif;letter-spacing:.04em;text-align:left;cursor:pointer;position:relative;z-index:111}
+.booking-bar[hidden]{display:none}
+.booking-bar .bb-text{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
+.booking-bar b{font:800 10px Unbounded,sans-serif;letter-spacing:.08em;text-transform:uppercase;border-bottom:2px solid #000}
+.booking-bar .bb-dot{width:8px;height:8px;background:#000;flex:none;animation:bb-pulse 1.6s ease-in-out infinite}
+@keyframes bb-pulse{50%{opacity:.25}}
+.bk-welcome{border:0;padding:28px 22px 22px;margin:auto;width:min(360px,calc(100vw - 32px));background:#000;color:#fff;outline:2px solid var(--smm-lime);box-shadow:0 0 0 100vmax rgba(0,0,0,.82)}
+.bk-welcome::backdrop{background:transparent}
+.bk-welcome[open]{animation:bkw-in .38s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes bkw-in{from{opacity:0;transform:translateY(18px) scale(.96)}}
+.bkw-tag{display:inline-block;margin:0;padding:6px 10px;background:var(--smm-lime);color:#000;font:800 10px Unbounded,sans-serif;letter-spacing:.1em;text-transform:uppercase}
+.bkw-title{margin:16px 0 18px;font:700 64px/0.92 var(--smm-display);text-transform:uppercase}
+.bkw-pc{display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;border-top:2px solid var(--smm-rule);border-bottom:2px solid var(--smm-rule)}
+.bkw-pc b{font:700 26px var(--smm-display);color:var(--smm-lime)}
+.bkw-pc span{font:800 11px Unbounded,sans-serif;letter-spacing:.1em;color:#9a9a9a}
+.bkw-time{margin:14px 0 6px;font:800 16px Unbounded,sans-serif;text-transform:uppercase}
+.bkw-note{margin:0 0 20px;font-size:12px;line-height:1.45;color:#9a9a9a}
+.bk-welcome .btn-main{width:100%}
+@media(prefers-reduced-motion:reduce){.bk-welcome[open]{animation:none}.booking-bar .bb-dot{animation:none}}

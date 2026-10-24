@@ -2,7 +2,7 @@
 window.clubV2=false;
 (() => {
  const state={host:null,mode:'arrival',kind:'range',part:'start',start:[18,0],end:[19,0],request:null,rows:[],busy:false,protocol:1,forFriend:false,account:null,accountTime:null};
- const statusNames={requested:'Ждём подтверждение клуба',waiting:'ПК пока занят · клуб уведомлён',holding:'Ваш ПК ждёт вас',checkin_pending:'Выполняем вход…',in_session:'Вы вошли · приятной игры',attention:'Бронь требует проверки',cancel_requested:'Снимаем бронь',cancelled:'Отменена',expired:'Время ожидания истекло',completed:'Завершена'};
+ const statusNames={requested:'Ждём тебя',waiting:'ПК пока занят · освободим к приходу',holding:'ПК ждёт тебя',checkin_pending:'Входим в аккаунт…',in_session:'Ты в игре',attention:'Подойди к администратору',cancel_requested:'Снимаем бронь',cancelled:'Отменена',expired:'Время ожидания истекло',completed:'Завершена'};
  const terminal=new Set(['cancelled','expired','completed']);
  const sheet=document.createElement('dialog');sheet.id='club-booking';sheet.className='club-booking-dialog';
  sheet.innerHTML=`<div class="club-sheet-head"><span id="club-pc">БРОНЬ</span><button type="button" id="club-close" aria-label="Закрыть"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div><div id="club-create"><div class="bk-hero"><span class="bk-room" id="bk-room"></span><h2 id="bk-title"></h2><p class="bk-specs" id="bk-specs"></p></div><button type="button" class="bk-now" data-mode="instant" id="instant-mode" hidden><span><b>Войти сейчас</b><small>Уже в клубе? Садись, аккаунт откроется сам</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><div class="bk-later"><div class="bk-label-row"><p class="bk-label" id="bk-label">Забронировать</p><button type="button" class="bk-all-open" id="bk-all-open" aria-label="Все время" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button></div><div class="bk-slots" id="bk-slots" role="listbox" aria-label="Когда придёшь"></div><div class="bk-all" id="bk-all" hidden></div></div><p id="club-rules" class="club-note"></p><button id="club-submit" class="btn-main">Забронировать</button></div><div id="club-mine" hidden></div><p id="club-error" role="alert"></p><a class="club-help" href="tel:+74955837811">Если нужна помощь: +7 (495) 583-78-11</a>`;
@@ -92,11 +92,11 @@ window.clubV2=false;
  window.openClubBooking=async(id)=>{
   if(liveHostStatus(hostsData[String(id)])!=='free'){window.showOccupied?.(id);return}
   const others=state.rows.filter(b=>!terminal.has(b.status)&&b.status!=='in_session'&&b.host_id!==String(id));
-  if(others.some(b=>!SWAPPABLE.includes(b.status))){window.pickSeat?.(null);toast('Клуб ещё обрабатывает прошлую бронь. Подожди немного','inf');return}
+  if(others.some(b=>!SWAPPABLE.includes(b.status))){window.pickSeat?.(null);toast('Прошлая бронь ещё оформляется. Подожди пару секунд','inf');return}
   state.replace=null;
   if(others.length){
    const prev=others[0];
-   if(!await uiConfirm(`Снять бронь ${hostName(prev.host_id)}? Держать можно только один ПК. Прошлая бронь снимется, как только клуб примет бронь ${hostName(id)}.`,{ok:'Выбрать '+hostName(id)})){window.pickSeat?.(null);return}
+   if(!await uiConfirm(`Снять бронь ${hostName(prev.host_id)}? Держать можно только один ПК.`,{ok:'Выбрать '+hostName(id)})){window.pickSeat?.(null);return}
    state.replace=others.map(b=>b.id);
   }
   state.host=String(id);state.forFriend=false;state.kind='range';state.request=null;state.slot=null;
@@ -113,7 +113,7 @@ window.clubV2=false;
   state.request ||= crypto.randomUUID();
   const start=state.mode==='scheduled'?state.arrival:null;
   const end=start?new Date(Date.parse(start)+30*60000).toISOString():null;
-  try{await call(state.protocol>=2?'create_v2':'create',{for_friend:state.forFriend,host_id:state.host,mode:state.mode,duration_kind:state.kind,starts_at:start,ends_at:end,client_request_id:state.request});state.request=null;if(state.replace){const old=state.replace;state.replace=null;for(const bid of old){try{await call('cancel',{id:bid})}catch(e){toast('Новая бронь есть, но прошлую снять не вышло. Отмени её в «Моих бронях»','err')}}}await refresh();if(state.mode==='instant')startConnecting(state.host);else showMine();fetchHosts()}
+  try{await call(state.protocol>=2?'create_v2':'create',{for_friend:state.forFriend,host_id:state.host,mode:state.mode,duration_kind:state.kind,starts_at:start,ends_at:end,client_request_id:state.request});state.request=null;if(state.replace){const old=state.replace;state.replace=null;for(const bid of old){try{await call('cancel',{id:bid})}catch(e){toast('Новая бронь есть, но прошлую снять не вышло. Отмени её в «Моих бронях»','err')}}}if(state.mode==='instant'){await refresh();startConnecting(state.host)}else await booked(state.host,start);fetchHosts()}
   catch(e){$('club-error').textContent=clubText(e.message)||'Не удалось отправить бронь'}
   finally{state.busy=false;$('club-submit').disabled=false}
  }
@@ -152,6 +152,38 @@ window.clubV2=false;
   const row=state.rows.find(b=>b.host_id===c.host&&b.instant);
   if((row&&['attention','cancelled','expired'].includes(row.status))||Date.now()-c.since>120000){connecting=null;window.oneshotLoader?.hide(false);state.host=c.host;showMine()}}
  window.clubConnecting=()=>!!connecting;
+ /* After a booking: the 1SHOT loader while the club takes it, then «Ждём вас». No "waiting for confirmation" wording. */
+ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+ async function booked(host,start){
+  if(sheet.open)sheet.close();
+  window.oneshotLoader?.show('Бронируем '+hostName(host),'');
+  const until=Date.now()+12000;let row=null;
+  do{await refresh();row=state.rows.find(b=>b.host_id===host&&!terminal.has(b.status));if(row&&row.status!=='requested')break;await sleep(1200)}while(Date.now()<until);
+  if(!row||['attention','cancelled','expired'].includes(row.status)){window.oneshotLoader?.hide(false);state.host=host;showMine();return}
+  window.oneshotLoader?.hide(true);setTimeout(()=>welcome(host,row.starts_at||start),window.oneshotLoader?600:0);
+ }
+ const hello=document.createElement('dialog');hello.id='bk-welcome';hello.className='bk-welcome';
+ hello.innerHTML='<p class="bkw-tag">Бронь оформлена</p><h2 class="bkw-title">Ждём<br>вас</h2><div class="bkw-pc"><b></b><span></span></div><p class="bkw-time"></p><p class="bkw-note">Садись за свой ПК, аккаунт откроется сам. Если планы поменяются, бронь можно снять в зелёной плашке внизу.</p><button type="button" class="btn-main">Отлично</button>';
+ document.body.append(hello);
+ hello.querySelector('button').onclick=()=>hello.close();hello.addEventListener('click',e=>{if(e.target===hello)hello.close()});
+ function welcome(host,start){
+  const room=ROOMS[roomOf(host)]||ROOMS.std;
+  hello.querySelector('.bkw-pc b').textContent=hostName(host);hello.querySelector('.bkw-pc span').textContent=room[0];
+  hello.querySelector('.bkw-time').textContent=start?clubArrivalLabel(start):'';
+  window.haptic?.('ok');if(!hello.open)hello.showModal();renderBar();
+ }
+ /* Small green bar above the menu: the booking is always one tap away to manage or cancel. */
+ const bar=document.createElement('button');bar.type='button';bar.id='booking-bar';bar.className='booking-bar';bar.hidden=true;
+ bar.innerHTML='<span class="bb-dot"></span><span class="bb-text"></span><b>Управлять</b>';
+ document.querySelector('.bottom-nav')?.before(bar);
+ bar.onclick=()=>{const b=activeBooking();if(b){state.host=b.host_id;showMine()}};
+ function activeBooking(){return state.rows.find(b=>!terminal.has(b.status)&&!['in_session','checkin_pending'].includes(b.status)&&!b.instant)}
+ function renderBar(){
+  const b=state.account?.session?null:activeBooking();bar.hidden=!b;document.getElementById('app')?.classList.toggle('has-booking-bar',!!b);if(!b)return;
+  const when=b.starts_at?clubArrivalLabel(b.starts_at):(b.hold_until?'до '+fmt(b.hold_until):'');
+  const text=hostName(b.host_id)+(when?' · '+when:'')+(b.status==='attention'?' · подойди к админу':'');
+  const node=bar.querySelector('.bb-text');if(node.textContent!==text)node.textContent=text;
+ }
  function showMine(){$('club-create').hidden=true;$('club-mine').hidden=false;$('club-pc').textContent='МОИ БРОНИ';$('club-error').textContent='';mine();open()}
 
  window.openOwnBooking=id=>{if(accountFresh()&&state.account?.session?.host_id===String(id)){state.host=String(id);showMine();return true}if(state.rows.some(b=>b.host_id===String(id)&&!terminal.has(b.status))){state.host=String(id);showMine();return true}return false};
@@ -252,7 +284,7 @@ window.clubV2=false;
  let fetching=false;
  async function refresh(){
   if(document.hidden||fetching||!window.clubV2||!profile||!tg?.initData)return;fetching=true;
-  try{const res=await call('list');const changed=JSON.stringify(state.rows)!==JSON.stringify(res.bookings||[]);state.rows=res.bookings||[];window.instantHostIds=new Set(state.rows.filter(b=>b.instant&&['requested','holding','checkin_pending'].includes(b.status)).map(b=>b.host_id));window.ownBookingIds=new Set(state.rows.filter(b=>!terminal.has(b.status)).map(b=>b.host_id));if(changed){renderHall()}if(changed&&sheet.open&&!$('club-mine').hidden)mine()}
+  try{const res=await call('list');const changed=JSON.stringify(state.rows)!==JSON.stringify(res.bookings||[]);state.rows=res.bookings||[];window.instantHostIds=new Set(state.rows.filter(b=>b.instant&&['requested','holding','checkin_pending'].includes(b.status)).map(b=>b.host_id));window.ownBookingIds=new Set(state.rows.filter(b=>!terminal.has(b.status)).map(b=>b.host_id));if(changed){renderHall()}renderBar();if(changed&&sheet.open&&!$('club-mine').hidden)mine()}
   catch{/* A failed refresh never frees an owned PC in the UI. */}
   finally{fetching=false}
  }
@@ -271,5 +303,5 @@ window.clubV2=false;
  document.addEventListener('visibilitychange',()=>{clearTimeout(pollTimer);if(!document.hidden){bundleCache=null;poll()}});
  window.addEventListener('club:resume',()=>{bundleCache=null;poll()});
  // Expire cached availability locally, without another network request.
- setInterval(()=>{if(!document.hidden&&profile){renderHall();renderSessionBanner()}},5000);
+ setInterval(()=>{if(!document.hidden&&profile){renderHall();renderSessionBanner();renderBar()}},5000);
 })();
