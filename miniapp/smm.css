@@ -616,3 +616,9 @@
 .review-links a{display:flex;align-items:center;justify-content:center;gap:8px;min-height:56px;padding:0 10px;background:#000;border:2px solid var(--smm-rule);color:#fff;font:700 10px Unbounded,sans-serif;letter-spacing:.1em;text-transform:uppercase;text-decoration:none;transition:border-color .15s,color .15s}
 .review-links a:active{border-color:var(--smm-lime);color:var(--smm-lime)}
 .review-links svg{width:22px;height:22px;fill:currentColor}
+/* No scroll indicators anywhere: the app should feel like an app, not a scrolled site */
+*{scrollbar-width:none}
+*::-webkit-scrollbar{display:none;width:0;height:0}
+/* Sections run to the very bottom under the menu, so nothing behind them peeks through */
+.overlay{bottom:0!important;background:#000!important}
+.overlay .ov-body{padding-bottom:calc(90px + var(--safe-bot,0px))!important}
