@@ -103,7 +103,7 @@
    if(!failed.length){closeHostMenu();say(targets.length>1?'Бронь компании · '+targets.length+' ПК':'Бронь '+hostName(targets[0])+' создана')}else say(failed.join(' · '));
    return;
   }
-  if(t.dataset.item){working=true;const id=host;const r=await invoke('add_rental',t.dataset.item,id,info?.username||'');working=false;if(r?.ok){closeHostMenu();say((current?.rental_items?.[t.dataset.item]||'Вещь')+' · '+hostName(id))}else say(r?.error||'Нет ответа')}
+  if(t.dataset.item){working=true;const id=host;const r=await invoke('add_rental',t.dataset.item,id,info?.username||'',Number.isInteger(info?.user_id)?info.user_id:null);working=false;if(r?.ok){closeHostMenu();say((current?.rental_items?.[t.dataset.item]||'Вещь')+' · '+hostName(id))}else say(r?.error||'Нет ответа')}
  });
  menu.addEventListener('input',e=>{if(e.target.id==='menu-book-name')requestId=null});
  document.addEventListener('mousedown',e=>{if(menu.hidden||menu.contains(e.target)||e.target.closest('#desk-map [data-host-id]'))return;closeHostMenu()});

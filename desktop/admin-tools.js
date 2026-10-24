@@ -25,7 +25,7 @@
  }
  const oldChoose=chooseAccount;
  const resetPicker=picker($('account-search'),$('account-options'),user=>chooseAccount(user),()=>{foundAccount=null;selectedResetRequest=null;$('new-password').value='';$('reset-user').hidden=true;$('account-result').textContent='';$('account-message').textContent=''});
- chooseAccount=(user,requestId=null)=>{if(resetting)return;resetPicker.clear();oldChoose(user,requestId);$('privileged-wrap').hidden=!user.requires_privileged_confirmation;$('privileged-checked').checked=false;$('privileged-checked').required=!!user.requires_privileged_confirmation;$('account-result').textContent+=' · '+(user.group_name||'Группа не определена')};
+ chooseAccount=(user,requestId=null,focusPassword=true)=>{if(resetting)return;resetPicker.clear();oldChoose(user,requestId,focusPassword);$('privileged-wrap').hidden=!user.requires_privileged_confirmation;$('privileged-checked').checked=false;$('privileged-checked').required=!!user.requires_privileged_confirmation;};
  $('find-user').onsubmit=e=>{e.preventDefault();if(!resetting)resetPicker.search()};
  $('reset-user').onsubmit=async e=>{
   e.preventDefault();if(resetting||!foundAccount||!$('identity-checked').checked)return;

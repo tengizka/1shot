@@ -31,5 +31,14 @@ class RentalsTest(unittest.TestCase):
                 self.rentals.add(item, host, who)
 
 
+    def test_rental_remembers_guest_account(self):
+        row = self.rentals.add('g304', '104', 'neo', 7)
+        self.assertEqual(row['user_id'], 7)
+        self.rentals.returned(row['id'])
+        self.assertEqual(self.rentals.history()[-1]['user_id'], 7)
+        for bad in (0, -3, '7', True):
+            with self.assertRaises(ValueError):
+                self.rentals.add('g304', '104', 'neo', bad)
+
 if __name__ == '__main__':
     unittest.main()

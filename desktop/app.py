@@ -90,9 +90,9 @@ class App:
                 self.host_rows=self.bridge.collect_hosts();self.last_sync=time.time()
             return {'ok':True}
         except Exception as error:return {'error':str(error)[:160] or 'Gizmo не подтвердил блокировку'}
-    def add_rental(self,item,host=None,who=''):
+    def add_rental(self,item,host=None,who='',user_id=None):
         try:
-            with self.lock:return {'ok':True,'rental':self.rentals.add(item,host,who)}
+            with self.lock:return {'ok':True,'rental':self.rentals.add(item,host,who,user_id)}
         except ValueError as error:return {'error':str(error)}
     def return_rental(self,rental_id):
         try:

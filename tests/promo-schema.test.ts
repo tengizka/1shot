@@ -46,3 +46,28 @@ Deno.test('promo codes: validated on submit, tracked through approval, rewarded 
  await db.exec('set role anon');await fail(()=>db.query('select * from club_promo_codes'));await fail(()=>db.query('select * from club_promo_redemptions'));
  }finally{await db.close()}
 });
+Deno.test('registration: a month to approve, newest first in the Desk poll',async()=>{
+ const db=new PGlite();const check=(v:unknown,m='assertion failed')=>{if(!v)throw Error(m)};
+ try{
+ await db.exec(`create role anon;create role authenticated;create role service_role;
+ create table profiles(telegram_id bigint primary key,gizmo_user_id integer,username text,first_name text,last_name text);
+ create table club_worker(worker_id uuid primary key,lease_until timestamptz);
+ create table club_auth_requests(id uuid primary key,status text,created_at timestamptz default now());
+ create function club_worker_poll(p_worker uuid,p_after bigint,p_hosts jsonb,p_accounts jsonb) returns jsonb language sql as $$select '{"desk":{}}'::jsonb$$;`);
+ await db.exec(await Deno.readTextFile('supabase/migrations/202610080014_registration_approval.sql'));
+ await db.exec('alter function club_worker_poll(uuid,bigint,jsonb,jsonb) rename to club_worker_poll_before_password_grants; create function club_worker_poll(p_worker uuid,p_after bigint default 0,p_hosts jsonb default null,p_accounts jsonb default \'[]\') returns jsonb language sql as $$select club_worker_poll_before_password_grants(p_worker,p_after,p_hosts,p_accounts)$$;');
+ await db.exec(await Deno.readTextFile('supabase/migrations/202610230019_promo_codes.sql'));
+ await db.exec(await Deno.readTextFile('supabase/migrations/202610240021_registration_month.sql'));
+ const data=JSON.stringify({username:'g',first_name:'A',last_name:'B',mobile_phone:'+79990000000',birth_date:'2000-01-01',sex:1});
+ const old=crypto.randomUUID(),fresh=crypto.randomUUID();
+ await db.query('select club_registration_submit($1,1,$2,$3)',[old,data,'c']);
+ await db.query("update club_registration_requests set created_at=now()-interval '20 days',expires_at=now()-interval '20 days'+interval '30 days' where id=$1",[old]);
+ await db.query('select club_registration_submit($1,2,$2,$3)',[fresh,data,'c']);
+ const left=(await db.query<{d:number}>("select extract(day from expires_at-created_at)::int d from club_registration_requests where id=$1",[fresh])).rows[0].d;
+ check(left===30,'new application lives 30 days, got '+left);
+ const regs=(await db.query<{r:{desk:{registrations:{id:string}[]}}}>('select club_worker_poll(gen_random_uuid()) r')).rows[0].r.desk.registrations;
+ check(regs.length===2&&regs[0].id===fresh&&regs[1].id===old,'20-day-old application is still waiting and the newest comes first');
+ await db.query("update club_registration_requests set expires_at=now()-interval '1 minute' where id=$1",[old]);await db.query('select club_registration_cleanup()');
+ check((await db.query<{s:string}>('select status s from club_registration_requests where id=$1',[old])).rows[0].s==='expired','expires after the month');
+ }finally{await db.close()}
+});

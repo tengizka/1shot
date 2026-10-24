@@ -198,12 +198,34 @@ async function refresh(){
   if(!soundLoaded&&s.sound){soundLoaded=true;soundState=s.sound;$('sound-volume').value=s.sound.volume;$('sound-enabled').checked=s.sound.enabled;$('volume-label').value=s.sound.volume+'%';renderSoundPresets()}
  }catch{$('connection').textContent='ПАНЕЛЬ НЕДОСТУПНА'}finally{inFlight=false}
 }
-function chooseAccount(user,requestId=null){
- foundAccount=user;selectedResetRequest=requestId;$('new-password').value='';$('identity-checked').checked=false;
- $('account-result').textContent=[user.username,user.firstName,user.lastName,user.mobilePhone||user.phone,'ID '+user.id].filter(Boolean).join(' · ');
- $('account-message').textContent=requestId?'Аккаунт выбран по заявке. Проверьте личность гостя.':'';$('reset-user').hidden=false;
- $('reset-user').scrollIntoView({behavior:'smooth',block:'nearest'});$('new-password').focus({preventScroll:true});
+// Guest profile card: every field copies on click, like the PC menu.
+function renderGuestProfile(user){
+ const box=$('account-result');box.replaceChildren();box.className='guest-profile';
+ const rows=[['Ник',user.username],['Имя',[user.firstName,user.lastName].filter(Boolean).join(' ')],['Телефон',user.mobilePhone||user.phone],['Группа',user.group_name],['ID',user.id]];
+ for(const [label,value] of rows){
+  if(value===undefined||value===null||value==='')continue;
+  const b=document.createElement('button'),small=document.createElement('small'),strong=document.createElement('b');
+  b.type='button';b.className='info-row';b.dataset.copy=String(value);small.textContent=label;strong.textContent=String(value);b.append(small,strong);box.append(b);
+ }
 }
+$('account-result').addEventListener('click',async e=>{
+ const b=e.target.closest('[data-copy]');if(!b)return;
+ if(await deskCopy(b.dataset.copy)){b.classList.add('copied');setTimeout(()=>b.classList.remove('copied'),900);window.deskFlash?.('Скопировано: '+b.dataset.copy)}
+ else window.deskFlash?.('Не удалось скопировать. Выделите текст и нажмите Ctrl+C');
+});
+function chooseAccount(user,requestId=null,focusPassword=true){
+ foundAccount=user;selectedResetRequest=requestId;$('new-password').value='';$('identity-checked').checked=false;
+ renderGuestProfile(user);
+ $('account-message').textContent=requestId?'Аккаунт выбран по заявке. Проверьте личность гостя.':'';$('reset-user').hidden=false;
+ if(focusPassword){$('reset-user').scrollIntoView({behavior:'smooth',block:'nearest'});$('new-password').focus({preventScroll:true})}
+ else $('account-result').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+// Open a guest's profile from elsewhere (rental history): by Gizmo ID, or by search text for older records.
+window.openGuestProfile=async({userId,query})=>{
+ panel('accounts');
+ if(userId){$('account-message').textContent='Открываем профиль…';const r=await invoke('select_account',userId);if(r?.user)chooseAccount(r.user,null,false);else $('account-message').textContent=r?.error||'Аккаунт недоступен';return}
+ const input=$('account-search');input.value=query||'';input.focus();input.dispatchEvent(new Event('input'));
+};
 function renderResetRequests(requests){
  const box=$('password-requests'),existing=new Map([...$('password-requests').children].map(card=>[card.dataset.requestId,card])),nodes=[];
  for(const r of requests){

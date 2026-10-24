@@ -373,3 +373,12 @@ nav .exit span{white-space:normal}
 .rental-history .empty{color:var(--muted)}
 .info-row b{font-size:11px}
 .host-menu[data-view="group"] .menu-state{display:none}
+/* Анкеты: поиск, сортировка, дата подачи */
+.registration-tools{display:grid;grid-template-columns:minmax(0,1fr) 200px auto;gap:8px;align-items:center;margin:0 0 12px}
+.registration-tools .note{white-space:nowrap;color:var(--muted)}
+.registration-when{color:var(--lime);font-size:10px;letter-spacing:.04em;margin-top:-4px}
+@media(max-width:760px){.registration-tools{grid-template-columns:1fr}}
+/* Профиль гостя: поля копируются по клику */
+.guest-profile{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:4px;margin:10px 0}
+.history-row .who-link{all:unset;cursor:pointer;color:var(--lime);font:500 10.5px var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.history-row .who-link:hover{text-decoration:underline}

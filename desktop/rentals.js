@@ -46,7 +46,8 @@
    const row=document.createElement('div');row.className='history-row';row.dataset.kind=kind(r.item);
    row.innerHTML=rentalIcon(r.item)+'<strong></strong><span class="who"></span><span class="when"></span>';
    row.querySelector('strong').textContent=items[r.item]||r.item;
-   row.querySelector('.who').textContent=[r.host?hostName(r.host):'',r.who].filter(Boolean).join(' · ');
+   const who=row.querySelector('.who');who.textContent=[r.host?hostName(r.host):'',r.who].filter(Boolean).join(' · ');
+   if(r.user_id||r.who){const open=document.createElement('button');open.type='button';open.className='who who-link';open.title='Открыть профиль гостя';open.textContent=who.textContent+' →';open.onclick=()=>window.openGuestProfile?.(r.user_id?{userId:r.user_id}:{query:r.who});who.replaceWith(open)}
    row.querySelector('.when').textContent=time(r.at)+' → '+time(r.returned_at)+' · '+span(r.at,r.returned_at);
    list.append(row);
   }

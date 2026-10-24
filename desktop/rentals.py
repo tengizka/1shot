@@ -25,7 +25,7 @@ class Rentals:
     def list(self):
         return [dict(r) for r in self.store.get('rentals', []) if r.get('item') in ITEMS]
 
-    def add(self, item, host=None, who=''):
+    def add(self, item, host=None, who='', user_id=None):
         if item not in ITEMS:
             raise ValueError('Неизвестная вещь')
         host = None if host in (None, '') else str(host).strip()
@@ -37,7 +37,11 @@ class Rentals:
         rows = self.list()
         if len(rows) >= LIMIT:
             raise ValueError('Слишком много активных аренд')
+        if user_id is not None and (type(user_id) is not int or user_id <= 0):
+            raise ValueError('Неверный аккаунт гостя')
         row = {'id': uuid.uuid4().hex, 'item': item, 'host': host, 'who': who, 'at': self.clock()}
+        if user_id:
+            row['user_id'] = user_id  # Gizmo account of whoever sat at the PC: the history links to their profile
         self.store.set('rentals', rows + [row])
         return row
 
