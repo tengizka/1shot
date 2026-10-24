@@ -22,8 +22,9 @@ class Gizmo:
   if path=='users' and method=='GET':return []
   if path=='users' and method=='PUT':self.member={k[0].lower()+k[1:]:v for k,v in kwargs['params'].items()};return 7
   if path.endswith('/valid'):return {'result':0,'identity':{'userId':7}}
-  if path.startswith('v2.0/products/'):return {'id':41,'productTaxes':getattr(self,'taxes_linked',[])}
-  if path=='v2.0/taxes':return {'data':[{'id':1,'name':'НДС','value':23},{'id':2,'name':'Без НДС','value':0}]}
+  if path.startswith('v2.0/products/'):return {'id':41,'productTaxes':getattr(self,'taxes_linked',[{'taxId':3,'isEnabled':True}])}
+  if path=='v2.0/taxes':return {'data':[{'id':1,'name':'НДС','value':23},{'id':2,'name':'16%','value':16},{'id':3,'name':'None','value':0}]}
+  if path.startswith('v2.0/invoices/'):return getattr(self,'invoice_v2',{'id':900,'taxTotal':0,'invoiceLines':[{'productName':'standart 1 h','taxRate':0,'taxTotal':0}]})
   if path=='products/time':return self.products if self.products is not None else [{'id':41,'name':'standart 1 h','price':self.price,'minutes':self.minutes},{'id':42,'name':'standart 30 min','price':0,'minutes':30}]
   if '/order/' in path:
    if self.order_error:raise RuntimeError('timeout')
@@ -72,13 +73,17 @@ class PromoTests(unittest.TestCase):
  def test_wrong_duration_is_refused(self):
   self.gizmo.minutes=30;self.build();self.assertEqual(self.api.approve(self.id,True)['promo']['result'],'failed');self.assertEqual(self.gizmo.orders(),[])
  def test_any_tax_on_the_product_stops_the_hour(self):
-  for linked,ok in (([{'taxId':2,'isEnabled':True}],True),([{'taxId':1,'isEnabled':False}],True),([{'taxId':1,'isEnabled':True}],False),([{'taxId':9}],False)):
+  for linked,ok in (([{'taxId':3,'isEnabled':True}],True),([],False),([{'taxId':1,'isEnabled':False}],False),([{'taxId':3},{'taxId':1,'isEnabled':False}],True),([{'taxId':1,'isEnabled':True}],False),([{'taxId':9}],False)):
    self.gizmo=Gizmo();self.gizmo.taxes_linked=linked;self.build();r=self.api.approve(self.id,True)
    self.assertEqual(r['promo']['result'],'granted' if ok else 'failed',linked)
    if not ok:self.assertEqual(self.gizmo.orders(),[]);self.assertIn('налог',r['promo']['error'])
  def test_tax_in_the_invoice_needs_a_check(self):
   self.gizmo.invoice=dict(self.gizmo.invoice,taxTotal=0.5);self.build()
   self.assertEqual(self.api.approve(self.id,True)['promo']['result'],'attention')
+ def test_23_percent_line_in_the_invoice_needs_a_check(self):
+  for v2 in ({'id':900,'taxTotal':0,'invoiceLines':[{'productName':'standart 1 h','taxRate':23,'taxTotal':0}]},{'id':900},None):
+   self.gizmo=Gizmo();self.gizmo.invoice_v2=v2;self.build()
+   r=self.api.approve(self.id,True);self.assertEqual(r['promo']['result'],'attention',v2);self.assertIn('проверьте вручную',unquote(self.gizmo.notes()[0][1]))
  def test_auto_hour_off_by_default(self):
   os.environ.pop('PROMO_AUTO_HOUR');self.build()
   r=self.api.approve(self.id,True);self.assertEqual(r['promo']['result'],'failed');self.assertIn('вручную',r['promo']['error']);self.assertEqual(self.gizmo.orders(),[])

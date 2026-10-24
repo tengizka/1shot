@@ -18,8 +18,9 @@ class Gizmo:
   if path=='users' and method=='GET':return self.users
   if path=='users' and method=='PUT':self.member={k[0].lower()+k[1:]:v for k,v in kwargs['params'].items()};return 7
   if path.endswith('/valid'):return {'result':0,'identity':{'userId':7}}
-  if path.startswith('v2.0/products/'):return {'id':41,'productTaxes':getattr(self,'taxes_linked',[])}
-  if path=='v2.0/taxes':return {'data':[{'id':1,'name':'НДС','value':23},{'id':2,'name':'Без НДС','value':0}]}
+  if path.startswith('v2.0/products/'):return {'id':41,'productTaxes':getattr(self,'taxes_linked',[{'taxId':3,'isEnabled':True}])}
+  if path=='v2.0/taxes':return {'data':[{'id':1,'name':'НДС','value':23},{'id':2,'name':'16%','value':16},{'id':3,'name':'None','value':0}]}
+  if path.startswith('v2.0/invoices/'):return getattr(self,'invoice_v2',{'id':900,'taxTotal':0,'invoiceLines':[{'productName':'standart 1 h','taxRate':0,'taxTotal':0}]})
   if path=='products/time':return [{'id':41,'name':'standart 1 h','price':0,'minutes':60}]
   if '/order/' in path:return {'id':900,'total':0,'subTotal':0,'outstanding':0}
   if path.endswith('/producttime'):return [{'invoiceId':900,'totalSeconds':3600}]

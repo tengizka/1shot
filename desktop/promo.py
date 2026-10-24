@@ -21,17 +21,26 @@ def free_hour_product(gizmo):
 
 
 def zero_tax(gizmo,product):
-    """Only a product without any non-zero tax may be sold; an answer we cannot read counts as a tax."""
+    """The product must be linked to 0% taxes only. With no tax linked, Gizmo's API sale takes its default (23%)."""
     item=gizmo.request('GET',f'v2.0/products/{int(product)}',params={'Expand':'ProductTaxes'})
     links=item.get('productTaxes') if isinstance(item,dict) else None
     if not isinstance(links,list):raise ValueError('не удалось проверить налог товара standart 1 h')
     used={t.get('taxId') for t in links if isinstance(t,dict) and t.get('isEnabled',True)}
-    if not used:return
+    if not used:raise ValueError('у товара standart 1 h не выбран налог «None» (0%): без него Gizmo ставит 23%')
     taxes=gizmo.request('GET','v2.0/taxes')
     taxes=taxes.get('data') if isinstance(taxes,dict) else taxes
     values={t.get('id'):t.get('value') for t in taxes or [] if isinstance(t,dict)}
     bad=[values.get(i) for i in used if not isinstance(values.get(i),(int,float)) or values.get(i)!=0]
-    if bad:raise ValueError(f'у товара standart 1 h есть налог {bad[0]}%: уберите его в Gizmo, нужен 0%')
+    if bad:raise ValueError(f'у товара standart 1 h есть налог {bad[0]}%: оставьте только «None» (0%)')
+
+
+def invoice_tax_free(gizmo,invoice_id):
+    """Every line of the new invoice has a 0% tax rate and zero tax; anything unreadable is not zero."""
+    data=gizmo.request('GET',f'v2.0/invoices/{int(invoice_id)}',params={'Expand':'InvoiceLines'})
+    lines=data.get('invoiceLines') if isinstance(data,dict) else None
+    if not isinstance(lines,list) or not lines:return False
+    zero=lambda v:isinstance(v,(int,float)) and not isinstance(v,bool) and v==0
+    return zero(data.get('taxTotal',0)) and all(isinstance(l,dict) and zero(l.get('taxRate')) and zero(l.get('taxTotal',0)) for l in lines)
 
 
 def payment_method():
@@ -95,6 +104,7 @@ class PromoReward:
             # Accounting guard: the free hour must never move money. Any non-zero invoice stops for staff review.
             if any(float(invoice.get(k) or 0)!=0 for k in ('total','subTotal','outstanding')):raise ValueError('Non-zero invoice')
             if any('tax' in k.lower() and isinstance(v,(int,float)) and not isinstance(v,bool) and v!=0 for k,v in invoice.items()):raise ValueError('Non-zero tax')
+            if not invoice_tax_free(seller,invoice['id']):raise ValueError('Invoice tax not 0%')
             lines=seller.request('GET',f'users/{int(uid)}/producttime')
             ok=isinstance(lines,list) and any(isinstance(t,dict) and t.get('invoiceId')==invoice['id'] and not (t.get('isVoided') or t.get('isDeleted')) and float(t.get('totalSeconds') or 0)>=3600 for t in lines)
             record['result']='granted' if ok else 'attention'

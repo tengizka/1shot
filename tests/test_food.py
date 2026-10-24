@@ -19,7 +19,9 @@ class Gizmo:
         self.products=[
             {'id':10,'productType':0,'productGroupId':1,'name':'Red Bull','price':189,'displayOrder':1},
             {'id':11,'productType':0,'productGroupId':2,'name':'Lays','price':120},
-            {'id':12,'productType':2,'productGroupId':1,'name':'standart 1 h','price':0},
+            {'id':12,'productType':1,'productGroupId':1,'name':'standart 1 h','price':0,'timeProduct':{'minutes':60}},
+            {'id':17,'productType':1,'productGroupId':1,'name':'VIP 3 h','price':599,'timeProduct':{'minutes':180}},
+            {'id':18,'productType':2,'productGroupId':2,'name':'Комбо','price':250},
             {'id':13,'productType':0,'productGroupId':1,'name':'Секрет','price':50,'disallowClientOrder':True},
             {'id':14,'productType':0,'productGroupId':1,'name':'Кончился','price':90,'enableStock':True,'disallowSaleIfOutOfStock':True},
             {'id':15,'productType':0,'productGroupId':3,'name':'Мышь','price':900},
@@ -72,7 +74,7 @@ class FoodTests(unittest.TestCase):
         finally:del os.environ['FOOD_HIDE_GROUPS']
         food.tick([])
         menu=self.cloud.calls[0]['menu']
-        self.assertEqual([m['name'] for m in menu],['Red Bull','Lays'])
+        self.assertEqual([m['name'] for m in menu],['Red Bull','Lays','Комбо'],'time packages out, bundles in')
         self.assertEqual(menu[0]['group'],'Напитки');self.assertTrue(menu[0]['image'].startswith('data:image/webp;base64,'));self.assertLess(len(menu[0]['image']),55000)
         self.assertIsNone(menu[1]['image']);self.assertEqual(self.gizmo.writes,[],'menu sync never writes to Gizmo')
         food.menu_at=0;food.tick([]);self.assertNotIn('menu',self.cloud.calls[1],'unchanged menu is not sent again')
@@ -130,7 +132,7 @@ class FoodTests(unittest.TestCase):
             if (kw.get('params') or {}).get('Pagination.Limit') and path!='v2.0/products':raise ApiError('Gizmo: HTTP 500')
             return real(method,path,**kw)
         self.gizmo.request=picky;self.food.tick(SEATED)
-        self.assertEqual([m['name'] for m in self.cloud.calls[0]['menu']],['Red Bull','Lays','Мышь']);self.assertEqual(self.food.error,'')
+        self.assertEqual([m['name'] for m in self.cloud.calls[0]['menu']],['Red Bull','Lays','Комбо','Мышь']);self.assertEqual(self.food.error,'')
         def broken(method,path,**kw):
             if path=='v2.0/products':raise ApiError('Gizmo: HTTP 500')
             return real(method,path,**kw)

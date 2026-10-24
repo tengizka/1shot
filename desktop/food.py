@@ -16,7 +16,7 @@ ORDER_TYPE='сделать заказ'
 PAYMENT={'deposit':'спишите с депозита','card':'картой при получении','cash':'наличными при получении'}
 # Gizmo AssistanceRequestStatus: 0 pending, 1 accepted, 2 rejected, 3 cancelled.
 PENDING,ACCEPTED=0,1
-TIME_PRODUCT=2
+TIME_PRODUCT=1  # Gizmo ProductType: 0 product, 1 time, 2 bundle
 
 def tag(order_id):return '#'+str(order_id).replace('-','')[:6].upper()
 
@@ -104,7 +104,7 @@ class Food:
         for p in self.paged('v2.0/products',{'IsDeleted':'false'}):
             group=groups.get(p.get('productGroupId'))
             price=p.get('price')
-            if not group or type(p.get('id')) is not int or p.get('isDeleted') or p.get('productType')==TIME_PRODUCT:continue
+            if not group or type(p.get('id')) is not int or p.get('isDeleted') or p.get('productType')==TIME_PRODUCT or p.get('timeProduct'):continue
             if p.get('disallowClientOrder') or p.get('restrictSale') or p.get('isService') or not isinstance(price,(int,float)) or isinstance(price,bool) or price<=0:continue
             if str(group.get('name','')).strip().casefold() in self.hidden or not str(p.get('name') or '').strip():continue
             if stock is not None and p.get('enableStock') and p.get('disallowSaleIfOutOfStock') and not (stock.get(p['id']) or 0)>0:continue
