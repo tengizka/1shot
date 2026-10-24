@@ -491,13 +491,13 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
     </section>
     <section class="seg-pane" data-pane="promo" role="tabpanel" hidden>
       <article class="promo-card promo2" style="--pc:var(--smm-lime)">
-        <div class="p2-head"><span class="p2-tag">Пополнение</span><span class="p2-big">до 6 ч</span></div>
-        <h2 class="p2-title">Пополни и играй больше</h2>
-        <div class="p2-ladder">
-          <div><b>700 ₽</b><span>1 ч PC</span></div>
-          <div><b>1000 ₽</b><span>2 ч PC<br>1 ч VIP · 1 ч TV</span></div>
-          <div><b>2000 ₽</b><span>4 ч PC<br>2 ч VIP · 2 ч TV</span></div>
-          <div><b>3000 ₽</b><span>6 ч PC<br>3 ч VIP · 3 ч TV</span></div>
+        <div class="p2-head"><span class="p2-tag">Пополнение</span></div>
+        <h2 class="p2-title">Больше пополнил —<br>больше часов</h2>
+        <div class="p2-stairs" aria-label="Бонусные часы за пополнение">
+          <div style="--h:1"><span class="p2-gift">1h STD</span><i></i><b>700 ₽</b></div>
+          <div style="--h:2"><span class="p2-gift">2h STD<br><em>или</em> 1h VIP<br><em>или</em> 1h TV</span><i></i><b>1000 ₽</b></div>
+          <div style="--h:3"><span class="p2-gift">4h STD<br><em>или</em> 2h VIP<br><em>или</em> 2h TV</span><i></i><b>2000 ₽</b></div>
+          <div style="--h:4"><span class="p2-gift">6h STD<br><em>или</em> 3h VIP<br><em>или</em> 3h TV</span><i></i><b>3000 ₽</b></div>
         </div>
         <div class="p2-chips"><span>Одним чеком</span><span>1 раз в месяц</span><span>Можно не на кассе</span></div>
       </article>
@@ -517,7 +517,7 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
     </section>
     <section class="seg-pane" data-pane="hw" role="tabpanel" hidden>
       <div class="hw-switch" role="tablist" aria-label="Залы">
-        <button type="button" role="tab" data-hw="std" aria-selected="true">Основной</button>
+        <button type="button" role="tab" data-hw="std" aria-selected="true">STD</button>
         <button type="button" role="tab" data-hw="vip" aria-selected="false">VIP</button>
         <button type="button" role="tab" data-hw="tv" aria-selected="false">TV-зона</button>
       </div>
@@ -525,7 +525,7 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
         <article class="hw-card" data-hw="std">
           <img class="hw-mesh" src="img/mesh-std.svg" alt="" aria-hidden="true">
           <div class="hw-top"><span class="hw-count">20 PC</span><span class="hw-tag">STANDART</span></div>
-          <h2>Основной<br>зал</h2>
+          <h2>STANDART<br>зал</h2>
           <ul class="hw-specs"><li><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="11" width="42" height="24"/><circle cx="15" cy="23" r="7"/><circle cx="33" cy="23" r="7"/></svg><span>RTX 4060</span></li><li><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="12" y="12" width="24" height="24"/><path d="M18 4v8M30 4v8M18 36v8M30 36v8M4 18h8M4 30h8M36 18h8M36 30h8"/></svg><span>Intel i5-13400F</span></li><li><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="12" width="42" height="18"/><path d="M6 30v6M18 30v6M30 30v6M42 30v6"/></svg><span>32 GB RAM</span></li><li><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="7" width="42" height="27"/><path d="M24 34v7M15 41h18"/></svg><span>Acer Nitro 24,5" · 240 Гц</span></li><li><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 4h20v22H14zM10 26h28M24 26v12M14 44l10-6 10 6"/></svg><span>DXRacer I-Master</span></li></ul>
         </article>
         <article class="hw-card" data-hw="vip" hidden>
@@ -1220,7 +1220,7 @@ function clearProfile() {
 <link rel="stylesheet" href="registration-wait.css?v=2.6.0"><script src="registration-wait.js?v=2.8.0"></script><script src="password-choice.js?v=2.4.0"></script>
 <script src="club-booking.js?v=3.1.0"></script>
 <link rel="stylesheet" href="polish.css?v=1.6.0"><script src="polish.js?v=2.3.0"></script>
-<link rel="stylesheet" href="smm.css?v=4.1.0">
+<link rel="stylesheet" href="smm.css?v=4.2.0">
 <link rel="stylesheet" href="food.css?v=2.8.0"><script src="food.js?v=2.7.0"></script>
 <script src="tel-links.js?v=2"></script><script src="auth-photos.js?v=1"></script><script src="keyboard.js?v=2"></script>
 <link rel="stylesheet" href="maintenance.css?v=7"><script src="maintenance.js?v=7"></script>

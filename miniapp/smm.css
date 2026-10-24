@@ -628,7 +628,7 @@
 .hw-card{border-color:var(--hw)!important}
 .hw-card .hw-count{color:var(--hw)}
 .hw-card .hw-specs svg{stroke:var(--hw)}
-.hw-card .hw-specs li{border-top-color:color-mix(in srgb,var(--hw) 35%,#000)}
+.hw-card .hw-specs li{border-top-color:#2a2a2b}
 .hw-card[data-hw="vip"]{border-image:linear-gradient(135deg,var(--smm-orange),var(--smm-pink)) 1}
 .hw-mesh{opacity:.75!important}
 .hw-switch button[data-hw="std"][aria-selected="true"]{background:#fff;border-color:#fff;color:#000}
@@ -692,3 +692,13 @@ body:has(.overlay.open) :is(#session-screen,#my-session-banner,#booking-bar){vis
 .promo2 .p2-friends span{font:600 11px/1.45 Unbounded,sans-serif;color:#e6e6e6}
 .promo2 .p2-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
 .promo2 .p2-chips span{padding:6px 9px;border:1px solid #3a3a3a;font:600 9px/1.3 Unbounded,sans-serif;letter-spacing:.04em;color:#bdbdbd}
+/* Top-up bonus: a staircase — the more you top up, the taller the step and the more hours */
+.promo2 .p2-stairs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;align-items:end;margin-top:4px}
+.promo2 .p2-stairs div{display:flex;flex-direction:column;justify-content:flex-end;gap:6px;min-width:0}
+.promo2 .p2-stairs i{display:block;height:calc(var(--h)*22px);background:var(--pc);opacity:calc(.35 + var(--h)*.16)}
+.promo2 .p2-stairs b{font:700 14px var(--smm-display);color:#fff;white-space:nowrap}
+.promo2 .p2-gift{font:700 10px/1.35 Unbounded,sans-serif;color:var(--pc);letter-spacing:.02em}
+.promo2 .p2-hint{margin:10px 0 0;font:500 10px Unbounded,sans-serif;color:#9a9a9a}
+/* Session buttons breathe above the bottom menu */
+#session-screen{padding-bottom:22px!important}
+.promo2 .p2-gift em{font-style:normal;color:#9a9a9a;font-weight:500}
