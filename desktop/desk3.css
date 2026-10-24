@@ -382,3 +382,15 @@ nav .exit span{white-space:normal}
 .guest-profile{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:4px;margin:10px 0}
 .history-row .who-link{all:unset;cursor:pointer;color:var(--lime);font:500 10.5px var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .history-row .who-link:hover{text-decoration:underline}
+/* Регистрация на ресепшене */
+#desk-reg-open{width:auto;align-self:flex-start;padding:0 18px;margin:0 0 12px;background:var(--lime);border-color:var(--lime);color:#000}
+.desk-reg{display:flex;flex-direction:column;gap:12px;margin:0 0 16px;padding:16px;border:2px solid var(--lime);background:#050505}
+.desk-reg-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.desk-reg-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.desk-reg-label{min-width:110px;color:var(--muted);font-size:9px;letter-spacing:.12em;text-transform:uppercase}
+.desk-reg .chips{display:flex;flex-wrap:wrap;gap:6px}
+.desk-reg .chips button{min-height:32px;font-size:9.5px;text-transform:none;letter-spacing:.02em}
+.desk-reg .chips button[aria-pressed=true]{background:var(--lime);border-color:var(--lime);color:#000}
+#desk-reg-submit{background:var(--lime);border-color:var(--lime);color:#000}
+#desk-reg-submit:disabled{opacity:.4}
+@media(max-width:900px){.desk-reg-grid{grid-template-columns:1fr 1fr}}

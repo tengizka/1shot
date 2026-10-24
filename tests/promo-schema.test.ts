@@ -71,3 +71,31 @@ Deno.test('registration: a month to approve, newest first in the Desk poll',asyn
  check((await db.query<{s:string}>('select status s from club_registration_requests where id=$1',[old])).rows[0].s==='expired','expires after the month');
  }finally{await db.close()}
 });
+Deno.test('promo at the desk: button-picked code, one free hour per account, GG for the site',async()=>{
+ const db=new PGlite();const check=(v:unknown,m='assertion failed')=>{if(!v)throw Error(m)};
+ const fail=async(fn:()=>Promise<unknown>,text='')=>{try{await fn()}catch(e){if(text&&!String((e as Error).message).includes(text))throw e;return}throw Error('expected rejection')};
+ try{
+ await db.exec(`create role anon;create role authenticated;create role service_role;
+ create table profiles(telegram_id bigint primary key,gizmo_user_id integer,username text,first_name text,last_name text);
+ create table club_worker(worker_id uuid primary key,lease_until timestamptz);
+ create table club_auth_requests(id uuid primary key,status text,created_at timestamptz default now());
+ create function club_worker_poll(p_worker uuid,p_after bigint,p_hosts jsonb,p_accounts jsonb) returns jsonb language sql as $$select '{"desk":{}}'::jsonb$$;`);
+ await db.exec(await Deno.readTextFile('supabase/migrations/202610080014_registration_approval.sql'));
+ await db.exec(await Deno.readTextFile('supabase/migrations/202610230019_promo_codes.sql'));
+ await db.exec(await Deno.readTextFile('supabase/migrations/202610230020_promo_report.sql'));
+ await db.exec(await Deno.readTextFile('supabase/migrations/202610240022_promo_desk_registration.sql'));
+ const worker=crypto.randomUUID();await db.query("insert into club_worker values($1,now()+interval '1 minute')",[worker]);
+ const codes=(await db.query<{v:{code:string}[]}>('select club_promo_codes_active() v')).rows[0].v.map(c=>c.code);
+ check(['LEVELUP','RESPAWN','HEADSHOT','GG'].every(c=>codes.includes(c)),'active codes for the buttons: '+codes);
+ const redeem=(id:string,code:string,uid:number)=>db.query<{v:boolean}>('select club_promo_desk_redemption($1,$2,$3,$4) v',[worker,id,code,uid]).then(r=>r.rows[0].v);
+ const a=crypto.randomUUID();check(await redeem(a,'gg',501));check(await redeem(a,'GG',501),'repeat is idempotent');
+ const row=(await db.query<{s:string,src:string,t:number|null}>('select status s,source src,telegram_id t from club_promo_redemptions where registration_id=$1',[a])).rows[0];
+ check(row.s==='done'&&row.src==='desk'&&row.t===null);
+ check(await db.query<{v:boolean}>("select club_promo_reward($1,$2,'granted') v",[worker,a]).then(r=>r.rows[0].v),'reward recorded for a desk registration');
+ await fail(()=>redeem(crypto.randomUUID(),'VK',502),'Промокод не найден');
+ await fail(()=>redeem(crypto.randomUUID(),'HEADSHOT',501),'уже получал');
+ const rep=(await db.query<{r:{redemptions:{source:string}[]}}>('select club_promo_report() r')).rows[0].r;check(rep.redemptions[0].source==='desk');
+ await db.query("update club_worker set lease_until=now()-interval '1 second'");await fail(()=>redeem(crypto.randomUUID(),'GG',503),'worker_lease_expired');
+ await db.exec('set role anon');await fail(()=>db.query('select club_promo_codes_active()'));
+ }finally{await db.close()}
+});

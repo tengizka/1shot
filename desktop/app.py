@@ -12,7 +12,7 @@ from .polling import PollBudget
 from .sound import Sound
 from .notifications import NotificationGate
 from .rentals import Rentals,ITEMS as RENTAL_ITEMS
-from .services import Cloud,Gizmo,LegacyBridge
+from .services import ApiError,Cloud,Gizmo,LegacyBridge
 from .toast import Toaster,describe
 from .updater import Updater
 from .version import VERSION, AUTHOR, APP_TITLE, APP_ID
@@ -174,6 +174,16 @@ class App:
                 self.renew_account_lease()
                 return self.registration.reject(id,confirmed)
         except Exception:return {'error':'Не удалось подтвердить отклонение анкеты'}
+    def promo_codes(self):
+        try:
+            with self.operations:return {'codes':self.registration.promo_codes()}
+        except Exception:return {'error':'Не удалось получить промокоды. Проверьте связь'}
+    def register_guest(self,request_id,data,code=None,confirmed=False):
+        try:
+            with self.operations:
+                self.renew_account_lease()
+                return self.registration.register_at_desk(request_id,data,code,confirmed)
+        except Exception as error:return {'error':str(error) if isinstance(error,ApiError) else 'Регистрация не выполнена. Проверьте связь'}
     def find_account(self,username):
         try:
             with self.operations:return {'user':self.accounts.find(username)}

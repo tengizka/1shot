@@ -40,7 +40,9 @@
  const digits=v=>String(v||'').replace(/\D/g,'');
  function matches(r,q){
   if(!q)return true;const d=r.public_data||{},text=[d.username,d.first_name,d.last_name,d.promo_code].filter(Boolean).join(' ').toLowerCase();
-  const qd=digits(q);return text.includes(q.toLowerCase())||(qd.length>=3&&digits(d.mobile_phone).includes(qd.replace(/^[78](?=\d{10}$)/,'')));
+  const qd=digits(q),phone=digits(d.mobile_phone);if(text.includes(q.toLowerCase()))return true;if(qd.length<3)return false;
+  // 8 999… and +7 999… are the same Russian number: compare without the leading 8/7 too.
+  return phone.includes(qd)||(/^[78]/.test(qd)&&qd.length>=4&&phone.slice(1).startsWith(qd.slice(1)));
  }
  const fullName=r=>{const d=r.public_data||{};return [d.first_name,d.last_name,d.username].filter(Boolean).join(' ').toLowerCase()};
  const SORT={new:(a,b)=>String(b.created_at).localeCompare(String(a.created_at)),old:(a,b)=>String(a.created_at).localeCompare(String(b.created_at)),name:(a,b)=>fullName(a).localeCompare(fullName(b),'ru'),promo:(a,b)=>(!!b.public_data?.promo_code-!!a.public_data?.promo_code)||SORT.new(a,b)};
