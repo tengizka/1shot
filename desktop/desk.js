@@ -142,10 +142,10 @@ function buildPlan(container,{picker=false,onPick,onMenu}={}){
  for(const [id,[x,y]] of Object.entries(PLAN_SEATS)){
   const btn=document.createElement('button');btn.type='button';btn.className='desk-pc unknown';btn.style.left=x+'px';btn.style.top=y+'px';btn.dataset.room=planRoom(id);
   if(picker){btn.textContent=id}
-  else{btn.dataset.hostId=id;const number=document.createElement('b');number.textContent=id;const state=document.createElement('span');state.className='pc-state';const phone=document.createElement('i');phone.className='miniapp-booking';phone.hidden=true;phone.setAttribute('aria-hidden','true');btn.append(number,state,phone)}
+  else{btn.dataset.hostId=id;const number=document.createElement('b');number.textContent=id;const state=document.createElement('span');state.className='pc-state';const phone=document.createElement('i');phone.className='miniapp-booking';phone.hidden=true;phone.setAttribute('aria-hidden','true');const lock=document.createElement('i');lock.className='booking-lock';lock.hidden=true;lock.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';btn.append(number,state,phone,lock)}
   btn.onclick=e=>onPick?.(id,btn,e);btn.oncontextmenu=e=>{e.preventDefault();(onMenu||onPick)?.(id,btn,e)};layer.append(btn);buttons.set(id,btn);
  }
- if(!picker){const ps5=document.createElement('button');ps5.type='button';ps5.className='desk-ps5 unknown';ps5.dataset.hostId='1';ps5.innerHTML='<svg viewBox="0 0 32 24" aria-hidden="true"><path d="M10 5h12c3 0 4 3 5 6l2 7c1 4-3 5-5 2l-3-3H11l-3 3c-2 3-6 2-5-2l2-7c1-3 2-6 5-6Z"/><path d="M9 9v6m-3-3h6"/></svg><span><strong>TV-зона PS5</strong><small class="pc-state"></small></span><i class="miniapp-booking" hidden aria-hidden="true"></i>';ps5.onclick=e=>onPick?.('1',ps5,e);ps5.oncontextmenu=e=>{e.preventDefault();(onMenu||onPick)?.('1',ps5,e)};layer.append(ps5);buttons.set('1',ps5)}
+ if(!picker){const ps5=document.createElement('button');ps5.type='button';ps5.className='desk-ps5 unknown';ps5.dataset.hostId='1';ps5.innerHTML='<svg viewBox="0 0 32 24" aria-hidden="true"><path d="M10 5h12c3 0 4 3 5 6l2 7c1 4-3 5-5 2l-3-3H11l-3 3c-2 3-6 2-5-2l2-7c1-3 2-6 5-6Z"/><path d="M9 9v6m-3-3h6"/></svg><span><strong>TV-зона PS5</strong><small class="pc-state"></small></span><i class="miniapp-booking" hidden aria-hidden="true"></i><i class="booking-lock" hidden>'+'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>'+'</i>';ps5.onclick=e=>onPick?.('1',ps5,e);ps5.oncontextmenu=e=>{e.preventDefault();(onMenu||onPick)?.('1',ps5,e)};layer.append(ps5);buttons.set('1',ps5)}
  container.replaceChildren(layer);
  const fit=()=>{const w=container.clientWidth,h=container.clientHeight;if(!w||!h)return;const s=Math.min(w/360,h/416);layer.style.transform=`translate(${Math.max(0,(w-360*s)/2)}px,${Math.max(0,(h-416*s)/2)}px) scale(${s})`};
  new ResizeObserver(fit).observe(container);fit();
@@ -171,8 +171,13 @@ function hall(s){
   if(status==='free')free++;else if(status==='busy')busy++;else if(status==='reserved')booked++;
   const reservation=s.rows.find(b=>b.host_id===id&&!b.instant&&!b.admin_created&&['requested','waiting','holding','attention','checkin_pending','cancel_requested'].includes(b.status));
   const phone=btn.querySelector('.miniapp-booking');if(phone.hidden===!!reservation)phone.hidden=!reservation;
-  const title=hostName(id)+': '+HOST_LABELS[status]+(reservation?' · Бронь из мини-приложения · '+(reservation.username||reservation.guest_name||'Гость'):'');
-  if(btn.title!==title){btn.title=title;btn.setAttribute('aria-label',title)}
+  // Locked for a booking (2 hours ahead): green lock, hover shows who booked and when.
+  const held=s.rows.find(b=>b.host_id===id&&!b.instant&&['holding','waiting'].includes(b.status));
+  const lock=btn.querySelector('.booking-lock');if(lock.hidden===!!held)lock.hidden=!held;
+  const who=held?(held.username||held.guest_name||'Гость')+' · '+clubArrivalLabel(held.starts_at)+(held.status==='waiting'?' · ПК ещё занят':''):'';
+  if((btn.dataset.who||'')!==who){if(who)btn.dataset.who=who;else delete btn.dataset.who}
+  const title=hostName(id)+': '+HOST_LABELS[status]+(held?' · Бронь: '+who:reservation?' · Бронь из мини-приложения · '+(reservation.username||reservation.guest_name||'Гость'):'');
+  if(btn.getAttribute('aria-label')!==title){btn.setAttribute('aria-label',title);if(held)btn.removeAttribute('title');else btn.title=title}
   const attention=s.rows.some(b=>b.host_id===id&&b.status==='attention');btn.classList.toggle('attention',attention);
   btn.classList.toggle('has-rental',(s.rentals||[]).some(r=>r.host===id));
   btn.classList.toggle('selected',picked.has(id));

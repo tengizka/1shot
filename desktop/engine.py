@@ -4,6 +4,7 @@ Windows UI is separate; this module is testable without Gizmo or Qt/WebView.
 from __future__ import annotations
 from contextlib import contextmanager
 import json
+import os
 import secrets
 import sqlite3
 import time
@@ -34,6 +35,11 @@ class Store:
         with self.connect() as db: db.execute('insert into state values(?,?) on conflict(key) do update set value=excluded.value',(key,json.dumps(value)))
 
 class UnsafeOperation(RuntimeError): pass
+
+
+def lock_lead():
+    try:return max(0.0,float(os.getenv('BOOKING_LOCK_HOURS','2')))*3600
+    except ValueError:return 7200.0
 
 class Controller:
     def __init__(self, cloud, gizmo, store, clock=time.time):
@@ -121,7 +127,8 @@ class Controller:
                 h=self.fresh_host(b);self.release(b,record,h)
             self.transition(b,'cancelled' if b['status']=='cancel_requested' else 'expired','Бронь завершена; чужие блокировки не снимались')
             return
-        if not due:return
+        # The PC is locked ahead of time: BOOKING_LOCK_HOURS (default 2) before the booked start.
+        if now<timestamp(b['starts_at'])-lock_lead():return
         h=self.fresh_host(b)
         if b.get('instant') and not record and b['status'] in ('requested','waiting','checkin_pending'):
             if b.get('for_friend'):raise UnsafeOperation('Прямой вход разрешён только в свой аккаунт')
@@ -148,6 +155,10 @@ class Controller:
                 if record.get('phase')=='locked' and h.get('state')==2 and h.get('modifiedTime')==record.get('stamp'):
                     code=record.get('code');self.transition(b,'holding','ПК заблокирован и ждёт гостя',code);return
                 raise UnsafeOperation('Незавершённая операция блокировки. Нужна ручная проверка')
+            if (self.sessions(h) or h.get('state')!=0) and not due:
+                # Someone still plays (or the admin holds it): wait, the lock comes once it frees up.
+                if b['status']!='waiting':self.transition(b,'waiting','ПК пока занят: заблокируем, как только освободится')
+                return
             if self.sessions(h):
                 self.transition(b,'cancelled','ПК занят. Бронь отменена без вмешательства в игру')
                 return

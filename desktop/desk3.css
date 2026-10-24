@@ -402,3 +402,9 @@ nav .exit span{white-space:normal}
 .registration-history-row .ok{color:var(--lime)}
 .registration-history-row .muted{color:var(--muted)}
 .registration-linked{margin:0;padding:6px 8px;border:1px solid var(--pink,#E93E97);color:var(--pink,#E93E97);font-size:11px}
+/* Booked PC locked ahead of time: green lock and a hover card with the guest */
+.booking-lock{position:absolute;right:-5px;top:-6px;width:13px;height:13px;display:grid;place-items:center;background:#000;border:1px solid var(--lime);pointer-events:none}
+.booking-lock[hidden]{display:none}
+.booking-lock svg{width:9px;height:9px;fill:none;stroke:var(--lime);stroke-width:2.6}
+.desk-ps5 .booking-lock{right:4px;top:4px}
+[data-who]:hover::after{content:"Бронь · " attr(data-who);position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);z-index:20;white-space:nowrap;padding:6px 8px;background:#000;border:1.5px solid var(--lime);color:#fff;font:600 10px/1.2 var(--body,sans-serif);letter-spacing:0;text-transform:none;pointer-events:none}
