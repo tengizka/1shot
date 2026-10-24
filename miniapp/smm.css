@@ -539,3 +539,17 @@
 .hall-plan .map-pc.free:not(.my-booking)[data-room="vip1"],.hall-plan .map-pc.free:not(.my-booking)[data-room="vip2"],
 .floor-map :is(.map-pc,.seat-preview).free:not(.my-booking)[data-room="vip1"],.floor-map :is(.map-pc,.seat-preview).free:not(.my-booking)[data-room="vip2"]{background:#fff!important;border-color:#fff!important;color:#000}
 .leg-dot.free{width:10px!important;height:10px!important;background:#fff!important;box-shadow:none!important}
+
+/* Booking time: label with a lime clock that opens every time at once. */
+.bk-label-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 0 8px}
+.bk-label-row .bk-label{margin:0}
+.bk-all-open{flex:none;width:36px;height:36px;display:grid;place-items:center;background:var(--smm-lime);border:0;color:#000;cursor:pointer}
+.bk-all-open svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:square}
+.bk-all-open.on{background:#fff}
+.bk-all[hidden],.bk-slots[hidden]{display:none}
+.bk-all{max-height:300px;overflow-y:auto;overscroll-behavior:contain}
+.bk-all-day{margin:6px 0;font:700 10px Unbounded,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--smm-muted)}
+.bk-all-day:not(:first-child){margin-top:14px}
+.bk-all-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.bk-all-grid button{min-height:44px;background:#000;border:2px solid var(--smm-rule);color:#fff;font:700 16px ReSquare,Unbounded,sans-serif;cursor:pointer}
+.bk-all-grid button[aria-selected="true"]{background:#fff;border-color:#fff;color:#000}

@@ -56,7 +56,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   session=null;await page.evaluate(()=>dispatchEvent(new Event('club:resume')));await page.waitForFunction(()=>!document.getElementById('app').classList.contains('session-mode'));
   assert.equal(await page.locator('[data-hid="21"]').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(163, 255, 16)','own booking uses the SMM lime');await page.locator('[data-hid="21"]').click();assert.match(await page.locator('#club-mine').innerText(),/ПК 21/);assert.equal(await page.locator('#club-mine .current-session').count(),0,'other PC must not show current session');assert.equal(await page.getByRole('button',{name:'Отменить бронь',exact:true}).count(),1);await page.locator('#club-close').click();
   await page.locator('[data-hid="23"]').click();await page.waitForSelector('#ui-confirm[open]');assert.match(await page.locator('#ui-confirm').innerText(),/Снять бронь ПК 21/i);
-  await page.locator('#ui-confirm .ok').click();await page.waitForSelector('#club-booking[open]');assert.match(await page.locator('#club-rules').textContent(),/прошлая бронь снимется/);
+  await page.locator('#ui-confirm .ok').click();await page.waitForSelector('#club-booking[open]');assert.match(await page.locator('#club-rules').textContent(),/прошлая бронь снимется/i);
   await page.locator('#club-submit').click();await page.waitForFunction(()=>!document.querySelector('#club-create')||document.querySelector('#club-create').hidden);
   assert.equal(requests.filter(b=>b.action==='create_v2').at(-1).host_id,'23');assert.ok(requests.some(b=>b.action==='cancel'&&b.id==='scheduled-own'),'old booking is cancelled after the swap');
   await page.locator('#club-close').click();await page.waitForTimeout(300);

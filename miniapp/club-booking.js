@@ -5,7 +5,7 @@ window.clubV2=false;
  const statusNames={requested:'Ждём подтверждение клуба',waiting:'ПК пока занят · клуб уведомлён',holding:'Ваш ПК ждёт вас',checkin_pending:'Выполняем вход…',in_session:'Вы вошли · приятной игры',attention:'Бронь требует проверки',cancel_requested:'Снимаем бронь',cancelled:'Отменена',expired:'Время ожидания истекло',completed:'Завершена'};
  const terminal=new Set(['cancelled','expired','completed']);
  const sheet=document.createElement('dialog');sheet.id='club-booking';sheet.className='club-booking-dialog';
- sheet.innerHTML=`<div class="club-sheet-head"><span id="club-pc">БРОНЬ</span><button type="button" id="club-close" aria-label="Закрыть"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div><div id="club-create"><div class="bk-hero"><span class="bk-room" id="bk-room"></span><h2 id="bk-title"></h2><p class="bk-specs" id="bk-specs"></p></div><button type="button" class="bk-now" data-mode="instant" id="instant-mode" hidden><span><b>Войти сейчас</b><small>Уже в клубе? Садись, аккаунт откроется сам</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><div class="bk-later"><p class="bk-label" id="bk-label">Забронировать</p><div class="bk-slots" id="bk-slots" role="listbox" aria-label="Когда придёшь"></div></div><p id="club-rules" class="club-note"></p><button id="club-submit" class="btn-main">Забронировать</button></div><div id="club-mine" hidden></div><p id="club-error" role="alert"></p><a class="club-help" href="tel:+74955837811">Если нужна помощь: +7 (495) 583-78-11</a>`;
+ sheet.innerHTML=`<div class="club-sheet-head"><span id="club-pc">БРОНЬ</span><button type="button" id="club-close" aria-label="Закрыть"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div><div id="club-create"><div class="bk-hero"><span class="bk-room" id="bk-room"></span><h2 id="bk-title"></h2><p class="bk-specs" id="bk-specs"></p></div><button type="button" class="bk-now" data-mode="instant" id="instant-mode" hidden><span><b>Войти сейчас</b><small>Уже в клубе? Садись, аккаунт откроется сам</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><div class="bk-later"><div class="bk-label-row"><p class="bk-label" id="bk-label">Забронировать</p><button type="button" class="bk-all-open" id="bk-all-open" aria-label="Все время" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button></div><div class="bk-slots" id="bk-slots" role="listbox" aria-label="Когда придёшь"></div><div class="bk-all" id="bk-all" hidden></div></div><p id="club-rules" class="club-note"></p><button id="club-submit" class="btn-main">Забронировать</button></div><div id="club-mine" hidden></div><p id="club-error" role="alert"></p><a class="club-help" href="tel:+74955837811">Если нужна помощь: +7 (495) 583-78-11</a>`;
  document.body.append(sheet);
  const $=id=>document.getElementById(id);
  const time=a=>a.map(n=>String(n).padStart(2,'0')).join(':');
@@ -52,14 +52,14 @@ window.clubV2=false;
  const finishDrag=e=>{if(!drag||e.pointerId!==drag.id)return;const dy=e.clientY-drag.y,dx=e.clientX-drag.x,elapsed=performance.now()-drag.t;sheet.style.transform='';if(e.type==='pointerup'&&dy>100&&dy>Math.abs(dx)*1.5&&elapsed>100&&elapsed<1800)close();drag=null};
  handle.addEventListener('pointerup',finishDrag);handle.addEventListener('pointercancel',finishDrag);
  $('club-close').onclick=close;sheet.addEventListener('cancel',e=>{e.preventDefault();close()});
- /* Booking window: "Войти сейчас" is one tap; otherwise pick "Еду" or a time today (MSK, 15-minute grid). */
+ /* Booking window: "Войти сейчас" is one tap; otherwise pick a time (MSK, every 30 minutes); the clock opens all times. */
  const ROOMS={vip1:['VIP 1','RTX 4070 · i7-13700F · 27" 2K 240 Hz'],vip2:['VIP 2','RTX 4070 · i7-13700F · 24,5" 390 Hz'],std:['STANDART','RTX 4060 · i5-13400F · 24,5" 240 Hz'],tv:['TV-ЗОНА','PlayStation 5 · Samsung 65" 4K · до 2 человек']};
  const roomOf=id=>String(id)==='1'?'tv':window.planRoom?planRoom(id):'std';
  window.hostName=id=>String(id)==='1'?'PS5':'ПК '+id;
- /* Slots every 15 minutes for the next 24 hours (MSK); after midnight they belong to tomorrow. */
+ /* Slots every 30 minutes for the next 24 hours (MSK); after midnight they belong to tomorrow. */
  function slotTimes(now=Date.now()){
   const msk=new Date(now+3*3600000),min=msk.getUTCHours()*60+msk.getUTCMinutes(),out=[];
-  for(let m=Math.ceil((min+10)/15)*15;m<min+24*60;m+=15){const t=m%(24*60);out.push({key:time([Math.floor(t/60),t%60]),tomorrow:m>=24*60})}
+  for(let m=Math.ceil((min+10)/30)*30;m<min+24*60;m+=30){const t=m%(24*60);out.push({key:time([Math.floor(t/60),t%60]),tomorrow:m>=24*60})}
   return out;
  }
  function renderSlots(){
@@ -67,7 +67,13 @@ window.clubV2=false;
   if(!slots.some(t=>t.key===state.slot))state.slot=slots[0]?.key;
   box.innerHTML=slots.map((t,i)=>`<button type="button" role="option" data-slot="${t.key}" data-tomorrow="${t.tomorrow}" aria-selected="${state.slot===t.key}"><b>${t.key}</b><small>${t.tomorrow?'завтра':'сегодня'}</small></button>`).join('');
   box.querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>{state.slot=b.dataset.slot;window.haptic?.('select');render()});
+  // The clock shows every time at once, split into today and tomorrow.
+  const all=$('bk-all'),groups=[['Сегодня',slots.filter(t=>!t.tomorrow)],['Завтра',slots.filter(t=>t.tomorrow)]].filter(g=>g[1].length);
+  all.innerHTML=groups.map(([name,list])=>`<p class="bk-all-day">${name}</p><div class="bk-all-grid">${list.map(t=>`<button type="button" data-pick="${t.key}" aria-selected="${state.slot===t.key}">${t.key}</button>`).join('')}</div>`).join('');
+  all.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{state.slot=b.dataset.pick;window.haptic?.('select');toggleAll(false);render();box.querySelector(`[data-slot="${CSS.escape(state.slot)}"]`)?.scrollIntoView({block:'nearest',inline:'center'})});
  }
+ function toggleAll(open){const all=$('bk-all'),btn=$('bk-all-open');all.hidden=!open;$('bk-slots').hidden=open;btn.setAttribute('aria-expanded',String(open));btn.classList.toggle('on',open)}
+ $('bk-all-open').onclick=()=>{toggleAll($('bk-all').hidden);window.haptic?.('select')};
  function render(){
   const room=ROOMS[roomOf(state.host)]||ROOMS.std;
   $('instant-mode').hidden=state.protocol<2||state.host==='1';
@@ -76,11 +82,10 @@ window.clubV2=false;
   $('bk-label').textContent=$('instant-mode').hidden?'Когда придёшь?':'Или забронируй на время';
   state.mode='scheduled';state.arrival=state.slot?nextClubArrival(...state.slot.split(':').map(Number)):null;
   $('bk-slots').querySelectorAll('[data-slot]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.slot===state.slot)));
-  const day=state.arrival&&clubArrivalLabel(state.arrival).startsWith('Завтра')?'завтра ':'';
   $('club-submit').hidden=!state.arrival;
   $('club-submit').textContent='Забронировать · '+(state.slot||'');
-  const swap=state.replace?' · прошлая бронь снимется':'';
-  $('club-rules').textContent=(state.arrival?'Держим ПК '+day+'с '+state.slot+' до '+fmt(Date.parse(state.arrival)+30*60000)+' МСК':'')+swap;
+  $('club-rules').textContent=state.replace?'Прошлая бронь снимется':'';
+  $('bk-all').querySelectorAll('[data-pick]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.pick===state.slot)));
  }
  /* One PC per guest: picking another one swaps the booking; the old one is cancelled after the new one is accepted. */
  const SWAPPABLE=['requested','waiting','holding'];
@@ -95,7 +100,7 @@ window.clubV2=false;
    state.replace=others.map(b=>b.id);
   }
   state.host=String(id);state.forFriend=false;state.kind='range';state.request=null;state.slot=null;
-  $('club-create').hidden=false;$('club-mine').hidden=true;renderSlots();render();open(state.host==='1'?$('ps5-seat'):document.querySelector(`#floor-map [data-hid="${CSS.escape(state.host)}"]`));$('bk-slots').scrollLeft=0;
+  $('club-create').hidden=false;$('club-mine').hidden=true;renderSlots();toggleAll(false);render();open(state.host==='1'?$('ps5-seat'):document.querySelector(`#floor-map [data-hid="${CSS.escape(state.host)}"]`));$('bk-slots').scrollLeft=0;
  };
  let openedAt=0;
  $('instant-mode').onclick=()=>{if(performance.now()-openedAt<350)return;state.mode='instant';submit()};
