@@ -54,10 +54,10 @@ class Food:
         try:return self.gizmo.request('GET',path,params=params)
         except ApiError as error:raise ApiError(f'{error} ({path.split("?")[0]})') from error
 
-    def paged(self,path,params=None):
+    def paged(self,path,params=None,limit=100,pages=30):
         rows,cursor=[],None
-        for _ in range(30):
-            query=dict(params or {},**{'Pagination.Limit':100})
+        for _ in range(pages):
+            query=dict(params or {},**{'Pagination.Limit':limit})
             if cursor:query['Pagination.Cursor']=cursor
             try:page=self.get(path,query)
             except ApiError as error:
@@ -101,8 +101,8 @@ class Food:
         try:stock={s['id']:s.get('onHand') for s in self.paged('v2.0/productsstock') if type(s.get('id')) is int}
         except ApiError:stock=None
         # Only goods sold in the last FOOD_SOLD_DAYS (default 60): old duplicates with stale stock drop out.
-        try:sold=self.sold_ids()
-        except Exception:sold=None
+        try:sold_ids,sold_names=self.sold()
+        except Exception:sold_ids,sold_names=set(),set()
         items=[]
         for p in self.paged('v2.0/products',{'IsDeleted':'false'}):
             group=groups.get(p.get('productGroupId'))
@@ -110,33 +110,38 @@ class Food:
             if not group or type(p.get('id')) is not int or p.get('isDeleted') or p.get('productType')==TIME_PRODUCT or p.get('timeProduct'):continue
             if p.get('disallowClientOrder') or p.get('restrictSale') or p.get('isService') or not isinstance(price,(int,float)) or isinstance(price,bool) or price<=0:continue
             if str(group.get('name','')).strip().casefold() in self.hidden or not str(p.get('name') or '').strip():continue
-            if sold and p['id'] not in sold:continue
+            if (sold_ids or sold_names) and p['id'] not in sold_ids and str(p.get('name') or '').strip().casefold() not in sold_names:continue
             if p.get('enableStock') and not self.in_stock(p['id'],stock):continue
             items.append({'id':p['id'],'group':str(group.get('name') or 'Меню').strip()[:45],'group_order':int(group.get('displayOrder') or 0),'name':str(p['name']).strip()[:60],'price':round(float(price),2),'sort':int(p.get('displayOrder') or 0)})
         for item in items:item['image']=self.image(item['id'])
         return items
 
-    def sold_ids(self):
-        """Product ids on Gizmo invoices of the last N days, cached for 6 hours. Empty means «do not filter»."""
+    def sold(self):
+        """Products on Gizmo invoices of the last N days, cached for 6 hours: (ids, names). Empty means «do not filter».
+        Invoice lines carry the product name; the id is used when Gizmo gives one."""
         try:days=int(os.getenv('FOOD_SOLD_DAYS','60'))
         except ValueError:days=60
-        if days<=0:return set()
+        if days<=0:return set(),set()
         hit=self.store.get('food.sold')
-        if hit and time.time()-hit.get('at',0)<6*3600 and hit.get('days')==days:return set(hit.get('ids') or [])
-        since=datetime.now(timezone.utc)-timedelta(days=days);ids=set()
-        for invoice in self.paged('v2.0/invoices',{'DateFrom':since.strftime('%Y-%m-%dT%H:%M:%S'),'Expand':'InvoiceLines'}):
-            when=str(invoice.get('createdTime') or invoice.get('date') or '')
+        if hit and time.time()-hit.get('at',0)<6*3600 and hit.get('days')==days:return set(hit.get('ids') or []),set(hit.get('names') or [])
+        since=datetime.now(timezone.utc)-timedelta(days=days);ids,names=set(),set()
+        # Newest first, so a long period never loses the latest sales to the page cap.
+        for invoice in self.paged('v2.0/invoices',{'DateFrom':since.strftime('%Y-%m-%dT%H:%M:%S'),'Expand':'InvoiceLines','Pagination.IsAsc':'false'},limit=500,pages=80):
+            if not isinstance(invoice,dict) or invoice.get('isVoided') or invoice.get('isDeleted'):continue
+            when=str(invoice.get('date') or invoice.get('createdTime') or '')
             try:
-                at=datetime.fromisoformat(when.replace('Z','+00:00'))
-                if at.tzinfo is None:at=at.replace(tzinfo=timezone.utc)
-                if at<since:continue
+                at=datetime.fromisoformat(when[:19])
+                if at.replace(tzinfo=timezone.utc)<since-timedelta(days=1):continue
             except ValueError:pass
-            if invoice.get('isVoided') or invoice.get('isDeleted'):continue
             for line in invoice.get('invoiceLines') or []:
-                pid=line.get('productId') if isinstance(line,dict) else None
-                if type(pid) is int and not line.get('isVoided') and not line.get('isDeleted'):ids.add(pid)
-        self.store.set('food.sold',{'at':time.time(),'days':days,'ids':sorted(ids)})
-        return ids
+                if not isinstance(line,dict) or line.get('isVoided') or line.get('isDeleted'):continue
+                product=line.get('product') if isinstance(line.get('product'),dict) else {}
+                pid=line.get('productId') if type(line.get('productId')) is int else product.get('productId') if type(product.get('productId')) is int else product.get('id')
+                if type(pid) is int:ids.add(pid)
+                name=str(line.get('productName') or product.get('name') or '').strip().casefold()
+                if name:names.add(name)
+        self.store.set('food.sold',{'at':time.time(),'days':days,'ids':sorted(ids),'names':sorted(names)})
+        return ids,names
 
     def in_stock(self,product_id,stock):
         """Out-of-stock goods are hidden; an unreadable stock never hides a product."""

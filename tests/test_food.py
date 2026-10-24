@@ -181,13 +181,15 @@ class FoodTests(unittest.TestCase):
 
     def test_only_goods_sold_in_two_months(self):
         now=datetime.now(timezone.utc)
-        self.gizmo.invoices=[{'id':1,'createdTime':(now-timedelta(days=3)).isoformat(),'invoiceLines':[{'productId':10},{'productId':18}]},
-                             {'id':2,'createdTime':(now-timedelta(days=90)).isoformat(),'invoiceLines':[{'productId':11}]},
-                             {'id':3,'createdTime':(now-timedelta(days=5)).isoformat(),'isVoided':True,'invoiceLines':[{'productId':15}]}]
+        # The shape Gizmo returns at the club: date without zone, lines with productName and product null.
+        day=lambda d:(now-timedelta(days=d)).replace(tzinfo=None).isoformat()
+        self.gizmo.invoices=[{'id':1,'date':day(3),'isVoided':False,'invoiceLines':[{'lineType':0,'productName':'Red Bull','product':None},{'productName':'Аренда оборудования','product':None},{'product':{'id':18,'name':'Комбо'}}]},
+                             {'id':2,'date':day(90),'invoiceLines':[{'productName':'Lays','product':None}]},
+                             {'id':3,'date':day(5),'isVoided':True,'invoiceLines':[{'productName':'Мышь','product':None}]}]
         self.food.tick([])
         self.assertEqual([m['name'] for m in self.cloud.calls[0]['menu']],['Red Bull','Комбо'],'old sale and voided invoice do not count')
         self.assertEqual(self.gizmo.writes,[],'reading sales never writes to Gizmo')
-        params=next(c[2]['params'] for c in self.gizmo.calls if c[1]=='v2.0/invoices');self.assertIn('DateFrom',params)
+        params=next(c[2]['params'] for c in self.gizmo.calls if c[1]=='v2.0/invoices');self.assertIn('DateFrom',params);self.assertEqual(params['Pagination.IsAsc'],'false','newest first')
 
     def test_no_sales_data_shows_everything(self):
         self.food.tick([]);self.assertIn('Lays',[m['name'] for m in self.cloud.calls[0]['menu']],'invoices unreadable: no filter')
