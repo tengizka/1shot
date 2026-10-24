@@ -44,9 +44,12 @@ Deno.serve(async req=>{
   if(b.action==='list'){
    // Never let recent history push an old active/attention booking out of the list.
    const fields=publicFields+',protocol,for_friend,instant';
-   const {data:active,error}=await client.from('club_bookings').select(fields).eq('telegram_id',user).not('status','in','(cancelled,expired,completed)').order('created_at',{ascending:false});
+   // Only the bookings of the account signed in now: one Telegram may hold several accounts.
+   const {data:me,error:meError}=await client.from('profiles').select('gizmo_user_id').eq('telegram_id',user).maybeSingle();if(meError)throw meError;
+   const gid=me?.gizmo_user_id??-1;
+   const {data:active,error}=await client.from('club_bookings').select(fields).eq('telegram_id',user).eq('gizmo_user_id',gid).not('status','in','(cancelled,expired,completed)').order('created_at',{ascending:false});
    if(error)throw error;
-   const {data:history,error:historyError}=await client.from('club_bookings').select(fields).eq('telegram_id',user).in('status',['cancelled','expired','completed']).order('created_at',{ascending:false}).limit(20);
+   const {data:history,error:historyError}=await client.from('club_bookings').select(fields).eq('telegram_id',user).eq('gizmo_user_id',gid).in('status',['cancelled','expired','completed']).order('created_at',{ascending:false}).limit(20);
    if(historyError)throw historyError;return json({bookings:[...(active||[]),...(history||[])]});
   }
   if(b.action==='create_v2'){
