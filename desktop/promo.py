@@ -93,8 +93,8 @@ class PromoReward:
                 self.store.set(key,existing)
             return self.report(id,existing)
         record={'phase':'outcome','result':'failed','code':code,'gizmo_user_id':uid,'note':False}
-        # Off unless PROMO_AUTO_HOUR=true: the API sale gets the product's tax line, so staff give the hour by hand.
-        if os.getenv('PROMO_AUTO_HOUR','false').strip().lower()!='true':
+        # On by default (the club accepts the tax line on the free hour); PROMO_AUTO_HOUR=false leaves it to staff.
+        if os.getenv('PROMO_AUTO_HOUR','true').strip().lower()=='false':
             record['error']='автоначисление выключено, выдайте час вручную';self.store.set(key,record);return self.report(id,record)
         try:
             self.guard();seller=self.seller();product=free_hour_product(self.gizmo);method=payment_method()

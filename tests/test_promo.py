@@ -95,8 +95,10 @@ class PromoTests(unittest.TestCase):
   for v2 in ({'id':900,'taxTotal':0,'invoiceLines':[{'productName':'standart 1 h','taxRate':23,'taxTotal':0}]},{'id':900},None):
    self.gizmo=Gizmo();self.gizmo.invoice_v2=v2;self.build()
    r=self.api.approve(self.id,True);self.assertEqual(r['promo']['result'],'attention',v2);self.assertIn('проверьте вручную',unquote(self.gizmo.notes()[0][1]))
- def test_auto_hour_off_by_default(self):
+ def test_auto_hour_on_by_default_and_can_be_switched_off(self):
   os.environ.pop('PROMO_AUTO_HOUR');self.build()
+  r=self.api.approve(self.id,True);self.assertEqual(r['promo']['result'],'granted','no line in .env: the hour is given')
+  self.gizmo=Gizmo();os.environ['PROMO_AUTO_HOUR']='false';self.build()
   r=self.api.approve(self.id,True);self.assertEqual(r['promo']['result'],'failed');self.assertIn('вручную',r['promo']['error']);self.assertEqual(self.gizmo.orders(),[])
  def test_minutes_inside_time_product_block(self):
   self.gizmo.products=[{'id':41,'name':'Standart 1 h','price':0,'timeProduct':{'minutes':60}}];self.build()
