@@ -19,6 +19,16 @@
   handIndex=(handIndex+1)%hands.length;const hand=hands[handIndex];box.dataset.variant=String(handIndex);
   box.querySelector('.occupied-art').innerHTML='<svg viewBox="0 0 110 145" aria-hidden="true"><path d="'+hand[0]+'"/><path d="'+hand[1]+'"/></svg>';
   lastLine=next(occupiedLines.length,lastLine);lastAction=next(occupiedActions.length,lastAction);box.querySelector('p').textContent=occupiedLines[lastLine];box.querySelector('.btn-main').textContent=occupiedActions[lastAction];
+  // When the player's time runs out (Desk's estimate): show it and offer to book right after.
+  let free=box.querySelector('.occupied-free'),after=box.querySelector('.occupied-after');
+  if(!free){free=document.createElement('p');free.className='occupied-free';after=document.createElement('button');after.type='button';after.className='occupied-after';box.querySelector('.btn-main').before(free,after)}
+  const end=Date.parse((typeof hostsData!=='undefined'?hostsData:{})[String(hostId)]?.free_at||'');
+  const at=Number.isFinite(end)?Math.ceil(Math.max(end,Date.now()+10*60000)/300000)*300000:NaN;
+  const hm=t=>new Date(t).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'});
+  free.hidden=!hostId;after.hidden=!Number.isFinite(at)||!window.openClubBooking;
+  free.textContent=Number.isFinite(end)?'Освободится примерно в '+hm(end):'Играет надолго';
+  after.textContent='Забронировать на '+hm(at);
+  after.onclick=()=>{box.close();window.openClubBooking(hostId,new Date(at).toISOString())};
   window.hallMotion?.cancel();if(!box.open)box.showModal();
  };
  const logoShape='M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z';
