@@ -62,8 +62,14 @@ window.clubV2=false;
   for(let m=Math.ceil((min+10)/30)*30;m<min+24*60;m+=30){const t=m%(24*60);out.push({key:time([Math.floor(t/60),t%60]),tomorrow:m>=24*60})}
   return out;
  }
+ // Booking a busy PC: only times from the moment it frees up, the first one exactly then.
+ function afterSlots(){
+  const from=Date.parse(state.after),key=time(new Date(from+3*3600000).toISOString().slice(11,16).split(':').map(Number));
+  const today=new Date(Date.now()+3*3600000).toISOString().slice(0,10),first={key,tomorrow:new Date(from+3*3600000).toISOString().slice(0,10)!==today};
+  return [first,...slotTimes().filter(t=>Date.parse(nextClubArrival(...t.key.split(':').map(Number)))>from&&t.key!==key)];
+ }
  function renderSlots(){
-  const box=$('bk-slots'),slots=slotTimes();
+  const box=$('bk-slots'),slots=state.after?afterSlots():slotTimes();
   if(!slots.some(t=>t.key===state.slot))state.slot=slots[0]?.key;
   box.innerHTML=slots.map((t,i)=>`<button type="button" role="option" data-slot="${t.key}" data-tomorrow="${t.tomorrow}" aria-selected="${state.slot===t.key}"><b>${t.key}</b><small>${t.tomorrow?'завтра':'сегодня'}</small></button>`).join('');
   box.querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>{state.slot=b.dataset.slot;window.haptic?.('select');render()});
@@ -76,7 +82,7 @@ window.clubV2=false;
  $('bk-all-open').onclick=()=>{toggleAll($('bk-all').hidden);window.haptic?.('select')};
  function render(){
   const room=ROOMS[roomOf(state.host)]||ROOMS.std;
-  $('instant-mode').hidden=state.protocol<2||state.host==='1';
+  $('instant-mode').hidden=state.protocol<2||state.host==='1'||!!state.after;
   $('club-pc').textContent='БРОНЬ';$('club-error').textContent='';
   $('bk-title').textContent=hostName(state.host);$('bk-room').textContent=room[0];$('bk-room').dataset.room=roomOf(state.host);$('bk-specs').textContent=room[1];
   $('bk-label').textContent=$('instant-mode').hidden?'Когда придёшь?':'Или забронируй на время';
@@ -89,8 +95,8 @@ window.clubV2=false;
  }
  /* One PC per guest: picking another one swaps the booking; the old one is cancelled after the new one is accepted. */
  const SWAPPABLE=['requested','waiting','holding'];
- window.openClubBooking=async(id)=>{
-  if(liveHostStatus(hostsData[String(id)])!=='free'){window.showOccupied?.(id);return}
+ window.openClubBooking=async(id,after)=>{
+  if(!after&&liveHostStatus(hostsData[String(id)])!=='free'){window.showOccupied?.(id);return}
   const others=state.rows.filter(b=>!terminal.has(b.status)&&b.status!=='in_session'&&b.host_id!==String(id));
   if(others.some(b=>!SWAPPABLE.includes(b.status))){window.pickSeat?.(null);toast('Прошлая бронь ещё оформляется. Подожди пару секунд','inf');return}
   state.replace=null;
@@ -99,7 +105,7 @@ window.clubV2=false;
    if(!await uiConfirm(`Снять бронь ${hostName(prev.host_id)}? Держать можно только один ПК.`,{ok:'Выбрать '+hostName(id)})){window.pickSeat?.(null);return}
    state.replace=others.map(b=>b.id);
   }
-  state.host=String(id);state.forFriend=false;state.kind='range';state.request=null;state.slot=null;
+  state.host=String(id);state.forFriend=false;state.kind='range';state.request=null;state.slot=null;state.after=after||null;
   $('club-create').hidden=false;$('club-mine').hidden=true;renderSlots();toggleAll(false);render();open(state.host==='1'?$('ps5-seat'):document.querySelector(`#floor-map [data-hid="${CSS.escape(state.host)}"]`));$('bk-slots').scrollLeft=0;
  };
  let openedAt=0;
@@ -107,7 +113,7 @@ window.clubV2=false;
  $('club-submit').onclick=()=>{render();submit()};
  async function submit(){
   if(state.busy)return;if(!tg?.initData){$('club-error').textContent='Откройте приложение через Telegram';return}
-  if(liveHostStatus(hostsData[state.host])!=='free'){$('club-error').textContent='ПК сейчас недоступен. Выберите свободный компьютер';return}
+  if(!state.after&&liveHostStatus(hostsData[state.host])!=='free'){$('club-error').textContent='ПК сейчас недоступен. Выберите свободный компьютер';return}
   if(state.mode==='scheduled'&&Date.parse(state.arrival)<=Date.now()+60000){renderSlots();render();$('club-error').textContent='Это время уже прошло. Выбери другое';return}
   state.busy=true;$('club-submit').disabled=true;$('club-error').textContent='';
   state.request ||= crypto.randomUUID();

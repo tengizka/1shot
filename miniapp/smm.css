@@ -738,3 +738,8 @@ body:has(.overlay.open) :is(#session-screen,#my-session-banner,#booking-bar){vis
 /* Market and top-up paused: only bookings stay in the app */
 #nav-food,#session-screen .session-quick{display:none!important}
 .balance-chip{cursor:default}
+/* Busy PC: when it frees up, and booking right after */
+.occupied-dialog .occupied-free{margin:-4px 0 14px;font:700 12px/1.4 Unbounded,sans-serif;color:var(--smm-lime);text-transform:none}
+.occupied-dialog .occupied-free[hidden],.occupied-dialog .occupied-after[hidden]{display:none}
+.occupied-dialog .occupied-after{width:100%;min-height:46px;margin-bottom:8px;background:var(--smm-lime);color:#000;border:0;font:800 12px Unbounded,sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.occupied-dialog:has(.occupied-after:not([hidden])) .btn-main{background:#000!important;color:#fff!important;border:2px solid var(--smm-rule)!important}
