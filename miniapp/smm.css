@@ -408,7 +408,7 @@
 .me-id{min-width:0}
 .me-hero .prof-name{font-size:clamp(28px,9vw,38px)!important;line-height:.95;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .me-hero .prof-sub{margin-top:6px;font:600 11px Unbounded,sans-serif;color:var(--smm-muted)}
-.me-stats{display:grid;grid-template-columns:1.25fr 1fr 1fr;border-top:2px solid var(--smm-rule);border-bottom:2px solid var(--smm-rule)}
+.me-stats{display:grid;grid-template-columns:1fr 1fr;border-top:2px solid var(--smm-rule);border-bottom:2px solid var(--smm-rule)}
 .me-stat{min-width:0;padding:14px 10px 14px 0;background:none!important;border:0!important}
 .me-stat+.me-stat{padding-left:10px;border-left:2px solid var(--smm-rule)!important}
 .me-stat span{display:block;font:700 9px Unbounded,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--smm-muted)}

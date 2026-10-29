@@ -36,6 +36,8 @@
   --safe-bot:    env(safe-area-inset-bottom, 0px);
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html.tg-sticky{position:static;overflow-y:auto;overflow-x:hidden;overscroll-behavior:auto;height:auto}html.tg-sticky body{position:static;overflow-x:hidden}
+html.tg-sticky body{margin-top:100px;padding-bottom:100px;overflow-y:hidden}
 html,body{width:100%;height:100%;overflow:hidden;position:fixed;overscroll-behavior:none;background:var(--bg);color:var(--t1);font-family:'Unbounded',sans-serif}
 .screen{position:fixed;inset:0;display:none;flex-direction:column;background:var(--bg)}
 .screen.active{display:flex}
@@ -410,7 +412,6 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
     <div class="leg-item"><div class="leg-dot busy"></div>Занят</div>
     <div class="leg-item"><div class="leg-dot mine"></div>Твоя бронь</div>
     <div class="leg-item"><svg class="legend-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Бронь</div>
-    <div class="leg-item"><svg class="legend-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3a6 6 0 0 0-7 8L2 16a3 3 0 0 0 4 4l5-5a6 6 0 0 0 8-7l-4 4-3-3 4-4Z"/></svg><span class="sr-repair">Ремонт</span></div>
     <div class="refresh-txt" id="refresh-time">Получаем статусы компьютеров…</div>
   </div>
   <div class="hall-area" id="hall-area">
@@ -575,7 +576,6 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
     <div class="me-stats">
       <div class="me-stat bal-card"><span class="bal-lbl">Баланс</span><b class="bal-val" id="prof-balance">— ₽</b></div>
       <div class="me-stat"><span>Наиграно</span><b id="ps-hours">—</b></div>
-      <div class="me-stat"><span>Сейчас</span><b id="ps-now">—</b></div>
     </div>
     <p class="bal-sub" id="balance-note">Баланс клуба пока не подключён</p>
     <div id="prof-account-slot"></div>
@@ -646,6 +646,14 @@ if (tg) {
   };
   const keepOpen = () => { try { tg.expand(); } catch(e){} noSwipe(); };
   keepOpen();
+  // Some Telegram builds still fold the app on a pull-down despite the setting above.
+  // Then the page itself sits scrolled 100px down: a pull-down only scrolls it, the app stays open.
+  if (['ios','android'].includes(tg.platform)) {
+    const pad = 100, root = document.documentElement, body = document.body;
+    root.classList.add('tg-sticky');
+    const hold = () => { body.style.height = (innerHeight + pad) + 'px'; if (scrollY !== pad) scrollTo(0, pad); };
+    hold(); addEventListener('resize', hold); addEventListener('scroll', () => { if (scrollY < pad) scrollTo(0, pad); }, { passive: true });
+  }
   try { tg.onEvent('activated', keepOpen); tg.onEvent('viewportChanged', e => { if (e?.isStateStable) noSwipe(); }); } catch(e){}
   if (!telegram_id) telegram_id = tg?.initDataUnsafe?.user?.id || 0;
 }
@@ -948,7 +956,7 @@ function updatePlanCaption(){
   const zone=PLAN_ZONES[activeZone],ids=Object.keys(PLAN_SEATS).filter(id=>activeZone==='all'||planZoneOf(id)===activeZone);
   const fresh=ids.filter(id=>liveHostStatus(hostsData[id])!=='unknown'),free=fresh.filter(id=>liveHostStatus(hostsData[id])==='free').length;
   document.getElementById('map-filter-label').textContent=zone.title;
-  document.getElementById('seat-count').textContent=`${ids.length} ПК`+(fresh.length?` · свободно ${free}`:'');
+  document.getElementById('seat-count').textContent=activeZone==='all'?'':`${ids.length} ПК`+(fresh.length?` · свободно ${free}`:'');
   document.getElementById('map-back').hidden=activeZone==='all';
   document.querySelectorAll('.ztab').forEach(t=>{const on=t.dataset.zone===activeZone;t.classList.toggle('active',on);t.setAttribute('aria-pressed',String(on))});
   document.getElementById('hall-plan').classList.toggle('zoomed',activeZone!=='all');
@@ -968,11 +976,12 @@ function applyPlan(s,left,top){
 function setPlanView(zone,animate=true){
   const plan=document.getElementById('hall-plan');if(!plan.clientWidth)return;
   const to=planTarget(zone),from={s:planScale,left:plan.scrollLeft,top:plan.scrollTop};
-  cancelAnimationFrame(planAnim);
+  cancelAnimationFrame(planAnim);planAnim=0;
   if(!animate||matchMedia('(prefers-reduced-motion: reduce)').matches){applyPlan(to.s,to.left,to.top);return}
   // A soft zoom: slow start and end, a little longer than a tap so the move reads.
   const t0=performance.now(),d=560,ease=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
-  const step=now=>{const k=ease(Math.min(1,(now-t0)/d));applyPlan(from.s+(to.s-from.s)*k,from.left+(to.left-from.left)*k,from.top+(to.top-from.top)*k);if(k<1)planAnim=requestAnimationFrame(step)};
+  // The target is re-read every frame: the caption's back button can resize the plan mid-zoom.
+  const step=now=>{const k=ease(Math.min(1,(now-t0)/d)),t=planTarget(zone);applyPlan(from.s+(t.s-from.s)*k,from.left+(t.left-from.left)*k,from.top+(t.top-from.top)*k);planAnim=k<1?requestAnimationFrame(step):0};
   planAnim=requestAnimationFrame(step);
 }
 function switchZone(zone) {
@@ -997,7 +1006,7 @@ function switchZone(zone) {
   const span=([a,b])=>Math.hypot(a.x-b.x,a.y-b.y);
   plan.addEventListener('touchstart',e=>{
     if(e.touches.length!==2)return;
-    cancelAnimationFrame(planAnim);const r=plan.getBoundingClientRect(),[a,b]=pts(e),mx=(a.x+b.x)/2-r.left,my=(a.y+b.y)/2-r.top;
+    cancelAnimationFrame(planAnim);planAnim=0;const r=plan.getBoundingClientRect(),[a,b]=pts(e),mx=(a.x+b.x)/2-r.left,my=(a.y+b.y)/2-r.top;
     const s0=planScale,ml=Math.max(0,(plan.clientWidth-360*s0)/2),mt=Math.max(0,(plan.clientHeight-416*s0)/2);
     g={d0:span([a,b]),s0,mx,my,px:(plan.scrollLeft+mx-ml)/s0,py:(plan.scrollTop+my-mt)/s0,ratio:1,cx:(a.x+b.x)/2,cy:(a.y+b.y)/2};
   },{passive:true});
@@ -1035,8 +1044,8 @@ function pickSeat(id){
   document.getElementById('ps5-seat')?.classList.toggle('picked',pickedSeat==='1');
 }
 function denySeat(button){button.classList.remove('denied');void button.offsetWidth;button.classList.add('denied');setTimeout(()=>button.classList.remove('denied'),450)}
-addEventListener('resize',()=>setPlanView(activeZone,false));
-new ResizeObserver(()=>setPlanView(activeZone,false)).observe(document.getElementById('hall-plan'));
+addEventListener('resize',()=>{if(!planAnim)setPlanView(activeZone,false)});
+new ResizeObserver(()=>{if(!planAnim)setPlanView(activeZone,false)}).observe(document.getElementById('hall-plan'));
 
 // ═══════════════════════════════════════════════
 // BOTTOM NAV
@@ -1220,7 +1229,7 @@ function clearProfile() {
 <link rel="stylesheet" href="registration-wait.css?v=2.6.0"><script src="registration-wait.js?v=2.8.0"></script><script src="password-choice.js?v=2.4.0"></script>
 <script src="club-booking.js?v=3.1.0"></script>
 <link rel="stylesheet" href="polish.css?v=1.6.0"><script src="polish.js?v=2.3.0"></script>
-<link rel="stylesheet" href="smm.css?v=4.4.0">
+<link rel="stylesheet" href="smm.css?v=4.5.0">
 <link rel="stylesheet" href="food.css?v=3.0.0"><script src="food.js?v=3.0.1"></script>
 <script src="tel-links.js?v=2"></script><script src="auth-photos.js?v=1"></script><script src="keyboard.js?v=2"></script><script src="topup.js?v=3"></script>
 <link rel="stylesheet" href="maintenance.css?v=9"><script src="maintenance.js?v=9"></script>
