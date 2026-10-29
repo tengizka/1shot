@@ -18,7 +18,7 @@ async function secret(){
  return Array.from(new Uint8Array(d)).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,48);
 }
 const WELCOME='👋 <b>Привет! Это 1SHOT</b> — компьютерный клуб в Мытищах\n📍 ул. Мира, 37 · 🕹 открыты 24/7\n\n'+
- '📱 <b>В приложении:</b>\n🖥 бронь ПК за пару касаний\n🍔 еда и напитки прямо к твоему ПК\n🖱 аренда мышек, коврика и повербанка\n⏱ пакеты часов и 🎁 бонусы за пополнение\n\n👇 Жми «Открыть 1SHOT»';
+ '📱 <b>В приложении:</b>\n🖥 бронь ПК за пару касаний\n👀 видно, какие ПК свободны прямо сейчас\n🎁 акции и бонусы клуба\n\n👇 Жми «Открыть 1SHOT»';
 const keyboard=(promo?:string)=>({inline_keyboard:[
  [{text:'🎮 Открыть 1SHOT',web_app:{url:APP+(promo?'?promo='+encodeURIComponent(promo):'')}}],
  [{text:'📞 Позвонить в клуб',callback_data:'call'},{text:'📢 Канал клуба',url:'https://t.me/oneshotmira17'}]]});
@@ -55,7 +55,7 @@ Deno.serve(async req=>{
    // Without the video the greeting still goes out as text.
    else await tg('sendMessage',{chat_id:msg.chat.id,text:WELCOME+extra,parse_mode:'HTML',reply_markup:keyboard(promo)});
   }else{
-   await tg('sendMessage',{chat_id:msg.chat.id,text:'Я бот-помощник 1SHOT. Бронь, еда, аренда и твой аккаунт — в приложении 👇\nЕсли нужен человек: +7 (495) 583-78-11',reply_markup:keyboard()});
+   await tg('sendMessage',{chat_id:msg.chat.id,text:'Я бот-помощник 1SHOT. Бронь ПК и твой аккаунт — в приложении 👇\nЕсли нужен человек: +7 (495) 583-78-11',reply_markup:keyboard()});
   }
  }catch(_e){/* A broken update is dropped: Telegram must not retry it forever. */}
  return ok({ok:true});
