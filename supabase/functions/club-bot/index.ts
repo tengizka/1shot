@@ -17,11 +17,11 @@ async function secret(){
  const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('1shot-bot:'+TOKEN));
  return Array.from(new Uint8Array(d)).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,48);
 }
-const WELCOME='<b>Привет! Это 1SHOT</b> — компьютерный клуб в Мытищах, ул. Мира, 37. Открыты 24/7.\n\n'+
- 'В приложении:\n• бронь ПК за пару касаний\n• еда и напитки прямо к твоему ПК\n• аренда мышек, коврика и повербанка\n• пакеты часов и бонусы за пополнение';
+const WELCOME='👋 <b>Привет! Это 1SHOT</b> — компьютерный клуб в Мытищах\n📍 ул. Мира, 37 · 🕹 открыты 24/7\n\n'+
+ '📱 <b>В приложении:</b>\n🖥 бронь ПК за пару касаний\n🍔 еда и напитки прямо к твоему ПК\n🖱 аренда мышек, коврика и повербанка\n⏱ пакеты часов и 🎁 бонусы за пополнение\n\n👇 Жми «Открыть 1SHOT»';
 const keyboard=(promo?:string)=>({inline_keyboard:[
- [{text:'Открыть 1SHOT',web_app:{url:APP+(promo?'?promo='+encodeURIComponent(promo):'')}}],
- [{text:'📞 Позвонить в клуб',callback_data:'call'},{text:'Канал клуба',url:'https://t.me/oneshotmira17'}]]});
+ [{text:'🎮 Открыть 1SHOT',web_app:{url:APP+(promo?'?promo='+encodeURIComponent(promo):'')}}],
+ [{text:'📞 Позвонить в клуб',callback_data:'call'},{text:'📢 Канал клуба',url:'https://t.me/oneshotmira17'}]]});
 Deno.serve(async req=>{
  const url=new URL(req.url);
  if(!TOKEN)return ok({error:'no_token'});
