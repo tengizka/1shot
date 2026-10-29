@@ -20,6 +20,21 @@ def session_record(s):
 
 def finite(value):return isinstance(value,(int,float)) and not isinstance(value,bool) and math.isfinite(value)
 
+def span_hours(value):
+    """Gizmo sends a duration as {totalHours: …}, as a .NET string «d.hh:mm:ss», or as plain hours."""
+    if isinstance(value,dict):
+        for key in ('totalHours','TotalHours'):
+            if finite(value.get(key)):return float(value[key])
+        if finite(value.get('ticks')):return value['ticks']/36e9
+        return None
+    if finite(value):return float(value)
+    if isinstance(value,str):
+        m=re.fullmatch(r'(?:(\d+)\.)?(\d+):(\d{2}):(\d{2})(?:\.\d+)?',value.strip())
+        if m:return int(m[1] or 0)*24+int(m[2])+int(m[3])/60+int(m[4])/3600
+        try:return float(value.replace(',','.'))
+        except ValueError:return None
+    return None
+
 class Accounts:
     def __init__(self,gizmo,cloud,store,guard):
         self.gizmo,self.cloud,self.store,self.guard=gizmo,cloud,store,guard
@@ -38,14 +53,17 @@ class Accounts:
     def statistics(self,uid):
         key='stats:'+str(uid);cached=self.store.get(key)
         if cached and time.time()-cached.get('cached_at',0)<600:return cached
-        end=datetime.now(timezone.utc);start=end-timedelta(days=30)
+        # «Наиграно» is all the time played in the club, not just the last month.
+        end=datetime.now(timezone.utc);start=datetime(2015,1,1,tzinfo=timezone.utc)
         result={'from':start.isoformat(),'to':end.isoformat(),'hours':None,'cached_at':time.time()}
         try:
-            rows=self.gizmo.request('GET','stats/session',params={'userId':int(uid),'start':start.isoformat(),'end':end.isoformat(),'max':100})
-            own=[r for r in rows if r.get('userId')==int(uid)] if isinstance(rows,list) else []
-            if len(own)==1:
-                value=(own[0].get('totalSpan') or {}).get('totalHours')
-                if finite(value) and value>=0:result['hours']=value
+            rows=self.gizmo.request('GET','stats/session',params={'userId':int(uid),'start':start.strftime('%Y-%m-%dT%H:%M:%S'),'end':end.strftime('%Y-%m-%dT%H:%M:%S'),'max':100})
+            own=[r for r in rows if r.get('userId')==int(uid)] if isinstance(rows,list) else None
+            if own==[]:result['hours']=0
+            elif own and len(own)==1:
+                value=span_hours(own[0].get('totalSpan'))
+                if value is None:value=span_hours(own[0].get('hours'))
+                if value is not None and value>=0:result['hours']=round(value,1)
         except Exception:pass  # Statistics failure must not hide balance / session.
         self.store.set(key,result)
         return result
