@@ -6,6 +6,8 @@ const PHONE='+74955837811';
 // The mini-app promo video (GitHub Pages, under Telegram's 20 MB fetch limit); after the first send Telegram's file_id is reused.
 const VIDEO='https://tengizka.github.io/1shot/miniapp/media/bot-welcome.mp4';
 let videoId=Deno.env.get('BOT_VIDEO_FILE_ID')||'';
+// The first frames are black: Telegram shows this still («Теперь можно бронировать») until play.
+const COVER='https://tengizka.github.io/1shot/miniapp/media/bot-cover.jpg';
 const HOOK=(Deno.env.get('SUPABASE_URL')||'')+'/functions/v1/club-bot';
 const ok=(body:unknown)=>new Response(JSON.stringify(body),{headers:{'content-type':'application/json'}});
 async function tg(method:string,body:unknown){
@@ -50,7 +52,7 @@ Deno.serve(async req=>{
    const raw=text.split(/\s+/)[1]||'';
    const promo=/^[A-Za-z0-9_-]{2,32}$/.test(raw)?raw.toUpperCase():'';
    const extra=promo?`\n\n🎁 Промокод <b>${promo}</b> уже подставлен: при регистрации получишь 1 час в STANDART.`:'';
-   const sent=await tg('sendVideo',{chat_id:msg.chat.id,video:videoId||VIDEO,caption:WELCOME+extra,parse_mode:'HTML',supports_streaming:true,width:720,height:1280,reply_markup:keyboard(promo)});
+   const sent=await tg('sendVideo',{chat_id:msg.chat.id,video:videoId||VIDEO,cover:COVER,caption:WELCOME+extra,parse_mode:'HTML',supports_streaming:true,width:720,height:1280,reply_markup:keyboard(promo)});
    if(sent?.ok)videoId=sent.result?.video?.file_id||videoId;
    // Without the video the greeting still goes out as text.
    else await tg('sendMessage',{chat_id:msg.chat.id,text:WELCOME+extra,parse_mode:'HTML',reply_markup:keyboard(promo)});
