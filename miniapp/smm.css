@@ -735,3 +735,6 @@ body:has(.overlay.open) :is(#session-screen,#my-session-banner,#booking-bar){vis
 .topup .btn-main{width:100%;min-height:56px}
 .topup .btn-main:disabled{opacity:.45}
 @media(prefers-reduced-motion:reduce){.topup[open]{animation:none}}
+/* Market and top-up paused: only bookings stay in the app */
+#nav-food,#session-screen .session-quick{display:none!important}
+.balance-chip{cursor:default}

@@ -81,7 +81,10 @@
   busy=false;paint();say(text,'err');
  }
 
+ // Paused while the club sorts out taxes: the balance stays visible, but nothing opens a payment.
+ const PAUSED=true;
  function mount(){
+  if(PAUSED){window.oneshotTopup={open(){},close(){}};return}
   const chip=document.querySelector('.app-header .balance-chip');
   if(chip&&!chip.dataset.topup){chip.dataset.topup='1';chip.setAttribute('role','button');chip.tabIndex=0;chip.setAttribute('aria-label','Баланс, пополнить');chip.addEventListener('click',open)}
   for(const head of document.querySelectorAll('.overlay .ov-head')){
