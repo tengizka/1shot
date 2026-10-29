@@ -7,6 +7,17 @@ async function deskStatus(client: ReturnType<typeof db>) {
  const validFor=data?.[0]?.protocol>=2&&Number.isFinite(remaining)?Math.max(0,Math.min(30000,remaining)):0;
  return {online:validFor>0,valid_for_ms:validFor};
 }
+// The guest gets a short note from @oneshotagent when a booking is made (needs the bot started once).
+async function notifyBooked(chat: number, b: {host_id:string,starts_at?:string|null,hold_until?:string|null,instant?:boolean}) {
+ const token=Deno.env.get('TELEGRAM_BOT_TOKEN');if(!token)return;
+ const msk=(iso?:string|null)=>iso?new Date(iso).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'}):'';
+ const day=(iso?:string|null)=>{if(!iso)return '';const f=(d:Date)=>d.toLocaleDateString('ru-RU',{timeZone:'Europe/Moscow'});return f(new Date(iso))===f(new Date())?'сегодня':'завтра'};
+ const pc=b.host_id==='1'?'PS5':'ПК '+b.host_id;
+ const text=b.instant
+  ?`✅ <b>${pc} твой!</b>\nДержим до ${msk(b.hold_until)}. Подходи и садись 🎮`
+  :`✅ <b>${pc} забронирован</b>\n🕒 ${day(b.starts_at)} в ${msk(b.starts_at)}\n📍 1SHOT, Мытищи, ул. Мира, 37\n\nЕсли планы поменяются, отмени бронь в приложении.`;
+ await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({chat_id:chat,text,parse_mode:'HTML'})});
+}
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response(null,{headers:cors});
  if(req.method!=='POST')return json({error:'method_not_allowed'},405);
@@ -55,7 +66,10 @@ Deno.serve(async req=>{
   if(b.action==='create_v2'){
    if(typeof b.host_id!=='string'||b.host_id.length>100||typeof b.for_friend!=='boolean')return json({error:'Некорректная заявка'},400);
    const {data,error}=await client.rpc('club_create_v2',{p_user:user,p_host:b.host_id,p_mode:b.mode,p_kind:b.duration_kind,p_start:b.starts_at||null,p_end:b.ends_at||null,p_request:b.client_request_id,p_friend:b.for_friend});
-   if(error)throw error;return json({booking_id:data.id},201);
+   if(error)throw error;
+   // Fresh bookings only: a retried request returns the same row and must not message twice.
+   if(Date.now()-Date.parse(data.created_at)<20000)await notifyBooked(user,data).catch(()=>{});
+   return json({booking_id:data.id},201);
   }
   if(['enter','release'].includes(b.action)){
    const {data,error}=await client.rpc('club_booking_action',{p_user:user,p_id:b.id,p_action:b.action});if(error)throw error;

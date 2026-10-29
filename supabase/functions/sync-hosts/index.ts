@@ -44,6 +44,8 @@ Deno.serve(async (req) => {
     zone: String(h.zone),
     status: String(h.status),
     gizmo_host_id: h.gizmo_host_id ? String(h.gizmo_host_id) : null,
+    // Desk's estimate of when a busy PC frees up (the player's remaining time).
+    free_at: h.status === "busy" && h.free_at && !isNaN(Date.parse(h.free_at)) ? new Date(h.free_at).toISOString() : null,
     updated_at: new Date().toISOString(),
   }));
 

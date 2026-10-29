@@ -14,7 +14,7 @@ Deno.serve(async req => {
   // from anon. Never put the service role key in index.html.
   const supabase=createClient(url,key);
   const {data,error}=await supabase.from('hosts_cache')
-    .select('host_id,zone,status,gizmo_host_id,updated_at').order('host_id');
+    .select('host_id,zone,status,gizmo_host_id,updated_at,free_at').order('host_id');
   if (error) {
     console.error('hosts_cache read failed:',error.code);
     return json({error:'hosts_cache_read_failed'},500);
