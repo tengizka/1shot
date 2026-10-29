@@ -3,6 +3,7 @@ import hashlib
 import math
 import os
 import re
+import threading
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -51,13 +52,19 @@ class Accounts:
                 raise UnsafeOperation('Изменения разрешены только для гостевых групп клуба, не операторов')
         return user
     def statistics(self,uid):
-        key='stats:'+str(uid);cached=self.store.get(key)
-        if cached and time.time()-cached.get('cached_at',0)<600:return cached
-        # «Наиграно» is all the time played in the club, not just the last month.
-        end=datetime.now(timezone.utc);start=datetime(2015,1,1,tzinfo=timezone.utc)
+        """«Наиграно»: Gizmo counts it slowly (tens of seconds), so it runs in the background and is kept 6 hours."""
+        mem=self.__dict__.setdefault('_stats',{});busy=self.__dict__.setdefault('_stats_busy',set())
+        hit=mem.get(uid)
+        if hit and time.time()-hit['cached_at']<(6*3600 if hit['hours'] is not None else 600):return hit
+        if uid not in busy:
+            busy.add(uid)
+            threading.Thread(target=self._count_hours,args=(uid,mem,busy),daemon=True).start()
+        return hit or {'from':None,'to':None,'hours':None,'cached_at':0}
+    def _count_hours(self,uid,mem,busy):
+        end=datetime.now(timezone.utc);start=datetime(2024,1,1,tzinfo=timezone.utc)
         result={'from':start.isoformat(),'to':end.isoformat(),'hours':None,'cached_at':time.time()}
         try:
-            rows=self.gizmo.request('GET','stats/session',params={'userId':int(uid),'start':start.strftime('%Y-%m-%dT%H:%M:%S'),'end':end.strftime('%Y-%m-%dT%H:%M:%S'),'max':100})
+            rows=self.gizmo.request('GET','stats/session',timeout=(3,90),params={'userId':int(uid),'start':start.strftime('%Y-%m-%dT%H:%M:%S'),'end':end.strftime('%Y-%m-%dT%H:%M:%S'),'max':100})
             own=[r for r in rows if r.get('userId')==int(uid)] if isinstance(rows,list) else None
             if own==[]:result['hours']=0
             elif own and len(own)==1:
@@ -65,8 +72,8 @@ class Accounts:
                 if value is None:value=span_hours(own[0].get('hours'))
                 if value is not None and value>=0:result['hours']=round(value,1)
         except Exception:pass  # Statistics failure must not hide balance / session.
-        self.store.set(key,result)
-        return result
+        finally:
+            mem[uid]=result;busy.discard(uid)
     def read(self,uid):
         user=self.gizmo.user(uid)
         balance=self.gizmo.request('GET',f'users/{int(uid)}/balance')

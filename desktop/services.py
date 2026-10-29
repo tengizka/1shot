@@ -25,7 +25,8 @@ class Gizmo:
         self.verify=os.getenv('GIZMO_VERIFY_SSL','true').lower()=='true'
     def request(self,method,path,**kwargs):
         # No URL containing credentials is included in errors/logs.
-        try:r=requests.request(method,self.base+'/'+path,headers=self.auth,timeout=(3,5),verify=self.verify,**kwargs)
+        timeout=kwargs.pop('timeout',(3,5))  # a few slow reports (statistics) ask for longer
+        try:r=requests.request(method,self.base+'/'+path,headers=self.auth,timeout=timeout,verify=self.verify,**kwargs)
         except requests.exceptions.SSLError as e:raise ApiError('Gizmo: сертификат не прошёл проверку. Проверьте доверие сертификату и GIZMO_VERIFY_SSL') from e
         except requests.Timeout as e:raise ApiError('Gizmo: превышено время ожидания ответа') from e
         except requests.RequestException as e:raise ApiError('Gizmo: соединение недоступно. Проверьте адрес API и сеть клуба') from e
