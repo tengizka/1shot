@@ -4,7 +4,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
  try{
   const page=await browser.newPage({viewport:{width:390,height:844}});const errors=[],requests=[];let command=null,polls=0;
   page.on('pageerror',e=>errors.push(e.message));
-  await page.addInitScript(()=>{window.Telegram={WebApp:{initData:'test-signed',initDataUnsafe:{user:{id:123}},ready(){},expand(){},enableClosingConfirmation(){},setHeaderColor(){},setBackgroundColor(){},openLink(u){window.__link=u}}};localStorage.setItem('1shot_v2_profile',JSON.stringify({telegram_id:123,gizmo_user_id:7,username:'guest',balance:321.5}))});
+  await page.addInitScript(()=>{window.ONESHOT_SELLING=true;window.Telegram={WebApp:{initData:'test-signed',initDataUnsafe:{user:{id:123}},ready(){},expand(){},enableClosingConfirmation(){},setHeaderColor(){},setBackgroundColor(){},openLink(u){window.__link=u}}};localStorage.setItem('1shot_v2_profile',JSON.stringify({telegram_id:123,gizmo_user_id:7,username:'guest',balance:321.5}))});
   await page.route('**/*',route=>{
    const url=new URL(route.request().url());
    if(url.host==='club.test'){const raw=url.pathname==='/'?'index.html':url.pathname.slice(1);const file=fs.existsSync('miniapp/'+raw)?'miniapp/'+raw:raw;if(fs.existsSync(file))return route.fulfill({contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.svg')?'image/svg+xml':'text/html',body:fs.readFileSync(file)});return route.fulfill({status:404,body:''})}

@@ -40,7 +40,10 @@
   const o=state.orders[0];if(!o)return null;
   return o.status!=='closed'||Date.now()-Date.parse(o.updated_at)<10*60000?o:null;
  }
+ // Showcase only while the club sorts out taxes: the menu is visible, ordering is off.
+ const PAUSED=!window.ONESHOT_SELLING;  // tests switch selling on
  function blocker(){
+  if(PAUSED)return 'Заказ из приложения скоро заработает';
   if(state.error)return state.error;
   if(!state.account)return 'Войдите в аккаунт клуба, чтобы заказать';
   if(!state.desk)return 'Заказы сейчас не принимаются. Позовите администратора с ПК';
@@ -139,7 +142,7 @@
  }
 
  async function submit(){
-  if(state.busy)return;state.busy=true;render();
+  if(PAUSED||state.busy)return;state.busy=true;render();
   try{
    const items=[...state.cart].map(([id,qty])=>({id,qty}));
    const r=await call('food_order',{request_id:state.request,items,payment:state.payment});

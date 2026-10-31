@@ -735,9 +735,6 @@ body:has(.overlay.open) :is(#session-screen,#my-session-banner,#booking-bar){vis
 .topup .btn-main{width:100%;min-height:56px}
 .topup .btn-main:disabled{opacity:.45}
 @media(prefers-reduced-motion:reduce){.topup[open]{animation:none}}
-/* Market and top-up paused: only bookings stay in the app */
-#nav-food,#session-screen .session-quick{display:none!important}
-.balance-chip{cursor:default}
 /* Busy PC: when it frees up, and booking right after */
 .occupied-dialog .occupied-free{margin:-4px 0 14px;font:700 12px/1.4 Unbounded,sans-serif;color:var(--smm-lime);text-transform:none}
 .occupied-dialog .occupied-free[hidden],.occupied-dialog .occupied-after[hidden]{display:none}

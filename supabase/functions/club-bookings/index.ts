@@ -18,6 +18,8 @@ async function notifyBooked(chat: number, b: {host_id:string,starts_at?:string|n
   :`✅ <b>${pc} забронирован</b>\n🕒 ${day(b.starts_at)} в ${msk(b.starts_at)}\n📍 1SHOT, Мытищи, ул. Мира, 37\n\nЕсли планы поменяются, отмени бронь в приложении.`;
  await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({chat_id:chat,text,parse_mode:'HTML'})});
 }
+// Orders and online top-ups stay off until the club settles which tax goes on the receipts.
+const SELLING=false;
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response(null,{headers:cors});
  if(req.method!=='POST')return json({error:'method_not_allowed'},405);
@@ -47,6 +49,7 @@ Deno.serve(async req=>{
    const {data,error}=await client.rpc('club_food_state',{p_user:user,p_menu:b.menu===true});if(error)throw error;return json(data);
   }
   if(b.action==='food_order'){
+   if(!SELLING)return json({error:'Заказ из приложения скоро заработает'},409);
    if(typeof b.request_id!=='string'||!/^[0-9a-f-]{36}$/i.test(b.request_id)||!Array.isArray(b.items)||b.items.length>10)return json({error:'Некорректный заказ'},400);
    const items=b.items.map((x:{id?:unknown;qty?:unknown})=>({id:x?.id,qty:x?.qty}));
    const {data,error}=await client.rpc('club_food_order',{p_user:user,p_request:b.request_id,p_items:items,p_payment:b.payment});if(error)throw error;
@@ -84,6 +87,7 @@ Deno.serve(async req=>{
    return json({account,commands,password_request:passwordRequests?.[0]||null,telegram:{first_name:telegram.first_name,last_name:telegram.last_name,photo_url:typeof telegram.photo_url==='string'&&telegram.photo_url.startsWith('https://')?telegram.photo_url:null}});
   }
   if(b.action==='command'){
+   if(!SELLING&&b.kind==='topup')return json({error:'Онлайн-пополнение скоро заработает'},409);
    const {data,error}=await client.rpc('club_command',{p_user:user,p_kind:b.kind,p_payload:b.payload||{},p_request:b.request_id});if(error)throw error;
    return json({id:data});
   }
