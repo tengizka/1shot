@@ -24,6 +24,26 @@ ROOT=Path(getattr(sys,'_MEIPASS',Path(__file__).resolve().parents[1]))
 HOME=Path(os.getenv('LOCALAPPDATA',str(Path.home())))/'1SHOT Desk'
 HOME.mkdir(parents=True,exist_ok=True)
 
+def win_clipboard(text):
+    """Win32 clipboard: CF_UNICODETEXT through user32/kernel32, no console window."""
+    import ctypes
+    from ctypes import wintypes
+    user32,kernel32=ctypes.WinDLL('user32',use_last_error=True),ctypes.WinDLL('kernel32',use_last_error=True)
+    kernel32.GlobalAlloc.restype=wintypes.HGLOBAL;kernel32.GlobalAlloc.argtypes=[wintypes.UINT,ctypes.c_size_t]
+    kernel32.GlobalLock.restype=wintypes.LPVOID;kernel32.GlobalLock.argtypes=[wintypes.HGLOBAL]
+    kernel32.GlobalUnlock.argtypes=[wintypes.HGLOBAL];user32.SetClipboardData.argtypes=[wintypes.UINT,wintypes.HANDLE]
+    data=(text+'\0').encode('utf-16-le')
+    for _ in range(10):
+        if user32.OpenClipboard(None):break
+        time.sleep(0.05)
+    else:raise OSError('clipboard busy')
+    try:
+        user32.EmptyClipboard()
+        handle=kernel32.GlobalAlloc(0x0002,len(data))
+        ptr=kernel32.GlobalLock(handle);ctypes.memmove(ptr,data,len(data));kernel32.GlobalUnlock(handle)
+        if not user32.SetClipboardData(13,handle):raise OSError('SetClipboardData failed')
+    finally:user32.CloseClipboard()
+
 class App:
     def __init__(self):
         self.store=Store(HOME/'desk.sqlite3');self.cloud=Cloud();self.gizmo=Gizmo()
@@ -124,14 +144,16 @@ class App:
             return {'ok':True}
         except Exception as error:return {'error':str(error)[:160] or 'Gizmo не подтвердил выход'}
     def copy_text(self,text):
-        # Clipboard fallback for the Qt web view: Windows clip.exe understands UTF-16 with BOM.
+        """Puts text on the Windows clipboard (Unicode), so a click on a value copies it."""
         try:
             text=str(text)[:500]
-            if sys.platform=='win32':
-                import subprocess
+            if sys.platform!='win32':return {'error':'Буфер обмена недоступен'}
+            try:
+                win_clipboard(text)
+            except Exception:
+                import subprocess  # Fallback: clip.exe understands UTF-16 with BOM.
                 subprocess.run(['clip'],input=text.encode('utf-16'),check=True,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0),timeout=5)
-                return {'ok':True}
-            return {'error':'Буфер обмена недоступен'}
+            return {'ok':True}
         except Exception:return {'error':'Не удалось скопировать'}
     def preview_sound(self,preset):
         try:self.sound.play_preset(preset);return {'ok':True}
