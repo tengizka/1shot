@@ -40,6 +40,7 @@
   if(bonus)line.innerHTML='<b>+ в подарок</b>'+bonus[1];
   const btn=dialog.querySelector('.topup-pay');btn.onclick=pay;
   btn.textContent=ok?'Оплатить '+rub(amount):'От '+rub(MIN);btn.disabled=!ok||busy;
+  if(PAUSED){btn.textContent='Скоро';btn.disabled=true;say('Онлайн-пополнение скоро заработает. Пока пополнить можно на ресепшене клуба')}
  }
  function say(text,kind=''){const m=dialog.querySelector('.topup-msg');m.textContent=text;m.dataset.kind=kind}
  function open(){
@@ -64,7 +65,7 @@
  }
  // Desk asks Gizmo for a deposit payment intent and returns the T-Bank link as the command result.
  async function pay(){
-  if(busy||amount<MIN)return;
+  if(PAUSED||busy||amount<MIN)return;
   busy=true;paint();say('');const btn=dialog.querySelector('.topup-pay');btn.textContent='Готовим оплату…';
   let text='';
   try{
@@ -81,10 +82,9 @@
   busy=false;paint();say(text,'err');
  }
 
- // Paused while the club sorts out taxes: the balance stays visible, but nothing opens a payment.
- const PAUSED=true;
+ // Paused while the club sorts out taxes: the sheet opens to look at, but «Оплатить» never starts a payment.
+ const PAUSED=!window.ONESHOT_SELLING;  // tests switch selling on
  function mount(){
-  if(PAUSED){window.oneshotTopup={open(){},close(){}};return}
   const chip=document.querySelector('.app-header .balance-chip');
   if(chip&&!chip.dataset.topup){chip.dataset.topup='1';chip.setAttribute('role','button');chip.tabIndex=0;chip.setAttribute('aria-label','Баланс, пополнить');chip.addEventListener('click',open)}
   for(const head of document.querySelectorAll('.overlay .ov-head')){

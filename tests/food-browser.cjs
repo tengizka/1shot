@@ -4,7 +4,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
  try{
   const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'}),page=await context.newPage(),calls=[],errors=[];
   page.on('pageerror',e=>errors.push(e.message));
-  await page.addInitScript(()=>{
+  await page.addInitScript(()=>{window.ONESHOT_SELLING=true;
    window.Telegram={WebApp:{initData:'test',initDataUnsafe:{user:{id:123}},ready(){},expand(){},enableClosingConfirmation(){},setHeaderColor(){},setBackgroundColor(){}}};
    localStorage.setItem('1shot_v2_profile',JSON.stringify({telegram_id:123,gizmo_user_id:77,username:'neo'}));
   });
