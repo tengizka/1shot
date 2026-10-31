@@ -10,10 +10,11 @@
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="landing/mascot-icon.svg" type="image/svg+xml">
 <script>
-// Внутри Telegram (старые ссылки на корень) сразу открываем мини-апп.
+// Only a real mini-app launch on the old root address goes to the mini-app (Telegram adds tgWebApp… to the link).
+// A plain link opened in Telegram's browser stays on the landing.
 (function () {
   var q = location.search + location.hash;
-  if (/tgWebApp/.test(q) || typeof window.TelegramWebviewProxy !== "undefined" || /Telegram/i.test(navigator.userAgent)) location.replace("miniapp/" + q);
+  if (/tgWebApp/.test(q)) location.replace("miniapp/" + q);
 })();
 </script>
 <link rel="stylesheet" href="assets/fonts/unbounded.css">
