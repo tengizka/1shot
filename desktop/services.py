@@ -1,6 +1,7 @@
 import base64
-from datetime import datetime,timezone
+from datetime import datetime,timedelta,timezone
 import os
+import time
 import uuid
 import requests
 
@@ -24,7 +25,8 @@ class Gizmo:
         self.verify=os.getenv('GIZMO_VERIFY_SSL','true').lower()=='true'
     def request(self,method,path,**kwargs):
         # No URL containing credentials is included in errors/logs.
-        try:r=requests.request(method,self.base+'/'+path,headers=self.auth,timeout=(3,5),verify=self.verify,**kwargs)
+        timeout=kwargs.pop('timeout',(3,5))  # a few slow reports (statistics) ask for longer
+        try:r=requests.request(method,self.base+'/'+path,headers=self.auth,timeout=timeout,verify=self.verify,**kwargs)
         except requests.exceptions.SSLError as e:raise ApiError('Gizmo: сертификат не прошёл проверку. Проверьте доверие сертификату и GIZMO_VERIFY_SSL') from e
         except requests.Timeout as e:raise ApiError('Gizmo: превышено время ожидания ответа') from e
         except requests.RequestException as e:raise ApiError('Gizmo: соединение недоступно. Проверьте адрес API и сеть клуба') from e
@@ -96,15 +98,31 @@ class Cloud:
 class LegacyBridge:
     """Existing sync/auth endpoints only. Never calls pending-reservations."""
     def __init__(self,gizmo,cloud,store):self.gizmo,self.cloud,self.store=gizmo,cloud,store
+    def free_at(self,uid):
+        """When the player's time runs out: their remaining balance time, cached a minute per player."""
+        cache=self.__dict__.setdefault('free_cache',{});now=time.time()
+        hit=cache.get(uid)
+        if hit and now-hit[0]<60:return hit[1]
+        value=None
+        try:
+            left=self.gizmo.request('GET',f'users/{int(uid)}/balance').get('availableTime')
+            # Hours of deposit are not a real end time: beyond 12 hours the PC shows as «надолго».
+            if isinstance(left,(int,float)) and not isinstance(left,bool) and 0<left<=12*3600:
+                value=(datetime.now(timezone.utc)+timedelta(seconds=left)).isoformat()
+        except Exception:pass  # No estimate is fine; the PC just shows as busy.
+        cache[uid]=(now,value)
+        return value
     def collect_hosts(self):
-        hosts=self.gizmo.hosts();busy={str(s.get('hostNumber')) for s in self.gizmo.sessions()}
+        hosts=self.gizmo.hosts();players={str(s.get('hostNumber')):s.get('userId') for s in self.gizmo.sessions()};busy=set(players)
         rows=[]
         for h in hosts:
             if h.get('isDeleted'):continue
             n=int(h['number']);state=h.get('state')
             zone='ps5' if n==1 else str((n//10)*10) if 10<=n<30 else str((n//100)*100)
             status='busy' if str(n) in busy else 'broken' if state not in (0,2) else 'reserved' if state==2 else 'free'
-            rows.append({'host_id':str(n),'gizmo_host_id':str(h['id']),'zone':zone,'status':status,'updated_at':datetime.now(timezone.utc).isoformat()})
+            row={'host_id':str(n),'gizmo_host_id':str(h['id']),'zone':zone,'status':status,'updated_at':datetime.now(timezone.utc).isoformat()}
+            if status=='busy' and players.get(str(n)):row['free_at']=self.free_at(players[str(n)])
+            rows.append(row)
         return rows
     def sync(self):
         rows=self.collect_hosts()

@@ -39,12 +39,12 @@ function reconcileDeskChildren(parent,nodes){
  const wanted=new Set(nodes);for(const child of [...parent.children])if(!wanted.has(child))child.remove();
  nodes.forEach((node,i)=>{if(parent.children[i]!==node)parent.insertBefore(node,parent.children[i]||null)});
 }
-// Clipboard: browser API, then the old execCommand path, then Windows clip.exe through Desk.
+// Clipboard: Windows itself through Desk first (the web view's own clipboard can hang silently), then the browser ways.
 async function deskCopy(value){
  const text=String(value);
- try{await navigator.clipboard.writeText(text);return true}catch{}
+ try{const r=await window.pywebview?.api?.copy_text?.(text);if(r?.ok)return true}catch{}
  try{const area=document.createElement('textarea');area.value=text;area.style.cssText='position:fixed;opacity:0;left:-999px';document.body.append(area);area.select();const ok=document.execCommand('copy');area.remove();if(ok)return true}catch{}
- try{const r=await window.pywebview?.api?.copy_text?.(text);return !!r?.ok}catch{return false}
+ try{await Promise.race([navigator.clipboard.writeText(text),new Promise((_,no)=>setTimeout(no,800))]);return true}catch{return false}
 }
 async function copyDeskText(value,status){
  setDeskText(status,await deskCopy(value)?'Скопировано':'Не удалось скопировать. Выделите текст и нажмите Ctrl+C');
