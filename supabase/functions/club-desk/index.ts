@@ -7,6 +7,12 @@ Deno.serve(async req=>{
   const b=await req.json(),client=db();
   // Read-only report for the analytics export, which runs without a Desk lease.
   if(b.action==='promo_report'){const {data,error}=await client.rpc('club_promo_report');if(error)throw error;return json(data);}
+  // Per-code totals from Gizmo for the SMM dashboard (no personal data), also without a lease.
+  if(b.action==='smm_club_push'){
+   if(!Array.isArray(b.rows)||b.rows.length>50)return json({error:'invalid_rows'},400);
+   const rows=b.rows.map((r:Record<string,unknown>)=>({code:String(r.code||''),guests:Math.max(0,Math.trunc(Number(r.guests)||0)),returned:Math.max(0,Math.trunc(Number(r.returned)||0)),revenue:Math.max(0,Math.round(Number(r.revenue)||0))}));
+   const {data,error}=await client.rpc('smm_club_push',{p_rows:rows});if(error)throw error;return json({ok:true,saved:data});
+  }
   const {data:worker,error}=await client.from('club_worker').select('*').eq('worker_id',b.worker_id).gt('lease_until',new Date().toISOString()).single();
   if(error||!worker)return json({error:'lease_expired'},409);
   if(['password_context','password_authorize','password_claim','password_finish','password_review','password_resolve'].includes(b.action)){

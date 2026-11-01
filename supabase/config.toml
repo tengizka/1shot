@@ -21,3 +21,6 @@ verify_jwt = false
 
 [functions.club-auth]
 verify_jwt = false
+
+[functions.smm-sync]
+verify_jwt = false
