@@ -341,9 +341,9 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
 
   <div class="auth-tabs auth-choice auth-step-in" id="auth-choice">
     <h1 class="auth-title">Привет.<br>Ты с нами?</h1>
-    <p class="auth-lead">Войди в аккаунт клуба или создай новый — это займёт минуту.</p>
+    <p class="auth-lead">Войди в аккаунт клуба. Новый аккаунт создаёт администратор в клубе — это пара минут.</p>
     <button type="button" class="auth-tab btn-main" onclick="switchAuthTab('login',this)">Войти</button>
-    <button type="button" class="auth-tab btn-outline" onclick="switchAuthTab('register',this)">Регистрация</button>
+    <button type="button" class="auth-tab btn-outline" onclick="showOfflineReg()">Нет аккаунта?</button>
   </div>
 
   <form id="form-login" class="auth-form wizard" onsubmit="authNext(event)" novalidate>
@@ -375,6 +375,15 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
     <div class="auth-err" id="err-reg"></div>
     <p class="auth-hint">После отправки подойди к администратору с документом — он подтвердит анкету.</p>
   </form>
+
+  <section class="auth-forgot" id="auth-offline" hidden>
+    <div class="wiz-top"><button type="button" class="wiz-back" aria-label="Назад" onclick="hideOfflineReg()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button></div>
+    <span class="smm-tag">Регистрация</span>
+    <h1 class="auth-title">Приходи<br>в клуб</h1>
+    <p class="auth-lead">Аккаунт создаёт администратор на ресепшене: Мытищи, ул.&nbsp;Мира,&nbsp;37, круглосуточно. Возьми документ с датой рождения. Потом входи здесь по нику или номеру и паролю.</p>
+    <div class="offline-word" id="offline-word" hidden><small>Назови администратору слово</small><b></b><span>Первый час STANDART — бесплатно</span></div>
+    <button type="button" class="btn-main" onclick="hideOfflineReg()">Понятно</button>
+  </section>
 
   <section class="auth-forgot" id="auth-forgot" hidden>
     <div class="wiz-top"><button type="button" class="wiz-back" aria-label="Назад" onclick="authForgotBack()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button></div>
@@ -1228,6 +1237,7 @@ function clearProfile() {
 <script src="profile-feedback.js?v=20261008"></script>
 <link rel="stylesheet" href="registration-wait.css?v=2.6.0"><script src="registration-wait.js?v=2.8.0"></script><script src="password-choice.js?v=2.4.0"></script>
 <script src="club-booking.js?v=3.2.0"></script>
+<link rel="stylesheet" href="registration-offline.css?v=1.0.0"><script src="registration-offline.js?v=1.0.0"></script>
 <link rel="stylesheet" href="polish.css?v=1.6.0"><script src="polish.js?v=2.4.0"></script>
 <link rel="stylesheet" href="smm.css?v=4.7.0">
 <link rel="stylesheet" href="food.css?v=3.0.0"><script src="food.js?v=3.1.0"></script>

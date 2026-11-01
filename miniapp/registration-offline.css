@@ -1,0 +1,5 @@
+.offline-word{border:1px solid var(--lime,#A3FF10);padding:16px 18px;margin:18px 0 22px;display:flex;flex-direction:column;gap:8px}
+.offline-word small{font:600 11px/1 Unbounded,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#8C8C8F}
+.offline-word b{font:700 40px/.95 ReSquare,Unbounded,sans-serif;color:var(--lime,#A3FF10);letter-spacing:.02em;word-break:break-all}
+.offline-word span{font-size:13px;color:#C9C9CC}
+#edit-account label[hidden]{display:none!important}
