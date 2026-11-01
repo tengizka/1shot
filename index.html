@@ -74,6 +74,7 @@ h2{font-size:clamp(30px,6vw,56px);line-height:1;margin-bottom:28px}
 .photos img.on{opacity:1}
 .photos::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,.7) 55%,#000)}
 body>.wrap,body>.run,body>main{position:relative;z-index:1}
+.word-hero{margin:22px 0 26px;border:1px solid var(--lime);display:inline-flex;flex-direction:column;gap:8px;padding:16px 22px;max-width:100%}.word-hero small{font:600 11px/1 Unbounded;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}.word-hero b{font:700 clamp(36px,8vw,64px)/.95 ReSquare,Unbounded;color:var(--lime);letter-spacing:.02em;white-space:nowrap}
 .notg-hint{display:inline-block;margin-top:14px;font-size:13px;color:#C9C9CC;border-bottom:1px solid #3a3a3c;padding-bottom:2px}
 .notg-hint b{color:var(--lime)}
 .notg-hint:hover{color:#fff;border-color:var(--lime)}
@@ -166,35 +167,35 @@ footer{padding:40px 0 calc(110px + env(safe-area-inset-bottom));color:var(--mute
     <svg class="mascot" viewBox="-1 -1 47 45" aria-hidden="true"><g class="m-body" fill="currentColor" stroke="currentColor" stroke-width=".12" stroke-linejoin="miter"><polygon points="4.62219,10.7343 4.0874,16.197 9.32084,8.74788 9.32084,12.7971 12.0713,12.7971 12.0713,0 4.62219,10.7343"/><polygon points="0,17.4576 0,22.309 2.75043,22.309 2.82684,18.9474 6.26485,18.9474 6.26485,16.2352 4.08744,16.197 4.62223,10.7344 0,17.4576"/><polygon points="33.6545,16.197 37.0162,16.197 42.2497,8.74788 42.2497,12.8353 45,12.8353 45,0 33.6545,16.197"/><polygon points="2.75043,33.3106 2.75043,22.309 0,22.309 0,42.1732 12.0713,24.6393 12.0713,12.7971 9.32088,12.7971 9.32088,23.7988 2.75043,33.3106"/><polygon points="35.6793,33.3107 35.6793,22.309 32.929,22.309 32.929,42.1733 44.962,24.6393 44.962,16.197 38.7353,16.197 38.7353,18.9474 42.2498,18.9474 42.2498,23.7988 35.6793,33.3107"/><polygon points="26.7404,28.3445 26.7404,18.1833 24.1045,18.1833 24.1045,28.3445 26.7404,28.3445"/><polygon points="24.1044,25.6707 20.0552,25.6707 20.0552,28.3446 24.1044,28.3446 24.1044,25.6707"/><g class="m-eyes"><g class="m-eye m-eyeL"><polygon points="23.3114,15 18.3187,15 17.4082,15 16,15 16,17.7122 20.6374,17.7122 23.3114,17.7122 23.3114,15"/></g><g class="m-eye m-eyeR"><polygon points="35.3114,15 30.3187,15 29.4082,15 28,15 28,17.7122 32.6374,17.7122 35.3114,17.7122 35.3114,15"/></g></g><g class="m-mouth"><polygon points="25.4032,32.9495 20.4105,32.9495 19.5,32.9495 18.0918,32.9495 18.0918,35.6616 22.7292,35.6616 25.4032,35.6616 25.4032,32.9495"/></g></g></svg>
     <div class="badge"><i></i>Для новых гостей</div>
     <h1 class="rs"><span>Первый час</span><span class="lime">бесплатно</span></h1>
-    <p class="sub">Зарегистрируйся в нашем Telegram-приложении и подтверди анкету на ресепшене. Час в зале STANDART будет ждать на твоём аккаунте.</p>
-    <a class="cta js-open" href="https://t.me/oneshotagent">
-      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.9 4.3 18.7 19.4c-.2 1-.9 1.3-1.7.8l-4.7-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.8 8.8-7.9c.4-.3-.1-.5-.6-.2L6.6 13.4 1.9 12c-1-.3-1-1 .2-1.5L20.5 3.4c.9-.3 1.6.2 1.4.9Z"/></svg>
-      Забрать час в Telegram
+    <p class="sub">Приходи в клуб и назови администратору кодовое слово. Он зарегистрирует тебя на месте, и час в зале STANDART сразу будет на аккаунте.</p>
+    <div class="word-hero"><small>Твоё кодовое слово</small><b class="js-word">GG</b></div>
+    <a class="cta js-route" href="https://yandex.ru/maps/?rtext=~55.918110,37.719790&amp;rtt=auto" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>
+      Построить маршрут
     </a>
-    <div class="code" id="code">Промокод <b></b> уже вставлен в анкету</div>
-    <a class="notg-hint" href="#notg">Нет Telegram? Назови админу слово <b class="js-word">GG</b> →</a>
+    <a class="notg-hint js-call" href="tel:+74955837811">Или позвони: <b>+7 (495) 583-78-11</b> →</a>
     <div class="meta"><span><b>Мытищи, ул. Мира, 37</b></span><span>Круглосуточно</span><span>30 ПК и PS5</span></div>
   </header>
 </div>
 
-<div class="run" aria-hidden="true"><div><span>бронь без звонков ✦ rtx 4070 ✦ до 390&nbsp;гц ✦ 24/7 ✦ первый час бесплатно ✦&nbsp;</span><span>бронь без звонков ✦ rtx 4070 ✦ до 390&nbsp;гц ✦ 24/7 ✦ первый час бесплатно ✦&nbsp;</span></div></div>
+<div class="run" aria-hidden="true"><div><span>первый час бесплатно ✦ rtx 4070 ✦ до 390&nbsp;гц ✦ 24/7 ✦ мира, 37 ✦&nbsp;</span><span>первый час бесплатно ✦ rtx 4070 ✦ до 390&nbsp;гц ✦ 24/7 ✦ мира, 37 ✦&nbsp;</span></div></div>
 
 <main class="wrap">
   <section>
     <span class="kicker">Как получить час</span>
     <h2 class="rs">Три шага</h2>
     <div class="steps">
-      <div class="step"><b>Открой бота</b><p>Нажми кнопку на этой странице. В Telegram откроется приложение клуба с анкетой. Промокод уже вставлен.</p></div>
-      <div class="step"><b>Заполни анкету</b><p>Ник, пароль, телефон, имя и дата рождения. Около минуты.</p></div>
-      <div class="step"><b>Подтверди в клубе</b><p>Приходи на ресепшен, администратор сверит анкету и создаст аккаунт. Час STANDART сразу на нём.</p></div>
+      <div class="step"><b>Запомни слово</b><p>Оно на этой странице. Можно просто показать экран администратору.</p></div>
+      <div class="step"><b>Приходи в клуб</b><p>Мытищи, ул. Мира, 37, работаем круглосуточно. Возьми документ с датой рождения.</p></div>
+      <div class="step"><b>Назови слово</b><p>Администратор создаст аккаунт прямо на ресепшене, и час STANDART сразу будет на нём.</p></div>
     </div>
   </section>
 
   <section class="notg" id="notg">
     <div class="notg-text">
-      <span class="kicker">Нет Telegram?</span>
-      <h2 class="rs">Не проблема</h2>
-      <p>Приходи в клуб и назови администратору кодовое слово. Он заполнит анкету вместе с тобой, и час STANDART сразу будет на аккаунте. Возьми документ с датой рождения: админ сверит данные.</p>
+      <span class="kicker">Без анкет на сайте</span>
+      <h2 class="rs">Всё на месте</h2>
+      <p>Ничего заполнять заранее не нужно. Администратор зарегистрирует тебя в клубе за пару минут и сверит дату рождения по документу.</p>
     </div>
     <div class="notg-word"><small>Кодовое слово</small><b id="word">GG</b><span>Скажи его на ресепшене</span></div>
   </section>
@@ -205,22 +206,10 @@ footer{padding:40px 0 calc(110px + env(safe-area-inset-bottom));color:var(--mute
     <div class="zones">
       <div class="zone"><div class="n rs">20<small>ПК</small></div><h3>STANDART</h3><ul><li>RTX 4060</li><li>Intel&nbsp;i5-13400F, 32&nbsp;GB</li><li>Acer&nbsp;Nitro 24,5"&nbsp;·&nbsp;240&nbsp;Гц</li><li>Кресла DXRacer</li></ul></div>
       <div class="zone vip"><div class="n rs">10<small>ПК</small></div><h3>VIP</h3><ul><li>RTX 4070</li><li>Intel&nbsp;i7-13700F, 32&nbsp;GB</li><li>VIP&nbsp;1: MSI&nbsp;MAG 27"&nbsp;2K&nbsp;·&nbsp;240&nbsp;Гц</li><li>VIP&nbsp;2: Acer&nbsp;Nitro 24,5"&nbsp;·&nbsp;390&nbsp;Гц</li><li>LAMZU&nbsp;MAYA&nbsp;X, HyperX&nbsp;Cloud&nbsp;III</li></ul></div>
-      <div class="zone"><div class="n rs">PS5</div><h3>TV-зона</h3><ul><li>PlayStation 5</li><li>Samsung 65"&nbsp;·&nbsp;4K</li><li>Диван на двоих</li><li>Бронь в приложении</li></ul></div>
+      <div class="zone"><div class="n rs">PS5</div><h3>TV-зона</h3><ul><li>PlayStation 5</li><li>Samsung 65"&nbsp;·&nbsp;4K</li><li>Диван на двоих</li><li>Бронь у администратора</li></ul></div>
     </div>
   </section>
 
-  <section>
-    <div class="app">
-      <div>
-        <span class="kicker">Приложение клуба</span>
-        <h2 class="rs">Бронь без звонков</h2>
-        <p>После регистрации то же приложение работает как пульт клуба.</p>
-        <ul><li>Видно, какие места свободны прямо сейчас</li><li>Бронь места в пару касаний</li><li>Акции и пополнения в одном месте</li></ul>
-      </div>
-      <img src="landing/04-hall.webp" alt="Карта зала в приложении 1SHOT" loading="lazy" width="210" height="454">
-      <img src="landing/06-slot.webp" alt="Выбор времени брони" loading="lazy" width="210" height="454">
-    </div>
-  </section>
 
   <section>
     <span class="kicker">Прайс</span>
@@ -228,7 +217,7 @@ footer{padding:40px 0 calc(110px + env(safe-area-inset-bottom));color:var(--mute
     <table>
       <thead><tr><th>Время</th><th>STANDART</th><th>VIP</th></tr></thead>
       <tbody>
-        <tr class="free"><td>Первый час по анкете</td><td><b>0 ₽</b></td><td>—</td></tr>
+        <tr class="free"><td>Первый час по кодовому слову</td><td><b>0 ₽</b></td><td>—</td></tr>
         <tr><td>1 час</td><td><b>189 ₽</b></td><td><b>229 ₽</b></td></tr>
         <tr><td>3 часа</td><td><b>499 ₽</b></td><td><b>599 ₽</b></td></tr>
         <tr><td>5 часов</td><td><b>699 ₽</b></td><td><b>799 ₽</b></td></tr>
@@ -237,13 +226,13 @@ footer{padding:40px 0 calc(110px + env(safe-area-inset-bottom));color:var(--mute
         <tr><td>Ночь 22:00–8:00</td><td><b>899 ₽</b></td><td><b>999 ₽</b></td></tr>
       </tbody>
     </table>
-    <p class="note">PS5 в&nbsp;TV-зоне — 299&nbsp;₽ в&nbsp;час, бронь в&nbsp;приложении. Время оплачивается в&nbsp;клубе.</p>
+    <p class="note">PS5 в&nbsp;TV-зоне — 299&nbsp;₽ в&nbsp;час. Время оплачивается в&nbsp;клубе.</p>
   </section>
 
   <div class="final">
     <h2 class="rs">Час уже <span class="lime">твой</span></h2>
-    <p>Осталось открыть бота и заглянуть к нам.</p>
-    <a class="cta js-open" href="https://t.me/oneshotagent">Забрать час в Telegram</a>
+    <p>Осталось заглянуть к нам и назвать слово <b class="lime js-word">GG</b>.</p>
+    <a class="cta js-route" href="https://yandex.ru/maps/?rtext=~55.918110,37.719790&amp;rtt=auto" target="_blank" rel="noopener">Построить маршрут</a>
   </div>
   <div class="where">
     <a href="https://yandex.ru/profile/204221279175" target="_blank" rel="noopener"><b>Мытищи, ул. Мира, 37</b>Открыть в Яндекс Картах</a>
@@ -251,13 +240,13 @@ footer{padding:40px 0 calc(110px + env(safe-area-inset-bottom));color:var(--mute
     <a href="tel:+74955837811"><b>+7 (495) 583-78-11</b>Позвонить в клуб</a>
   </div>
 
-  <footer>Бесплатный час — один на нового гостя, после подтверждения анкеты администратором. Действует в зале STANDART.<br>© 1SHOT<div class="soc"><a href="https://t.me/oneshotmira17" target="_blank" rel="noopener" aria-label="Telegram-канал 1SHOT"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.9 4.3 18.7 19.4c-.2 1-.9 1.3-1.7.8l-4.7-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.8 8.8-7.9c.4-.3-.1-.5-.6-.2L6.6 13.4 1.9 12c-1-.3-1-1 .2-1.5L20.5 3.4c.9-.3 1.6.2 1.4.9Z"/></svg>Telegram</a><a href="https://vk.ru/1shotmira" target="_blank" rel="noopener" aria-label="1SHOT ВКонтакте"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="currentColor"/><path fill="#000" d="M12.8 17C7.4 17 4.3 13.3 4.2 7.2h2.7c.1 4.5 2.1 6.4 3.6 6.8V7.2h2.6V11c1.5-.2 3.1-1.9 3.6-3.8h2.5c-.4 2.4-2.2 4.1-3.4 4.8 1.2.6 3.2 2.1 4 5h-2.8c-.6-1.9-2.1-3.4-4-3.6V17h-.2Z"/></svg>ВКонтакте</a></div></footer>
+  <footer>Бесплатный час — один на нового гостя, после регистрации у администратора. Действует в зале STANDART.<br>© 1SHOT<div class="soc"><a href="https://t.me/oneshotmira17" target="_blank" rel="noopener" aria-label="Telegram-канал 1SHOT"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.9 4.3 18.7 19.4c-.2 1-.9 1.3-1.7.8l-4.7-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.8 8.8-7.9c.4-.3-.1-.5-.6-.2L6.6 13.4 1.9 12c-1-.3-1-1 .2-1.5L20.5 3.4c.9-.3 1.6.2 1.4.9Z"/></svg>Telegram</a><a href="https://vk.ru/1shotmira" target="_blank" rel="noopener" aria-label="1SHOT ВКонтакте"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="currentColor"/><path fill="#000" d="M12.8 17C7.4 17 4.3 13.3 4.2 7.2h2.7c.1 4.5 2.1 6.4 3.6 6.8V7.2h2.6V11c1.5-.2 3.1-1.9 3.6-3.8h2.5c-.4 2.4-2.2 4.1-3.4 4.8 1.2.6 3.2 2.1 4 5h-2.8c-.6-1.9-2.1-3.4-4-3.6V17h-.2Z"/></svg>ВКонтакте</a></div></footer>
 </main>
 
-<div class="sticky" id="sticky"><a class="cta js-open" href="https://t.me/oneshotagent">Забрать час в Telegram</a></div>
+<div class="sticky" id="sticky"><a class="cta js-route" href="https://yandex.ru/maps/?rtext=~55.918110,37.719790&amp;rtt=auto" target="_blank" rel="noopener">Построить маршрут до клуба</a></div>
 
 <script>
-// Яндекс Метрика: впиши номер счётчика вместо null, и клики по кнопке пойдут в цель open_bot.
+// Яндекс Метрика: клики «Построить маршрут» и «Позвонить» идут в цель (идентификатор содержит open_bot).
 window.YM_ID=113969406;
 if(window.YM_ID){(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id='+window.YM_ID,'ym');ym(window.YM_ID,'init',{ssr:true,webvisor:true,clickmap:true,ecommerce:'dataLayer',referrer:document.referrer,url:location.href,accurateTrackBounce:true,trackLinks:true});}
 </script>
@@ -266,12 +255,11 @@ if(window.YM_ID){(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||
   // Промокод площадки приходит в ссылке рекламы: ?p=HEADSHOT. Запоминаем его, если гость вернётся позже.
   var BOT='oneshotagent',KEY='1shot_promo',code=null,re=/^[A-Za-z0-9_-]{2,32}$/;
   try{var p=new URLSearchParams(location.search).get('p');if(p&&re.test(p)){code=p.toUpperCase();localStorage.setItem(KEY,code)}else{var s=localStorage.getItem(KEY);if(s&&re.test(s))code=s}}catch(e){}
-  var url='https://t.me/'+BOT+(code?'?startapp='+encodeURIComponent(code):'');
-  document.querySelectorAll('.js-open').forEach(function(a){a.href=url;a.addEventListener('click',function(){try{window.ym&&ym(window.YM_ID,'reachGoal','open_bot',{code:code||'none'})}catch(e){}})});
-  // Без рекламной ссылки гость пришёл с сайта: код GG, чтобы бесплатный час и статистика работали и для него.
-  code=code||'GG';url='https://t.me/'+BOT+'?startapp='+encodeURIComponent(code);
-  document.querySelectorAll('.js-open').forEach(function(a){a.href=url});
-  var c=document.getElementById('code');c.querySelector('b').textContent=code;c.style.display='block';
+  // Без рекламной ссылки гость пришёл с сайта: слово GG.
+  code=code||'GG';
+  // Анкет на сайте нет: гость называет слово на ресепшене. Клики по маршруту и звонку — цель Метрики (идентификатор содержит open_bot).
+  document.querySelectorAll('.js-route').forEach(function(a){a.addEventListener('click',function(){try{window.ym&&ym(window.YM_ID,'reachGoal','open_bot_route',{code:code})}catch(e){}})});
+  document.querySelectorAll('.js-call').forEach(function(a){a.addEventListener('click',function(){try{window.ym&&ym(window.YM_ID,'reachGoal','open_bot_call',{code:code})}catch(e){}})});
   document.getElementById('word').textContent=code;document.querySelectorAll('.js-word').forEach(function(w){w.textContent=code});
   var sticky=document.getElementById('sticky'),hero=document.querySelector('.hero .cta');
   if('IntersectionObserver' in window)new IntersectionObserver(function(e){sticky.classList.toggle('on',!e[0].isIntersecting)}).observe(hero);
