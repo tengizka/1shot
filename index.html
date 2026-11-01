@@ -259,7 +259,7 @@ footer{padding:40px 0 calc(110px + env(safe-area-inset-bottom));color:var(--mute
 <script>
 // Яндекс Метрика: впиши номер счётчика вместо null, и клики по кнопке пойдут в цель open_bot.
 window.YM_ID=113969406;
-if(window.YM_ID){(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,'script','https://mc.yandex.ru/metrika/tag.js','ym');ym(window.YM_ID,'init',{clickmap:true,trackLinks:true,accurateTrackBounce:true,webvisor:true});}
+if(window.YM_ID){(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id='+window.YM_ID,'ym');ym(window.YM_ID,'init',{ssr:true,webvisor:true,clickmap:true,ecommerce:'dataLayer',referrer:document.referrer,url:location.href,accurateTrackBounce:true,trackLinks:true});}
 </script>
 <script>
 (function(){
@@ -290,5 +290,6 @@ if(window.YM_ID){(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||
 (function(){function fit(){var b=document.getElementById('word');if(!b)return;b.style.fontSize='';var box=b.parentElement,max=box.clientWidth-parseFloat(getComputedStyle(box).paddingLeft)*2,f=parseFloat(getComputedStyle(b).fontSize);while(b.scrollWidth>max&&f>20){f-=2;b.style.fontSize=f+'px'}}
 addEventListener('load',fit);addEventListener('resize',fit);setTimeout(fit,300);setTimeout(fit,1200)})();
 </script>
+<noscript><div><img src="https://mc.yandex.ru/watch/113969406" style="position:absolute;left:-9999px" alt=""></div></noscript>
 </body>
 </html>
