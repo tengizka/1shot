@@ -15,6 +15,7 @@ from .sound import Sound
 from .notifications import NotificationGate
 from .rentals import Rentals,ITEMS as RENTAL_ITEMS
 from .test_accounts import TestAccounts
+from . import smm_stats
 from .services import ApiError,Cloud,Gizmo,LegacyBridge
 from .toast import Toaster,describe
 from .updater import Updater
@@ -419,6 +420,9 @@ class App:
         self.toaster=Toaster(factory,screen,ROOT)
         threading.Thread(target=self.update_loop,daemon=True).start()
         threading.Thread(target=self.work,daemon=True).start();threading.Thread(target=self.sync_loop,daemon=True).start();threading.Thread(target=self.food_loop,daemon=True).start()
+        # SMM dashboard: hourly per-code totals from Gizmo (numbers only, no guest data).
+        self.smm_error=''
+        threading.Thread(target=smm_stats.loop,args=(self.stop,self.cloud,self.gizmo),kwargs={'online':lambda:self.online,'report':lambda e:setattr(self,'smm_error',e)},daemon=True).start()
 
 def main():
     if not getattr(sys,'frozen',False):
