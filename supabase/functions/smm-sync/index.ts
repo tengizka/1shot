@@ -24,7 +24,8 @@ async function saveAds(c:Db,source:'vk'|'direct',from:string,to:string,rows:Reco
 }
 
 async function metrika(c:Db,from:string,to:string){
- const token=env('METRIKA_TOKEN');if(!token)return 'не подключено: нет METRIKA_TOKEN';
+ // Token from function secrets, or from Vault (smm_metrika_token, read via smm_secret).
+ const token=env('METRIKA_TOKEN')||String((await c.rpc('smm_secret',{p_name:'smm_metrika_token'})).data||'');if(!token)return 'не подключено: нет METRIKA_TOKEN';
  const id=env('METRIKA_COUNTER')||'113969406',goal=env('METRIKA_GOAL')||'677348955';
  const u=new URL('https://api-metrika.yandex.net/stat/v1/data');
  u.search=new URLSearchParams({ids:id,metrics:`ym:s:visits,ym:s:goal${goal}reaches`,dimensions:'ym:s:date,ym:s:startURL',date1:from,date2:to,limit:'100000',accuracy:'full'}).toString();
