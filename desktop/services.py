@@ -51,7 +51,7 @@ class Cloud:
     def __init__(self):
         local=os.getenv('CLUB_API_URL','').strip()
         self.base=local.rstrip('/')+'/' if local else os.environ['SUPABASE_URL'].rstrip('/')+'/functions/v1/'
-        self.label='Локальный сервер' if local else 'Supabase'
+        self.label='Локальный сервер' if local else 'База данных'
         if local:
             from urllib.parse import urlparse
             parsed=urlparse(local)
@@ -72,7 +72,7 @@ class Cloud:
                 message=r.json().get('error')
                 if isinstance(message,str):detail=': '+message[:180]
             except (ValueError,AttributeError):pass
-            raise ApiError(f'{self.label} {path}: HTTP {r.status_code}'+detail,status=r.status_code)
+            raise ApiError(f'{self.label}: ошибка {r.status_code}'+detail,status=r.status_code)
         return r.json()
     def snapshot(self,cursor):
         updates=list(self.account_updates.values())[:10]

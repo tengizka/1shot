@@ -282,7 +282,7 @@ class App:
                 self.renew_account_lease()
                 self.cloud.desk('password_request',id=id)
                 synced=self.accounts.queue_password_result(id,outcome)
-                if self.store.get('password-outcomes',{}).get(id,{}).get('conflict'):return {'error':'Статус заявки уже изменился. Проверьте результат в Supabase'}
+                if self.store.get('password-outcomes',{}).get(id,{}).get('conflict'):return {'error':'Статус заявки уже изменился. Проверьте результат в базе данных'}
                 if synced:
                     self.password_requests=[r for r in self.password_requests if r['id']!=id]
                 return {'ok':True,'synced':synced}
