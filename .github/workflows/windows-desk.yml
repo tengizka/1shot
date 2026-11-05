@@ -39,7 +39,7 @@ jobs:
           node tests/profile-feedback-browser.cjs
           node tests/club-v2-browser.cjs
           node tests/guest-passwords-browser.cjs
-          node tests/registration-approval-browser.cjs
+          node tests/registration-offline-browser.cjs
           node tests/desk-stability-browser.cjs
           node tests/desk-browser.cjs
           node tests/admin-tools-browser.cjs
