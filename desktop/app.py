@@ -119,6 +119,13 @@ class App:
     def test_accounts(self):
         try:return {'ok':True,'accounts':self.tests.list()}
         except Exception as error:return {'error':str(error)[:160] or 'Не удалось получить список'}
+    def test_order(self,username):
+        """«Тестовый заказ»: the cheapest item for this guest, from the owner's account, paid from the deposit."""
+        try:
+            from .test_order import place
+            from .services import money_gizmo
+            with self.operations:return place(self.gizmo,money_gizmo(self.gizmo),self.food.menu(),username)
+        except Exception as error:return {'error':str(error)[:200] or 'Не удалось сделать тестовый заказ'}
     def delete_test_account(self,uid):
         try:
             with self.operations:return self.tests.delete(uid)

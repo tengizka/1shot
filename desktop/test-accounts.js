@@ -19,5 +19,13 @@
    row.append(info,del);return row}));
  }
  $('test-refresh').onclick=load;
+ // «Тестовый заказ»: two taps, then the result says what Gizmo got and from whose account.
+ const user=$('test-order-user'),go=$('test-order-go'),orderMsg=$('test-order-message');
+ user.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();user.blur()}});
+ go.onclick=()=>armTap(go,'Точно заказать?',async()=>{
+  go.disabled=true;setDeskText(orderMsg,'Заказываем…');
+  const r=await window.pywebview.api.test_order(user.value);go.disabled=false;
+  setDeskText(orderMsg,r?.ok?`Готово: ${r.item} · ${r.price} ₽ для ${r.user}, оплата с депозита (способ ${r.method}). `+(r.owner_account?'От аккаунта владельца.':'⚠ MONEY_GIZMO_LOGIN не задан — заказ от основного логина Desk.')+' Проверьте его в Gizmo и отмените.':r?.error||'Не получилось');
+ });
  document.querySelector('.settings-tabs [data-settings="tests"]')?.addEventListener('click',load);
 })();
