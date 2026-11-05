@@ -26,17 +26,20 @@ async function uploadVideo(fields:Record<string,unknown>){
  const r=await fetch(`https://api.telegram.org/bot${TOKEN}/sendVideo`,{method:'POST',body:form});
  return await r.json();
 }
-// /app: the Android app as a file. Uploaded once, then Telegram's file_id is reused.
+// /app: a picture card with the instructions, then the Android app as a file right under it.
+// Telegram drops custom covers on .apk files (tested: the same picture shows on .zip and .txt), hence the card.
 const APK='https://github.com/tengizka/1shot/releases/download/app-v0.1.0/1SHOT.apk';
-let apkId='';
-const APP_TEXT='🤖 <b>1SHOT для Android</b>\n\nТа же бронь ПК, что в боте, только своим приложением на телефоне.\n\n1. Нажми на файл и установи. Android спросит про «неизвестный источник» — разреши, это наше приложение.\n2. Войди ником и паролем от аккаунта клуба.\n\nНет аккаунта? Его создаёт администратор в клубе, это пара минут.';
+let apkId='',cardId='';
+const APP_TEXT='🤖 <b>1SHOT для Android</b>\n\nТа же бронь ПК, что в боте, только своим приложением на телефоне.\n\n1. Нажми на файл ниже и установи. Android спросит про «неизвестный источник» — разреши, это наше приложение.\n2. Войди ником и паролем от аккаунта клуба.\n\nНет аккаунта? Его создаёт администратор в клубе, это пара минут.';
 async function sendApp(chat:number){
- if(apkId){const r=await tg('sendDocument',{chat_id:chat,document:apkId,caption:APP_TEXT,parse_mode:'HTML'});if(r?.ok)return}
+ const card=await tg('sendPhoto',{chat_id:chat,photo:cardId||MEDIA+'app-card.jpg',caption:APP_TEXT,parse_mode:'HTML'});
+ if(card?.ok)cardId=card.result?.photo?.at(-1)?.file_id||cardId;
+ const note=card?.ok?'':APP_TEXT;
+ if(apkId){const r=await tg('sendDocument',{chat_id:chat,document:apkId,caption:note,parse_mode:'HTML'});if(r?.ok)return}
  const form=new FormData();
- form.append('chat_id',String(chat));form.append('caption',APP_TEXT);form.append('parse_mode','HTML');
+ form.append('chat_id',String(chat));form.append('caption',note);form.append('parse_mode','HTML');
  form.append('document',new Blob([await (await fetch(APK)).arrayBuffer()],{type:'application/vnd.android.package-archive'}),'1SHOT.apk');
  const r=await (await fetch(`https://api.telegram.org/bot${TOKEN}/sendDocument`,{method:'POST',body:form})).json();
- // Telegram drops custom covers on .apk files (tested: the same picture shows on .zip and .txt), so the file goes as is.
  if(r?.ok)apkId=r.result?.document?.file_id||'';
 }
 // Telegram signs every webhook call with this secret; it is derived from the bot token, never stored.
