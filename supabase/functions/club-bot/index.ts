@@ -35,9 +35,11 @@ async function sendApp(chat:number){
  const form=new FormData();
  form.append('chat_id',String(chat));form.append('caption',APP_TEXT);form.append('parse_mode','HTML');
  form.append('document',new Blob([await (await fetch(APK)).arrayBuffer()],{type:'application/vnd.android.package-archive'}),'1SHOT.apk');
- form.append('thumbfile',new Blob([await (await fetch(MEDIA+'app-thumb.jpg')).arrayBuffer()]),'thumb.jpg');form.append('thumbnail','attach://thumbfile');
+ form.append('thumbfile',new Blob([await (await fetch(MEDIA+'app-thumb.jpg')).arrayBuffer()],{type:'image/jpeg'}),'1shot.jpg');form.append('thumbnail','attach://thumbfile');
  const r=await (await fetch(`https://api.telegram.org/bot${TOKEN}/sendDocument`,{method:'POST',body:form})).json();
- if(r?.ok)apkId=r.result?.document?.file_id||'';
+ // Reuse the uploaded file only when Telegram kept the cover with it.
+ if(r?.ok&&r.result?.document?.thumbnail)apkId=r.result.document.file_id;
+ else console.log('apk sent without cover',JSON.stringify(r?.result?.document||r?.description||'').slice(0,200));
 }
 // Telegram signs every webhook call with this secret; it is derived from the bot token, never stored.
 async function secret(){
