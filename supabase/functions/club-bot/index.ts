@@ -130,6 +130,22 @@ async function broadcast(report?:number){
  if(report)await tg('sendMessage',{chat_id:report,text:`Готово ✅ Доставлено: ${sent}.`+(failed?` Не дошло: ${failed} (гость остановил или удалил бота).`:'')});
  return {ok:true,sent,failed};
 }
+// /stats for the owner: how many guests are in the mini-app and the bot, and how bookings go.
+const seen=(id:number)=>rest('rpc/club_bot_seen',{method:'POST',body:JSON.stringify({p_id:id})}).catch(()=>{});
+async function stats(chat:number){
+ const r=await rest('rpc/club_bot_stats',{method:'POST',body:'{}'});const s=r.ok?await r.json():null;
+ if(!s){await tg('sendMessage',{chat_id:chat,text:'Не получилось собрать статистику, попробуй ещё раз.'});return}
+ const when=new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'});
+ const text=`📊 <b>1SHOT · статистика</b>\n<i>${when} МСК</i>\n\n`+
+  `📱 <b>Мини-апп:</b> ${s.miniapp} гостей (+${s.miniapp_week} за 7 дней)\n`+
+  `🤖 <b>Бот может написать:</b> ${s.reachable} из ${s.miniapp}\n`+
+  `💬 <b>Писали боту:</b> ${s.bot_users} (за 7 дней ${s.bot_week}), из них без мини-аппа ${s.bot_only}\n`+
+  `🤳 <b>Android-приложение:</b> ${s.android}\n\n`+
+  `🎮 <b>Брони:</b> сегодня ${s.bookings_today} · за 7 дней ${s.bookings_week}\n`+
+  `✅ Пришли по брони за 7 дней: ${s.came_week}\n`+
+  `👤 Бронировали за 7 дней: ${s.bookers_week} чел.`;
+ await tg('sendMessage',{chat_id:chat,text,parse_mode:'HTML'});
+}
 // Telegram signs every webhook call with this secret; it is derived from the bot token, never stored.
 async function secret(){
  const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('1shot-bot:'+TOKEN));
@@ -185,6 +201,8 @@ Deno.serve(async req=>{
   }
   if(!msg?.chat?.id||msg.chat.type!=='private')return ok({ok:true});
   const text=String(msg.text||'').trim();
+  await seen(msg.chat.id);
+  if(/^\/stats(@\w+)?$/i.test(text)&&await isSmm(Number(msg.from?.id))){await stats(msg.chat.id);return ok({ok:true})}
   if(text==='/broadcast'&&await isSmm(Number(msg.from?.id))){await previewPost(msg.chat.id);return ok({ok:true})}
   if(/^\/smm(@\w+)?$/i.test(text)&&await isSmm(Number(msg.from?.id))){await smmMenu(msg.chat.id);return ok({ok:true})}
   if(text.startsWith('/app')){await sendApp(msg.chat.id);return ok({ok:true})}
