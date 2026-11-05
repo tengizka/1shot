@@ -26,7 +26,7 @@ async function uploadVideo(fields:Record<string,unknown>){
  const r=await fetch(`https://api.telegram.org/bot${TOKEN}/sendVideo`,{method:'POST',body:form});
  return await r.json();
 }
-// /app: the Android app as a file, with the mascot as its thumbnail. Uploaded once, then Telegram's file_id is reused.
+// /app: the Android app as a file. Uploaded once, then Telegram's file_id is reused.
 const APK='https://github.com/tengizka/1shot/releases/download/app-v0.1.0/1SHOT.apk';
 let apkId='';
 const APP_TEXT='🤖 <b>1SHOT для Android</b>\n\nТа же бронь ПК, что в боте, только своим приложением на телефоне.\n\n1. Нажми на файл и установи. Android спросит про «неизвестный источник» — разреши, это наше приложение.\n2. Войди ником и паролем от аккаунта клуба.\n\nНет аккаунта? Его создаёт администратор в клубе, это пара минут.';
@@ -35,11 +35,9 @@ async function sendApp(chat:number){
  const form=new FormData();
  form.append('chat_id',String(chat));form.append('caption',APP_TEXT);form.append('parse_mode','HTML');
  form.append('document',new Blob([await (await fetch(APK)).arrayBuffer()],{type:'application/vnd.android.package-archive'}),'1SHOT.apk');
- form.append('thumbfile',new Blob([await (await fetch(MEDIA+'app-thumb.jpg')).arrayBuffer()],{type:'image/jpeg'}),'1shot.jpg');form.append('thumbnail','attach://thumbfile');
  const r=await (await fetch(`https://api.telegram.org/bot${TOKEN}/sendDocument`,{method:'POST',body:form})).json();
- // Reuse the uploaded file only when Telegram kept the cover with it.
- if(r?.ok&&r.result?.document?.thumbnail)apkId=r.result.document.file_id;
- else console.log('apk sent without cover',JSON.stringify(r?.result?.document||r?.description||'').slice(0,200));
+ // Telegram drops custom covers on .apk files (tested: the same picture shows on .zip and .txt), so the file goes as is.
+ if(r?.ok)apkId=r.result?.document?.file_id||'';
 }
 // Telegram signs every webhook call with this secret; it is derived from the bot token, never stored.
 async function secret(){
@@ -75,8 +73,6 @@ Deno.serve(async req=>{
   }
   if(!msg?.chat?.id||msg.chat.type!=='private')return ok({ok:true});
   const text=String(msg.text||'').trim();
-  // Temporary: which file sizes keep a custom cover.
-  if(text==='/thumbtest'){const out=[];const pic=await (await fetch(MEDIA+'app-thumb.jpg')).arrayBuffer();for(const [name,field] of [['test.apk','thumbnail'],['test.zip','thumbnail'],['test.txt','thumbnail'],['test2.apk','thumb']]){const f=new FormData();f.append('chat_id',String(msg.chat.id));f.append('caption',name+' '+field);f.append('document',new Blob([new Uint8Array(200*1024).map((_,i)=>i*31%251)]),name);f.append('thumbfile',new Blob([pic],{type:'image/jpeg'}),'t.jpg');f.append(field,'attach://thumbfile');const r=await (await fetch(`https://api.telegram.org/bot${TOKEN}/sendDocument`,{method:'POST',body:f})).json();out.push(name+'/'+field+':'+(r?.ok?JSON.stringify(r.result?.document?.thumbnail||null):r?.description))}console.log('thumbtest',out.join(' | ').slice(0,900));return ok({ok:true})}
   if(text.startsWith('/app')){await sendApp(msg.chat.id);return ok({ok:true})}
   if(text.startsWith('/start')){
    const raw=text.split(/\s+/)[1]||'';
