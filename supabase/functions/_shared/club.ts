@@ -22,3 +22,14 @@ export function verify(initData: unknown, token: string): number {
   if(!Number.isSafeInteger(user.id)||user.id<=0)throw Error('invalid_user');
   return user.id;
 }
+// Who is asking: a Telegram user (signed initData) or a guest of the app outside Telegram (session key).
+export async function who(b:{initData?:unknown,appToken?:unknown},client:ReturnType<typeof db>):Promise<number>{
+  if(typeof b.appToken==='string'){
+    if(!/^[A-Za-z0-9_-]{40,100}$/.test(b.appToken))throw Error('invalid_app_token');
+    const {data,error}=await client.rpc('club_app_user',{p_token_hash:await sha256hex(b.appToken)});
+    if(error||!data)throw Error('invalid_app_token');
+    return Number(data);
+  }
+  return verify(b.initData,Deno.env.get('TELEGRAM_BOT_TOKEN')||'');
+}
+export async function sha256hex(text:string){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))).map(x=>x.toString(16).padStart(2,'0')).join('');}

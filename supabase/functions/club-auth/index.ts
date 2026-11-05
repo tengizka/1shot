@@ -1,4 +1,4 @@
-import {cors,json,db,verify} from '../_shared/club.ts';
+import {cors,json,db,who,sha256hex} from '../_shared/club.ts';
 import {createHash,createCipheriv,randomBytes} from 'node:crypto';
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response(null,{headers:cors});
@@ -16,7 +16,25 @@ Deno.serve(async req=>{
    // Successful authentication is written to profiles by the trusted Desk only.
    const {error}=await client.from('club_auth_requests').update({status:b.status,gizmo_user_id:b.gizmo_user_id||null,cipher:null}).eq('id',b.id).eq('worker_id',b.worker_id).eq('status','running');if(error)throw error;return json({ok:true});
   }
-  let user:number;try{user=verify(b.initData,Deno.env.get('TELEGRAM_BOT_TOKEN')||'')}catch{return json({error:'Откройте приложение заново через Telegram'},403)}
+  // The app outside Telegram: sign in with the club nick and password; the app keeps its own random key.
+  if(['app_login','app_status','app_logout'].includes(b.action)){
+   const keyOk=(v:unknown)=>typeof v==='string'&&/^[A-Za-z0-9_-]{40,100}$/.test(v);
+   if(b.action==='app_logout'){if(keyOk(b.appToken))await client.rpc('club_app_logout',{p_token_hash:await sha256hex(b.appToken)});return json({ok:true})}
+   if(!keyOk(b.secret))return json({error:'Обновите приложение'},400);
+   if(b.action==='app_status'){
+    if(typeof b.request_id!=='string')return json({error:'Запрос не найден'},400);
+    const {data,error}=await client.rpc('club_app_login_status',{p_id:b.request_id,p_secret_hash:await sha256hex(b.secret)});if(error)throw error;return json(data);
+   }
+   if(typeof b.username!=='string'||!b.username.trim()||b.username.length>254||typeof b.password!=='string'||!b.password.trim()||b.password.length>64)return json({error:'Заполните никнейм / телефон и пароль (1–64 символа)'},400);
+   const secret=Deno.env.get('AGENT_SECRET');if(!secret)throw Error('not_configured');
+   const id=crypto.randomUUID(),iv=randomBytes(12),key=createHash('sha256').update('1shot-auth-v2:'+secret).digest();
+   const cipher=createCipheriv('aes-256-gcm',key,iv);cipher.setAAD(new TextEncoder().encode(id));
+   const encrypted=cipher.update(JSON.stringify({action:'login',username:b.username.trim(),password:b.password}),'utf8');const tail=cipher.final();
+   const encoded=btoa(String.fromCharCode(...new Uint8Array([...iv,...encrypted,...tail,...cipher.getAuthTag()])));
+   const {error}=await client.rpc('club_app_login',{p_id:id,p_cipher:encoded,p_secret_hash:await sha256hex(b.secret),p_key:await sha256hex(b.username.trim().toLowerCase())});if(error)throw error;
+   return json({request_id:id});
+  }
+  let user:number;try{user=await who(b,client)}catch{return json({error:'Войдите в аккаунт заново'},403)}
   if(b.action==='password_help'){
    const {data,error}=await client.rpc('club_command',{p_user:user,p_kind:'password_request',p_payload:{},p_request:b.request_id});if(error)throw error;
    return json({request_id:data});

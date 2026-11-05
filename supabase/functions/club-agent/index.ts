@@ -3,7 +3,7 @@ import {cors,json,db,codeHash} from '../_shared/club.ts';
 async function notifyGuest(client:ReturnType<typeof db>,id:string,from:string,to:string,message:string){
  const token=Deno.env.get('TELEGRAM_BOT_TOKEN');if(!token)return;
  const {data:b}=await client.from('club_bookings').select('telegram_id,host_id,starts_at,hold_until').eq('id',id).maybeSingle();
- if(!b?.telegram_id)return;
+ if(!b?.telegram_id||b.telegram_id<0)return;  // app guests (negative id) have no bot chat
  const pc=b.host_id==='1'?'PS5':'ПК '+b.host_id;
  const at=(iso?:string|null)=>iso?new Date(iso).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'}):'';
  let text='';

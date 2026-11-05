@@ -17,7 +17,8 @@ Deno.serve(async req => {
   if (!url || !key) return json({ error: 'Profile service not configured' }, 500);
   let body;
   try { body = await req.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
-  if (!body || !Number.isSafeInteger(body.telegram_id) || body.telegram_id <= 0 ||
+  // A negative id is a guest of the app outside Telegram (see club_app_login).
+  if (!body || !Number.isSafeInteger(body.telegram_id) || body.telegram_id === 0 ||
       !Number.isSafeInteger(body.gizmo_user_id) || body.gizmo_user_id <= 0 ||
       typeof body.username !== 'string' || !body.username.trim()) {
     return json({ error: 'Valid telegram_id, gizmo_user_id and username required' }, 400);

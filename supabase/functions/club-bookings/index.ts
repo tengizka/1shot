@@ -1,4 +1,4 @@
-import {cors,json,db,verify,codeHash,publicFields} from '../_shared/club.ts';
+import {cors,json,db,who,codeHash,publicFields} from '../_shared/club.ts';
 // Public bounded lifetime only; no worker identifiers or credentials.
 async function deskStatus(client: ReturnType<typeof db>) {
  const {data,error}=await client.from('club_worker').select('lease_until,protocol').eq('id',true).limit(1);
@@ -9,7 +9,7 @@ async function deskStatus(client: ReturnType<typeof db>) {
 }
 // The guest gets a short note from @oneshotagent when a booking is made (needs the bot started once).
 async function notifyBooked(chat: number, b: {host_id:string,starts_at?:string|null,hold_until?:string|null,instant?:boolean}) {
- const token=Deno.env.get('TELEGRAM_BOT_TOKEN');if(!token)return;
+ const token=Deno.env.get('TELEGRAM_BOT_TOKEN');if(!token||chat<0)return;  // app guests (negative id) have no bot chat
  const msk=(iso?:string|null)=>iso?new Date(iso).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'}):'';
  const day=(iso?:string|null)=>{if(!iso)return '';const f=(d:Date)=>d.toLocaleDateString('ru-RU',{timeZone:'Europe/Moscow'});return f(new Date(iso))===f(new Date())?'сегодня':'завтра'};
  const pc=b.host_id==='1'?'PS5':'ПК '+b.host_id;
@@ -30,16 +30,16 @@ Deno.serve(async req=>{
    if(error)throw error;
    let registration=null,password_grant=null;
    if(b.registration_pending===true){
-    let user:number;try{user=verify(b.initData,Deno.env.get('TELEGRAM_BOT_TOKEN')||'')}catch{return json({error:'Откройте приложение заново через Telegram'},403)}
+    let user:number;try{user=await who(b,client)}catch{return json({error:'Откройте приложение заново через Telegram'},403)}
     const {data:r,error:e}=await client.rpc('club_registration_status',{p_user:user});if(e)throw e;registration=r;
    }
    if(b.recovery_pending===true){
-    let user:number;try{user=verify(b.initData,Deno.env.get('TELEGRAM_BOT_TOKEN')||'')}catch{return json({error:'Откройте приложение заново через Telegram'},403)}
+    let user:number;try{user=await who(b,client)}catch{return json({error:'Откройте приложение заново через Telegram'},403)}
     const {data:r,error:e}=await client.rpc('club_password_status',{p_user:user});if(e)throw e;password_grant=r;
    }
    return json({password_grant,registration,registration_approval:1,enabled:!!data.enabled,timezone:'Europe/Moscow',protocol:data.flow_version||1,poll_bundle:1,desk:await deskStatus(client)});
   }
-  let user:number;try{user=verify(b.initData,Deno.env.get('TELEGRAM_BOT_TOKEN')||'');}catch{return json({error:'Откройте приложение заново через Telegram'},403);}
+  let user:number;try{user=await who(b,client);}catch{return json({error:'Откройте приложение заново через Telegram'},403);}
   if(b.action==='state'){
    const {data,error}=await client.rpc('club_client_state',{p_user:user});if(error)throw error;
    const telegram=JSON.parse(new URLSearchParams(b.initData).get('user')||'{}');
