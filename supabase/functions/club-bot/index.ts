@@ -42,6 +42,31 @@ async function sendApp(chat:number){
  const r=await (await fetch(`https://api.telegram.org/bot${TOKEN}/sendDocument`,{method:'POST',body:form})).json();
  if(r?.ok)apkId=r.result?.document?.file_id||'';
 }
+// Posts to every guest. The owner types /broadcast, sees the post exactly as guests will, then taps «Отправить всем».
+const DB=(Deno.env.get('SUPABASE_URL')||'')+'/rest/v1/';
+const SERVICE=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
+const db=(path:string,init:RequestInit={})=>fetch(DB+path,{...init,headers:{apikey:SERVICE,authorization:'Bearer '+SERVICE,'content-type':'application/json',...(init.headers||{})}});
+const POST={key:'missyou-2026-11',text:'💚 <b>1SHOT соскучился!</b>\n\nЗаглядывай на пару катков — ПК уже прогреты 🖥🔥\n\nСвободные места видно прямо в приложении, бронь за пару касаний.\n\n📍 ул. Мира, 37 · 🕹 открыты 24/7'};
+const postKeyboard={inline_keyboard:[[{text:'🎮 Забронировать ПК',web_app:{url:APP}}]]};
+async function isAdmin(id:number){const r=await db(`smm_bot_admins?telegram_id=eq.${id}&select=telegram_id`);return r.ok&&(await r.json()).length>0}
+async function guests():Promise<number[]>{const r=await db('profiles?telegram_id=gt.0&select=telegram_id');return r.ok?(await r.json()).map((x:{telegram_id:number})=>x.telegram_id):[]}
+async function previewPost(chat:number){
+ await tg('sendMessage',{chat_id:chat,text:POST.text,parse_mode:'HTML',reply_markup:postKeyboard});
+ const n=(await guests()).length;
+ await tg('sendMessage',{chat_id:chat,text:`👆 Так сообщение увидят гости. Получателей: ${n}.`,reply_markup:{inline_keyboard:[[{text:`✅ Отправить всем ${n}`,callback_data:'bc_go'}]]}});
+}
+async function sendPost(chat:number){
+ const claim=await db('club_bot_broadcasts',{method:'POST',headers:{prefer:'return=minimal'},body:JSON.stringify({key:POST.key})});
+ if(!claim.ok){await tg('sendMessage',{chat_id:chat,text:'Это сообщение уже отправлено, второй раз не шлю.'});return}
+ let sent=0,failed=0;
+ for(const id of await guests()){
+  const r=await tg('sendMessage',{chat_id:id,text:POST.text,parse_mode:'HTML',reply_markup:postKeyboard});
+  r?.ok?sent++:failed++;
+  await new Promise(res=>setTimeout(res,60));  // well under Telegram's 30 messages a second
+ }
+ await db(`club_bot_broadcasts?key=eq.${POST.key}`,{method:'PATCH',body:JSON.stringify({sent,failed,finished_at:new Date().toISOString()})});
+ await tg('sendMessage',{chat_id:chat,text:`Готово ✅ Доставлено: ${sent}.`+(failed?` Не дошло: ${failed} (гость остановил или удалил бота).`:'')});
+}
 // Telegram signs every webhook call with this secret; it is derived from the bot token, never stored.
 async function secret(){
  const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('1shot-bot:'+TOKEN));
@@ -71,11 +96,16 @@ Deno.serve(async req=>{
   // «Позвонить»: a contact card, whose phone opens the dialer in one tap (Telegram buttons cannot hold tel: links).
   if(cb){
    await tg('answerCallbackQuery',{callback_query_id:cb.id});
+   if(cb.data==='bc_go'&&cb.message?.chat?.id&&await isAdmin(cb.from.id)){
+    await tg('editMessageReplyMarkup',{chat_id:cb.message.chat.id,message_id:cb.message.message_id,reply_markup:{inline_keyboard:[]}});
+    await sendPost(cb.message.chat.id);return ok({ok:true});
+   }
    if(cb.data==='call'&&cb.message?.chat?.id)await tg('sendContact',{chat_id:cb.message.chat.id,phone_number:PHONE,first_name:'1SHOT',last_name:'компьютерный клуб'});
    return ok({ok:true});
   }
   if(!msg?.chat?.id||msg.chat.type!=='private')return ok({ok:true});
   const text=String(msg.text||'').trim();
+  if(text==='/broadcast'&&await isAdmin(msg.from?.id)){await previewPost(msg.chat.id);return ok({ok:true})}
   if(text.startsWith('/app')){await sendApp(msg.chat.id);return ok({ok:true})}
   if(text.startsWith('/start')){
    const raw=text.split(/\s+/)[1]||'';
