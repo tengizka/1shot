@@ -75,6 +75,8 @@ Deno.serve(async req=>{
   }
   if(!msg?.chat?.id||msg.chat.type!=='private')return ok({ok:true});
   const text=String(msg.text||'').trim();
+  // Temporary: which file sizes keep a custom cover.
+  if(text==='/thumbtest'){const out=[];for(const kb of [64,1024,11*1024]){const f=new FormData();f.append('chat_id',String(msg.chat.id));f.append('caption','test '+kb+' KB');f.append('document',new Blob([new Uint8Array(kb*1024).map((_,i)=>i*31%251)]),'test-'+kb+'.apk');f.append('thumbfile',new Blob([await (await fetch(MEDIA+'app-thumb.jpg')).arrayBuffer()],{type:'image/jpeg'}),'t.jpg');f.append('thumbnail','attach://thumbfile');const r=await (await fetch(`https://api.telegram.org/bot${TOKEN}/sendDocument`,{method:'POST',body:f})).json();out.push(kb+':'+(r?.ok?!!r.result?.document?.thumbnail:r?.description))}console.log('thumbtest',out.join(' '));return ok({ok:true})}
   if(text.startsWith('/app')){await sendApp(msg.chat.id);return ok({ok:true})}
   if(text.startsWith('/start')){
    const raw=text.split(/\s+/)[1]||'';
