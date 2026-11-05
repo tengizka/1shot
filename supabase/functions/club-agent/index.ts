@@ -1,4 +1,21 @@
 import {cors,json,db,codeHash} from '../_shared/club.ts';
+// A short calm note in @oneshotagent when a booking frees up, is taken off or runs out (the guest started the bot once).
+async function notifyGuest(client:ReturnType<typeof db>,id:string,from:string,to:string,message:string){
+ const token=Deno.env.get('TELEGRAM_BOT_TOKEN');if(!token)return;
+ const {data:b}=await client.from('club_bookings').select('telegram_id,host_id,starts_at,hold_until').eq('id',id).maybeSingle();
+ if(!b?.telegram_id)return;
+ const pc=b.host_id==='1'?'PS5':'ПК '+b.host_id;
+ const at=(iso?:string|null)=>iso?new Date(iso).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'}):'';
+ let text='';
+ if(to==='holding'&&from==='waiting')text=`🟢 <b>${pc} освободился</b>\nДержим его для тебя до ${at(b.hold_until)}. Подходи 🎮`;
+ else if(to==='expired')text=`⏱ Бронь ${pc} на ${at(b.starts_at)} закончилась: время вышло.\nЗабронировать снова можно в приложении.`;
+ else if(to==='cancelled'){
+  const why=/ПК занят/.test(message)?'ПК ещё занят. Выбери другой в приложении.':/в клубе/.test(message)?'Бронь снята в клубе.':'';
+  text=`Бронь ${pc} на ${at(b.starts_at)} отменена.`+(why?'\n'+why:'');
+ }
+ if(!text)return;
+ await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({chat_id:b.telegram_id,text,parse_mode:'HTML'})});
+}
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response(null,{headers:cors});
  if(req.method!=='POST')return json({error:'method_not_allowed'},405);
@@ -24,6 +41,7 @@ Deno.serve(async req=>{
    let hash=null,expiry=null;
    if(b.code!==undefined){if(!/^\d{6}$/.test(b.code))return json({error:'bad_code'},400);hash=await codeHash(b.id,b.code);expiry=new Date(Date.now()+180000).toISOString();}
    const {data,error}=await client.rpc('club_worker_transition',{p_worker:b.worker_id,p_id:b.id,p_from:b.from,p_to:b.to,p_message:b.message||'',p_hash:hash,p_code_expiry:expiry});if(error)throw error;
+   if(data)await notifyGuest(client,b.id,b.from,b.to,b.message||'').catch(()=>{});
    return data?json({ok:true,code_expires_at:expiry}):json({error:'state_changed'},409);
   }
   return json({error:'unknown_action'},400);
