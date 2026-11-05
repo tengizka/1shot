@@ -39,7 +39,7 @@ GUEST={'username':'new_guest','password':'x','first_name':'Иван','last_name'
 class DeskRegistrationTests(unittest.TestCase):
  def setUp(self):
   self.env=patch.dict(os.environ,{'PROMO_AUTO_HOUR':'true','PROMO_GIZMO_LOGIN':'promo','PROMO_GIZMO_PASSWORD':'pw'});self.env.start();self.addCleanup(self.env.stop)
-  seller=patch('desktop.promo.Gizmo',lambda login,password:self.gizmo);seller.start();self.addCleanup(seller.stop)
+  seller=patch('desktop.services.Gizmo',lambda login,password:self.gizmo);seller.start();self.addCleanup(seller.stop)
   self.temp=tempfile.TemporaryDirectory();self.store=Store(Path(self.temp.name)/'desk.sqlite3');self.gizmo=Gizmo();self.cloud=Cloud()
   self.api=RegistrationApproval(self.cloud,self.gizmo,self.store,lambda:None);self.id=str(uuid.uuid4())
  def tearDown(self):self.temp.cleanup()

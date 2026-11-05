@@ -50,7 +50,7 @@ class PromoTests(unittest.TestCase):
   self.temp=tempfile.TemporaryDirectory();self.store=Store(Path(self.temp.name)/'desk.sqlite3');self.secret='fixture-secret';self.gizmo=Gizmo()
   self.env=patch.dict(os.environ,{'AGENT_SECRET':self.secret,'PROMO_AUTO_HOUR':'true','GIZMO_LOGIN':'desk','PROMO_GIZMO_LOGIN':'promo','PROMO_GIZMO_PASSWORD':'pw'});self.env.start()
   # The hour is sold by its own operator login; the fake records both clients in one place.
-  self.made=[];self.seller=patch('desktop.promo.Gizmo',lambda login,password:(self.made.append(login),self.gizmo)[1]);self.seller.start()
+  self.made=[];self.seller=patch('desktop.services.Gizmo',lambda login,password:(self.made.append(login),self.gizmo)[1]);self.seller.start()
  def tearDown(self):self.seller.stop();self.env.stop();self.temp.cleanup()
  def test_hour_is_sold_by_its_own_login(self):
   self.build();self.assertEqual(self.api.approve(self.id,True)['promo']['result'],'granted');self.assertEqual(self.made,['promo'])

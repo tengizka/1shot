@@ -3,7 +3,7 @@ Granted at most once per application; an interrupted order is never repeated aut
 import os
 import re
 from urllib.parse import quote
-from .services import Gizmo
+from .services import money_gizmo
 
 PRODUCT='standart 1 h'
 
@@ -62,10 +62,8 @@ class PromoReward:
         self._seller=None
 
     def seller(self):
-        """The Gizmo login that sells the free hour: PROMO_GIZMO_LOGIN when set, otherwise Desk's main login."""
-        if self._seller is None:
-            login,password=os.getenv('PROMO_GIZMO_LOGIN','').strip(),os.getenv('PROMO_GIZMO_PASSWORD','')
-            self._seller=Gizmo(login,password) if login and password and 'YOUR-' not in login else self.gizmo
+        """The Gizmo login that sells the free hour: the owner's money account (see services.money_gizmo)."""
+        if self._seller is None:self._seller=money_gizmo(self.gizmo)
         return self._seller
 
     def report(self,id,record):

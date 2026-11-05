@@ -47,6 +47,14 @@ class Gizmo:
         return data
     def login(self,user,host):return self.request('POST',f'users/{int(user)}/login/{int(host)}')
 
+def money_gizmo(default):
+    """The Gizmo login for everything with money: free hours, top-ups, sales (the owner's account).
+    MONEY_GIZMO_LOGIN/PASSWORD in .env; the older PROMO_GIZMO_* still works; otherwise Desk's main login."""
+    for prefix in ('MONEY_GIZMO','PROMO_GIZMO'):
+        login,password=os.getenv(prefix+'_LOGIN','').strip(),os.getenv(prefix+'_PASSWORD','')
+        if login and password and 'YOUR-' not in login:return Gizmo(login,password)
+    return default
+
 class Cloud:
     def __init__(self):
         local=os.getenv('CLUB_API_URL','').strip()

@@ -9,6 +9,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 from .engine import UnsafeOperation
+from .services import money_gizmo
 
 EDITABLE={'username':30,'firstName':45,'lastName':45,'email':254,'mobilePhone':20}
 PRESERVE=('username','userGroupId','email','firstName','lastName','birthDate','address','city','country','postCode','phone','mobilePhone','sex','identification')
@@ -127,7 +128,8 @@ class Accounts:
             method=self.online_method()
             self.guard()
             # Gizmo makes the T-Bank link and credits the deposit by itself once the guest pays.
-            created=self.gizmo.request('POST','v2.0/paymentintent/deposit',json={'userId':uid,'amount':amount,'paymentMethodId':method})
+            # Money goes through the owner's account, like the free hour.
+            created=money_gizmo(self.gizmo).request('POST','v2.0/paymentintent/deposit',json={'userId':uid,'amount':amount,'paymentMethodId':method})
             url=created.get('paymentUrl') if isinstance(created,dict) else None
             if not isinstance(url,str) or not url.startswith('https://') or len(url)>300:raise UnsafeOperation('Gizmo не вернул ссылку на оплату')
             return url

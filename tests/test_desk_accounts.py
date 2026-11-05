@@ -30,6 +30,14 @@ class AccountsTests(unittest.TestCase):
  def test_topup_returns_tbank_link(self):
   self.assertEqual(self.api.execute({'kind':'topup','gizmo_user_id':7,'payload':{'amount':1000}}),'https://pay.tbank.ru/abc')
   self.assertEqual(self.gizmo.writes[-1],('v2.0/paymentintent/deposit',{'json':{'userId':7,'amount':1000,'paymentMethodId':4}}))
+ def test_topup_goes_through_owner_account(self):
+  import os
+  from unittest.mock import patch
+  owner=Gizmo()
+  with patch.dict(os.environ,{'MONEY_GIZMO_LOGIN':'owner','MONEY_GIZMO_PASSWORD':'pw'}),patch('desktop.services.Gizmo',lambda login,password:owner):
+   self.api.execute({'kind':'topup','gizmo_user_id':7,'payload':{'amount':1000}})
+  self.assertTrue(any(w[0]=='v2.0/paymentintent/deposit' for w in owner.writes))
+  self.assertFalse(any(w[0]=='v2.0/paymentintent/deposit' for w in self.gizmo.writes))
  def test_topup_rejects_bad_amount_and_unclear_method(self):
   for amount in (50,100000,'1000',10.5):
    with self.assertRaises(UnsafeOperation):self.api.execute({'kind':'topup','gizmo_user_id':7,'payload':{'amount':amount}})
