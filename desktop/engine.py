@@ -89,6 +89,45 @@ class Controller:
             self.transition(b,'cancelled' if b['status']=='cancel_requested' else 'expired','Бронь TV-зоны завершена');return
         if b['status'] in ('requested','waiting') and now>=timestamp(b['starts_at']):
             self.transition(b,'holding','TV-зона PS5 ждёт тебя')
+    def own_session(self,b,sessions):
+        uid=b.get('gizmo_user_id')
+        return bool(uid) and any(int(s.get('userId',-1))==int(uid) for s in sessions)
+    def settled_in_club(self,b,record,now):
+        """A booking changed by hand in the club (Gizmo, admin, the guest sat down): close it cleanly
+        instead of leaving it for review. Only clear cases; anything unclear keeps the old safe rules."""
+        status=b['status']
+        if status not in ('requested','waiting','holding','checkin_pending','attention'):return False
+        phase=(record or {}).get('phase')
+        if status=='attention' and not record:
+            # Nothing of ours on the PC: once the hold time is over the booking simply ends.
+            if now>=timestamp(b['hold_until']):self.transition(b,'expired','Время брони вышло');return True
+            return False
+        if not record:
+            # Before our lock: only the guest sitting down early is certain.
+            if status in ('requested','waiting') and b.get('gizmo_user_id') and now>=timestamp(b['starts_at'])-lock_lead():
+                h=self.fresh_host(b)
+                if self.own_session(b,self.sessions(h)):
+                    self.store.set('booking:'+b['id'],{'phase':'session','host_id':h['id']})
+                    self.transition(b,'in_session','Гость за ПК');return True
+            return False
+        if phase not in ('locked','released'):return False
+        h=self.fresh_host(b);sessions=self.sessions(h)
+        if sessions:
+            key='booking:'+b['id']
+            if self.own_session(b,sessions):
+                record['phase']='session';self.store.set(key,record)
+                self.transition(b,'in_session','Гость за ПК');return True
+            record['phase']='released';self.store.set(key,record)
+            if b.get('admin_created') and not b.get('gizmo_user_id'):
+                self.transition(b,'completed','Гость сел за ПК');return True
+            self.transition(b,'cancelled','ПК занял другой гость в клубе');return True
+        if phase=='locked' and h.get('state')==0:
+            # The admin unlocked the PC in Gizmo: that is the booking taken off in the club.
+            record['phase']='released';self.store.set('booking:'+b['id'],record)
+            self.transition(b,'cancelled','Бронь снята в клубе');return True
+        if status=='attention' and phase=='released' and now>=timestamp(b['hold_until']):
+            self.transition(b,'expired','Время брони вышло');return True
+        return False
     def step(self,b):
         now=self.clock();key='booking:'+b['id'];record=self.store.get(key)
         if b['status'] in TERMINAL: return
@@ -110,7 +149,8 @@ class Controller:
             record=record or {};empty_since=record.setdefault('empty_since',now);self.store.set(key,record)
             if now-empty_since>=10:self.transition(b,'completed','Сессия завершена')
             return
-        if b['status']=='attention':return  # Requires physical review; never guess ownership.
+        if self.settled_in_club(b,record,now):return
+        if b['status']=='attention':return  # Anything not settled above still needs a person.
         if b['status']=='release_requested':
             if not b.get('for_friend'):raise UnsafeOperation('Разблокировка без входа разрешена только для друга')
             h=self.fresh_host(b)

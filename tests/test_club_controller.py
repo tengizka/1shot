@@ -79,7 +79,7 @@ class TestClubController(unittest.TestCase):
  def test_session_on_another_pc_does_not_confirm(self):
   self.ctrl.tick();self.cloud.b['status']='checkin_pending';self.ctrl.tick();self.gizmo.active=[{'hostId':51,'userId':7}];self.now+=20;self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'attention')
  def test_no_session_interrupted_during_release(self):
-  self.ctrl.tick();self.gizmo.active=[{'hostId':50,'userId':99}];self.now+=4000;self.ctrl.tick();self.assertEqual(self.gizmo.locks,[True]);self.assertEqual(self.cloud.b['status'],'attention')
+  self.ctrl.tick();self.gizmo.active=[{'hostId':50,'userId':99}];self.now+=4000;self.ctrl.tick();self.assertEqual(self.gizmo.locks,[True]);self.assertEqual(self.cloud.b['status'],'cancelled')
  def test_account_on_another_host_not_moved(self):
   self.ctrl.tick();self.cloud.b['status']='checkin_pending';self.gizmo.active=[{'hostId':51,'userId':7}];self.ctrl.tick();self.assertEqual(self.gizmo.logins,[]);self.assertEqual(self.gizmo.locks,[True]);self.assertEqual(self.cloud.b['status'],'attention')
  def test_v2_hold_does_not_require_or_rotate_code(self):
@@ -116,3 +116,29 @@ class TestClubController(unittest.TestCase):
   self.assertEqual(self.gizmo.locks,[])
  def test_cancel_releases_only_owned_hold(self):
   self.ctrl.tick();self.cloud.b['status']='cancel_requested';self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'cancelled');self.assertEqual(self.gizmo.locks,[True,False])
+
+class SettledInClubTests(unittest.TestCase):
+ """Bookings changed by hand in the club close cleanly instead of waiting for review."""
+ setUp=TestClubController.setUp
+ tearDown=TestClubController.tearDown
+ def test_admin_unlocks_pc_in_gizmo(self):
+  self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'holding')
+  self.gizmo.h.update(state=0,modifiedTime='admin');self.ctrl.tick()
+  self.assertEqual(self.cloud.b['status'],'cancelled');self.assertEqual(self.gizmo.locks,[True],'nothing else touched')
+ def test_guest_seated_on_own_booking(self):
+  self.ctrl.tick();self.gizmo.h.update(state=0,modifiedTime='login');self.gizmo.active=[{'hostId':50,'userId':7}];self.ctrl.tick()
+  self.assertEqual(self.cloud.b['status'],'in_session');self.assertEqual(self.gizmo.logins,[])
+  self.gizmo.active=[];self.ctrl.tick();self.now+=11;self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'completed')
+ def test_named_desk_booking_completes_when_someone_sits(self):
+  self.cloud.b.update(admin_created=True,protocol=2,telegram_id=None,gizmo_user_id=None);self.ctrl.tick()
+  self.gizmo.h.update(state=0,modifiedTime='login');self.gizmo.active=[{'hostId':50,'userId':55}];self.ctrl.tick()
+  self.assertEqual(self.cloud.b['status'],'completed');self.assertEqual(self.gizmo.locks,[True])
+ def test_guest_sits_early_before_lock(self):
+  self.cloud.b.update(starts_at=iso(NOW+3600),hold_until=iso(NOW+5400));self.gizmo.active=[{'hostId':50,'userId':7}]
+  self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'in_session');self.assertEqual(self.gizmo.locks,[])
+ def test_stuck_review_without_our_lock_expires(self):
+  self.cloud.b['status']='attention';self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'attention')
+  self.now+=3601;self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'expired');self.assertEqual(self.gizmo.locks,[])
+ def test_relocked_by_someone_else_still_needs_review(self):
+  self.ctrl.tick();self.gizmo.h.update(state=2,modifiedTime='someone');self.ctrl.tick()
+  self.assertEqual(self.cloud.b['status'],'attention');self.assertEqual(self.gizmo.locks,[True])
