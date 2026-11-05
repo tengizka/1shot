@@ -42,21 +42,73 @@ async function sendApp(chat:number){
  const r=await (await fetch(`https://api.telegram.org/bot${TOKEN}/sendDocument`,{method:'POST',body:form})).json();
  if(r?.ok)apkId=r.result?.document?.file_id||'';
 }
+// /smm: a hidden command for the club's SMM admin (table smm_bot_admins). It sends the ready posts from smm_posts:
+// the picture as a file (full quality), the post text, then the story picture and its line. Emoji that exist in our
+// pack (EMOJI_SET) go out as custom emoji; if Telegram refuses them, the same text goes out with plain emoji.
+const SB=Deno.env.get('SUPABASE_URL')||'',SKEY=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
+const EMOJI_SET='oneshot_emoji_by_emojitengbot';
+async function db(path:string){
+ const r=await fetch(`${SB}/rest/v1/${path}`,{headers:{apikey:SKEY,Authorization:'Bearer '+SKEY}});
+ return r.ok?await r.json():[];
+}
+const isSmm=async(id:number)=>Number.isSafeInteger(id)&&(await db(`smm_bot_admins?telegram_id=eq.${id}&select=telegram_id`)).length>0;
+let emap:[string,string][]|null=null;
+async function emojis(){
+ if(emap)return emap;
+ const r=await tg('getStickerSet',{name:EMOJI_SET});const seen=new Set<string>();const out:[string,string][]=[];
+ for(const st of r?.result?.stickers||[]){const e=String(st.emoji||'').replace(/\uFE0F/g,'');if(e&&st.custom_emoji_id&&!seen.has(e)){seen.add(e);out.push([e,st.custom_emoji_id])}}
+ if(r?.ok)emap=out;return out;
+}
+const esc=(t:string)=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+async function withEmoji(html:string){
+ let s=html;
+ for(const [e,id] of await emojis())s=s.replace(new RegExp(esc(e)+'\uFE0F?','gu'),m=>`<tg-emoji emoji-id="${id}">${m}</tg-emoji>`);
+ return s;
+}
+async function sendText(chat:number,html:string){
+ const base={chat_id:chat,parse_mode:'HTML',link_preview_options:{is_disabled:true}};
+ const fancy=await withEmoji(html);
+ if(fancy!==html){const r=await tg('sendMessage',{...base,text:fancy});if(r?.ok)return}
+ const r=await tg('sendMessage',{...base,text:html});
+ if(!r?.ok)await tg('sendMessage',{chat_id:chat,text:html.replace(/<[^>]+>/g,'')});
+}
+// Telegram takes documents by URL only for PDF/ZIP, so the picture is uploaded as a file.
+async function sendFile(chat:number,url:string,caption:string){
+ const img=await fetch(url);if(!img.ok){await tg('sendMessage',{chat_id:chat,text:'Не нашёл картинку: '+url});return}
+ const form=new FormData();form.append('chat_id',String(chat));form.append('caption',caption);
+ form.append('document',new Blob([await img.arrayBuffer()],{type:'image/jpeg'}),url.split('/').slice(-2).join('_'));
+ await fetch(`https://api.telegram.org/bot${TOKEN}/sendDocument`,{method:'POST',body:form});
+}
+type Post={id:number,day:string,title:string,feed_image?:string,feed_text?:string,story_image?:string,story_text?:string};
+const DAYS=['вс','пн','вт','ср','чт','пт','сб'];
+const dayLabel=(d:string)=>{const t=new Date(d+'T12:00:00Z');return `${DAYS[t.getUTCDay()]} ${d.slice(8,10)}.${d.slice(5,7)}`};
+async function sendPost(chat:number,p:Post){
+ await tg('sendMessage',{chat_id:chat,text:`📌 <b>${p.title}</b> · ${dayLabel(p.day)}`,parse_mode:'HTML'});
+ if(p.feed_image)await sendFile(chat,p.feed_image,'Картинка для поста');
+ if(p.feed_text)await sendText(chat,p.feed_text);
+ if(p.story_image)await sendFile(chat,p.story_image,'Картинка для сторис');
+ if(p.story_text)await sendText(chat,p.story_text);
+}
+async function smmMenu(chat:number){
+ const since=new Date(Date.now()+3*3600e3-86400e3).toISOString().slice(0,10);
+ let posts:Post[]=await db(`smm_posts?day=gte.${since}&order=day.asc,id.asc&limit=8`);
+ if(!posts.length)posts=await db('smm_posts?order=day.desc,id.desc&limit=3');
+ if(!posts.length){await tg('sendMessage',{chat_id:chat,text:'Готовых постов пока нет.'});return}
+ if(posts.length===1){await sendPost(chat,posts[0]);return}
+ await tg('sendMessage',{chat_id:chat,text:'Какой пост прислать?',reply_markup:{inline_keyboard:posts.map(p=>[{text:`${dayLabel(p.day)} · ${p.title}`,callback_data:'smm:'+p.id}])}});
+}
 // Posts to every guest. The owner types /broadcast, sees the post exactly as guests will, then taps «Отправить всем».
-const DB=(Deno.env.get('SUPABASE_URL')||'')+'/rest/v1/';
-const SERVICE=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
-const db=(path:string,init:RequestInit={})=>fetch(DB+path,{...init,headers:{apikey:SERVICE,authorization:'Bearer '+SERVICE,'content-type':'application/json',...(init.headers||{})}});
+const rest=(path:string,init:RequestInit={})=>fetch(`${SB}/rest/v1/${path}`,{...init,headers:{apikey:SKEY,authorization:'Bearer '+SKEY,'content-type':'application/json',...(init.headers||{})}});
 const POST={key:'missyou-2026-11',text:'💚 <b>1SHOT соскучился!</b>\n\nЗаглядывай на пару катков — ПК уже прогреты 🖥🔥\n\nСвободные места видно прямо в приложении, бронь за пару касаний.\n\n📍 ул. Мира, 37 · 🕹 открыты 24/7'};
 const postKeyboard={inline_keyboard:[[{text:'🎮 Забронировать ПК',web_app:{url:APP}}]]};
-async function isAdmin(id:number){const r=await db(`smm_bot_admins?telegram_id=eq.${id}&select=telegram_id`);return r.ok&&(await r.json()).length>0}
-async function guests():Promise<number[]>{const r=await db('profiles?telegram_id=gt.0&select=telegram_id');return r.ok?(await r.json()).map((x:{telegram_id:number})=>x.telegram_id):[]}
+async function guests():Promise<number[]>{const r=await rest('profiles?telegram_id=gt.0&select=telegram_id');return r.ok?(await r.json()).map((x:{telegram_id:number})=>x.telegram_id):[]}
 async function previewPost(chat:number){
  await tg('sendMessage',{chat_id:chat,text:POST.text,parse_mode:'HTML',reply_markup:postKeyboard});
  const n=(await guests()).length;
  await tg('sendMessage',{chat_id:chat,text:`👆 Так сообщение увидят гости. Получателей: ${n}.`,reply_markup:{inline_keyboard:[[{text:`✅ Отправить всем ${n}`,callback_data:'bc_go'}]]}});
 }
-async function sendPost(chat:number){
- const claim=await db('club_bot_broadcasts',{method:'POST',headers:{prefer:'return=minimal'},body:JSON.stringify({key:POST.key})});
+async function broadcast(chat:number){
+ const claim=await rest('club_bot_broadcasts',{method:'POST',headers:{prefer:'return=minimal'},body:JSON.stringify({key:POST.key})});
  if(!claim.ok){await tg('sendMessage',{chat_id:chat,text:'Это сообщение уже отправлено, второй раз не шлю.'});return}
  let sent=0,failed=0;
  for(const id of await guests()){
@@ -64,7 +116,7 @@ async function sendPost(chat:number){
   r?.ok?sent++:failed++;
   await new Promise(res=>setTimeout(res,60));  // well under Telegram's 30 messages a second
  }
- await db(`club_bot_broadcasts?key=eq.${POST.key}`,{method:'PATCH',body:JSON.stringify({sent,failed,finished_at:new Date().toISOString()})});
+ await rest(`club_bot_broadcasts?key=eq.${POST.key}`,{method:'PATCH',body:JSON.stringify({sent,failed,finished_at:new Date().toISOString()})});
  await tg('sendMessage',{chat_id:chat,text:`Готово ✅ Доставлено: ${sent}.`+(failed?` Не дошло: ${failed} (гость остановил или удалил бота).`:'')});
 }
 // Telegram signs every webhook call with this secret; it is derived from the bot token, never stored.
@@ -89,6 +141,7 @@ Deno.serve(async req=>{
    short:await tg('setMyShortDescription',{short_description:'Компьютерный клуб 1SHOT · Мытищи · 24/7'}),
   });
  }
+ if(req.method==='GET'&&url.searchParams.get('emojis')==='1')return ok(await emojis());
  if(req.method!=='POST')return ok({ok:true});
  if(req.headers.get('x-telegram-bot-api-secret-token')!==await secret())return new Response('forbidden',{status:403});
  try{
@@ -96,16 +149,22 @@ Deno.serve(async req=>{
   // «Позвонить»: a contact card, whose phone opens the dialer in one tap (Telegram buttons cannot hold tel: links).
   if(cb){
    await tg('answerCallbackQuery',{callback_query_id:cb.id});
-   if(cb.data==='bc_go'&&cb.message?.chat?.id&&await isAdmin(cb.from.id)){
+   if(cb.data==='bc_go'&&cb.message?.chat?.id&&await isSmm(Number(cb.from?.id))){
     await tg('editMessageReplyMarkup',{chat_id:cb.message.chat.id,message_id:cb.message.message_id,reply_markup:{inline_keyboard:[]}});
-    await sendPost(cb.message.chat.id);return ok({ok:true});
+    await broadcast(cb.message.chat.id);return ok({ok:true});
+   }
+   const sm=/^smm:(\d+)$/.exec(String(cb.data||''));
+   if(sm&&cb.message?.chat?.id&&await isSmm(Number(cb.from?.id))){
+    const [p]=await db(`smm_posts?id=eq.${sm[1]}`);if(p)await sendPost(cb.message.chat.id,p);
+    return ok({ok:true});
    }
    if(cb.data==='call'&&cb.message?.chat?.id)await tg('sendContact',{chat_id:cb.message.chat.id,phone_number:PHONE,first_name:'1SHOT',last_name:'компьютерный клуб'});
    return ok({ok:true});
   }
   if(!msg?.chat?.id||msg.chat.type!=='private')return ok({ok:true});
   const text=String(msg.text||'').trim();
-  if(text==='/broadcast'&&await isAdmin(msg.from?.id)){await previewPost(msg.chat.id);return ok({ok:true})}
+  if(text==='/broadcast'&&await isSmm(Number(msg.from?.id))){await previewPost(msg.chat.id);return ok({ok:true})}
+  if(/^\/smm(@\w+)?$/i.test(text)&&await isSmm(Number(msg.from?.id))){await smmMenu(msg.chat.id);return ok({ok:true})}
   if(text.startsWith('/app')){await sendApp(msg.chat.id);return ok({ok:true})}
   if(text.startsWith('/start')){
    const raw=text.split(/\s+/)[1]||'';
