@@ -100,7 +100,7 @@ class Cloud:
         if code is not None:body['code']=code
         try:return self.request('club-agent',body=body).get('ok') is True
         except ApiError as error:
-            if 'HTTP 409' in str(error):return False
+            if getattr(error,'status',None)==409:return False
             raise
 
 class LegacyBridge:

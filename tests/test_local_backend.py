@@ -14,3 +14,13 @@ class LocalBackendTests(unittest.TestCase):
   for url in ['http://192.168.1.5:8788/api','https://user:password@example.test/api','ftp://example.test/api','https://example.test/api?secret=x']:
    with patch.dict(os.environ,{'CLUB_API_URL':url,'AGENT_SECRET':'test'},clear=True):
     with self.assertRaises(ApiError):Cloud()
+
+class TransitionConflictTests(unittest.TestCase):
+ def test_conflict_is_a_quiet_false_whatever_the_wording(self):
+  with patch.dict(os.environ,{'SUPABASE_URL':'https://example.test','AGENT_SECRET':'test'},clear=True):
+   c=Cloud()
+  def conflict(*a,**k):raise ApiError('База данных: ошибка 409',status=409)
+  c.request=conflict;self.assertFalse(c.transition('b','holding','cancelled'))
+  def broken(*a,**k):raise ApiError('База данных: ошибка 500',status=500)
+  c.request=broken
+  with self.assertRaises(ApiError):c.transition('b','holding','cancelled')
