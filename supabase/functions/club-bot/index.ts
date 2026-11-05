@@ -114,17 +114,21 @@ async function previewPost(chat:number){
  const n=(await guests()).length;
  await tg('sendMessage',{chat_id:chat,text:`👆 Так сообщение увидят гости. Получателей: ${n}.`,reply_markup:{inline_keyboard:[[{text:`✅ Отправить всем ${n}`,callback_data:'bc_go'}]]}});
 }
-async function broadcast(chat:number){
- const claim=await rest('club_bot_broadcasts',{method:'POST',headers:{prefer:'return=minimal'},body:JSON.stringify({key:POST.key})});
- if(!claim.ok){await tg('sendMessage',{chat_id:chat,text:'Это сообщение уже отправлено, второй раз не шлю.'});return}
+// Sends only once: the row must be approved in the database and not started yet; the first call marks it started,
+// so a second tap or request finds nothing to claim and sends nothing.
+async function broadcast(report?:number){
+ const claim=await rest(`club_bot_broadcasts?key=eq.${POST.key}&approved=is.true&started_at=is.null`,{method:'PATCH',headers:{prefer:'return=representation'},body:JSON.stringify({started_at:new Date().toISOString()})});
+ const rows=claim.ok?await claim.json():[];
+ if(rows.length!==1){if(report)await tg('sendMessage',{chat_id:report,text:'Это сообщение уже отправлено или не одобрено, ничего не шлю.'});return {ok:false,reason:'not_claimed'}}
  let sent=0,failed=0;
- for(const id of await guests()){
+ for(const id of new Set(await guests())){
   const r=await sendPostTo(id);
   r?.ok?sent++:failed++;
   await new Promise(res=>setTimeout(res,60));  // well under Telegram's 30 messages a second
  }
  await rest(`club_bot_broadcasts?key=eq.${POST.key}`,{method:'PATCH',body:JSON.stringify({sent,failed,finished_at:new Date().toISOString()})});
- await tg('sendMessage',{chat_id:chat,text:`Готово ✅ Доставлено: ${sent}.`+(failed?` Не дошло: ${failed} (гость остановил или удалил бота).`:'')});
+ if(report)await tg('sendMessage',{chat_id:report,text:`Готово ✅ Доставлено: ${sent}.`+(failed?` Не дошло: ${failed} (гость остановил или удалил бота).`:'')});
+ return {ok:true,sent,failed};
 }
 // Telegram signs every webhook call with this secret; it is derived from the bot token, never stored.
 async function secret(){
@@ -149,6 +153,11 @@ Deno.serve(async req=>{
   });
  }
  if(req.method==='GET'&&url.searchParams.get('emojis')==='1')return ok(await emojis());
+ // Starts the approved post (see broadcast()); without an approved, unstarted row it does nothing.
+ if(req.method==='GET'&&url.searchParams.get('broadcast')===POST.key){
+  const [admin]=await db('smm_bot_admins?select=telegram_id&limit=1');
+  return ok(await broadcast(admin?.telegram_id));
+ }
  if(req.method!=='POST')return ok({ok:true});
  if(req.headers.get('x-telegram-bot-api-secret-token')!==await secret())return new Response('forbidden',{status:403});
  try{
