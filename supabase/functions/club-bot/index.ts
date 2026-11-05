@@ -158,6 +158,12 @@ Deno.serve(async req=>{
   const [admin]=await db('smm_bot_admins?select=telegram_id&limit=1');
   return ok(await broadcast(admin?.telegram_id));
  }
+ // Checks which guests the bot can reach (getChat sends nothing to anyone); the answer holds only counts.
+ if(req.method==='GET'&&url.searchParams.get('reach')==='1'){
+  const rows=[];for(const id of new Set(await guests())){const r=await tg('getChat',{chat_id:id});rows.push({telegram_id:id,reachable:!!r?.ok,checked_at:new Date().toISOString()})}
+  await rest('club_bot_reach',{method:'POST',headers:{prefer:'resolution=merge-duplicates'},body:JSON.stringify(rows)});
+  return ok({checked:rows.length,reachable:rows.filter(r=>r.reachable).length});
+ }
  if(req.method!=='POST')return ok({ok:true});
  if(req.headers.get('x-telegram-bot-api-secret-token')!==await secret())return new Response('forbidden',{status:403});
  try{
