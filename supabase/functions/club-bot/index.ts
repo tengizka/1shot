@@ -26,6 +26,19 @@ async function uploadVideo(fields:Record<string,unknown>){
  const r=await fetch(`https://api.telegram.org/bot${TOKEN}/sendVideo`,{method:'POST',body:form});
  return await r.json();
 }
+// /app: the Android app as a file, with the mascot as its thumbnail. Uploaded once, then Telegram's file_id is reused.
+const APK='https://github.com/tengizka/1shot/releases/download/app-v0.1.0/1SHOT.apk';
+let apkId='';
+const APP_TEXT='🤖 <b>1SHOT для Android</b>\n\nТа же бронь ПК, что в боте, только своим приложением на телефоне.\n\n1. Нажми на файл и установи. Android спросит про «неизвестный источник» — разреши, это наше приложение.\n2. Войди ником и паролем от аккаунта клуба.\n\nНет аккаунта? Его создаёт администратор в клубе, это пара минут.';
+async function sendApp(chat:number){
+ if(apkId){const r=await tg('sendDocument',{chat_id:chat,document:apkId,caption:APP_TEXT,parse_mode:'HTML'});if(r?.ok)return}
+ const form=new FormData();
+ form.append('chat_id',String(chat));form.append('caption',APP_TEXT);form.append('parse_mode','HTML');
+ form.append('document',new Blob([await (await fetch(APK)).arrayBuffer()],{type:'application/vnd.android.package-archive'}),'1SHOT.apk');
+ form.append('thumbfile',new Blob([await (await fetch(MEDIA+'app-thumb.jpg')).arrayBuffer()]),'thumb.jpg');form.append('thumbnail','attach://thumbfile');
+ const r=await (await fetch(`https://api.telegram.org/bot${TOKEN}/sendDocument`,{method:'POST',body:form})).json();
+ if(r?.ok)apkId=r.result?.document?.file_id||'';
+}
 // Telegram signs every webhook call with this secret; it is derived from the bot token, never stored.
 async function secret(){
  const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('1shot-bot:'+TOKEN));
@@ -43,7 +56,7 @@ Deno.serve(async req=>{
   return ok({
    webhook:await tg('setWebhook',{url:HOOK,secret_token:await secret(),allowed_updates:['message','callback_query'],drop_pending_updates:true}),
    menu:await tg('setChatMenuButton',{menu_button:{type:'web_app',text:'1SHOT',web_app:{url:APP}}}),
-   commands:await tg('setMyCommands',{commands:[{command:'start',description:'Открыть 1SHOT'}]}),
+   commands:await tg('setMyCommands',{commands:[{command:'start',description:'Открыть 1SHOT'},{command:'app',description:'Приложение для Android'}]}),
    description:await tg('setMyDescription',{description:'Компьютерный клуб 1SHOT в Мытищах, 24/7. Бронь ПК, еда к столу, аренда девайсов и пакеты часов — в одном приложении.'}),
    short:await tg('setMyShortDescription',{short_description:'Компьютерный клуб 1SHOT · Мытищи · 24/7'}),
   });
@@ -60,6 +73,7 @@ Deno.serve(async req=>{
   }
   if(!msg?.chat?.id||msg.chat.type!=='private')return ok({ok:true});
   const text=String(msg.text||'').trim();
+  if(text.startsWith('/app')){await sendApp(msg.chat.id);return ok({ok:true})}
   if(text.startsWith('/start')){
    const raw=text.split(/\s+/)[1]||'';
    const promo=/^[A-Za-z0-9_-]{2,32}$/.test(raw)?raw.toUpperCase():'';
