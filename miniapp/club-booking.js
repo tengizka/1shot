@@ -119,7 +119,7 @@ window.clubV2=false;
   state.request ||= crypto.randomUUID();
   const start=state.mode==='scheduled'?state.arrival:null;
   const end=start?new Date(Date.parse(start)+30*60000).toISOString():null;
-  try{await call(state.protocol>=2?'create_v2':'create',{for_friend:state.forFriend,host_id:state.host,mode:state.mode,duration_kind:state.kind,starts_at:start,ends_at:end,client_request_id:state.request});state.request=null;if(state.replace){const old=state.replace;state.replace=null;for(const bid of old){try{await call('cancel',{id:bid})}catch(e){toast('Новая бронь есть, но прошлую снять не вышло. Отмени её в «Моих бронях»','err')}}}if(state.mode==='instant'){await refresh();startConnecting(state.host)}else await booked(state.host,start);fetchHosts()}
+  try{await call(state.protocol>=2?'create_v2':'create',{for_friend:state.forFriend,host_id:state.host,mode:state.mode,duration_kind:state.kind,starts_at:start,ends_at:end,client_request_id:state.request});state.request=null;dispatchEvent(new CustomEvent('club:booked',{detail:{mode:state.mode}}));if(state.replace){const old=state.replace;state.replace=null;for(const bid of old){try{await call('cancel',{id:bid})}catch(e){toast('Новая бронь есть, но прошлую снять не вышло. Отмени её в «Моих бронях»','err')}}}if(state.mode==='instant'){await refresh();startConnecting(state.host)}else await booked(state.host,start);fetchHosts()}
   catch(e){$('club-error').textContent=clubText(e.message)||'Не удалось отправить бронь'}
   finally{state.busy=false;$('club-submit').disabled=false}
  }

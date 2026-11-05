@@ -78,6 +78,14 @@ Deno.serve(async req=>{
    const {data,error}=await client.rpc('club_booking_action',{p_user:user,p_id:b.id,p_action:b.action});if(error)throw error;
    return data?json({ok:true}):json({error:'Состояние брони изменилось или панель не готова'},409);
   }
+  // Can the bot write to this guest? sendChatAction delivers nothing visible and fails when the guest never started
+  // the bot or blocked it. The mini-app asks for write access only when this says no.
+  if(b.action==='bot_reach'){
+   const token=Deno.env.get('TELEGRAM_BOT_TOKEN');if(!token||user<0)return json({reachable:true});
+   const r=await (await fetch(`https://api.telegram.org/bot${token}/sendChatAction`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({chat_id:user,action:'typing'})})).json().catch(()=>null);
+   await client.from('club_bot_reach').upsert({telegram_id:user,reachable:!!r?.ok,checked_at:new Date().toISOString()});
+   return json({reachable:!!r?.ok});
+  }
   if(b.action==='account'){
    const {error}=await client.rpc('club_account_request',{p_user:user});if(error)throw error;
    const {data:account,error:readError}=await client.from('club_accounts').select('data,updated_at').eq('telegram_id',user).single();if(readError)throw readError;
