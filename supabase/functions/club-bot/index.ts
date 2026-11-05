@@ -100,10 +100,17 @@ async function smmMenu(chat:number){
 // Posts to every guest. The owner types /broadcast, sees the post exactly as guests will, then taps «Отправить всем».
 const rest=(path:string,init:RequestInit={})=>fetch(`${SB}/rest/v1/${path}`,{...init,headers:{apikey:SKEY,authorization:'Bearer '+SKEY,'content-type':'application/json',...(init.headers||{})}});
 const POST={key:'missyou-2026-11',text:'💚 <b>1SHOT соскучился!</b>\n\nЗаглядывай на пару катков — ПК уже прогреты 🖥🔥\n\nСвободные места видно прямо в приложении, бронь за пару касаний.\n\n📍 ул. Мира, 37 · 🕹 открыты 24/7'};
+let postPhoto=MEDIA+'missyou.jpg';
+// The picture goes as the first message's photo; Telegram's file_id is reused for the rest.
+async function sendPostTo(chat:number){
+ const r=await tg('sendPhoto',{chat_id:chat,photo:postPhoto,caption:POST.text,parse_mode:'HTML',reply_markup:postKeyboard});
+ if(r?.ok)postPhoto=r.result?.photo?.at(-1)?.file_id||postPhoto;
+ return r;
+}
 const postKeyboard={inline_keyboard:[[{text:'🎮 Забронировать ПК',web_app:{url:APP}}]]};
 async function guests():Promise<number[]>{const r=await rest('profiles?telegram_id=gt.0&select=telegram_id');return r.ok?(await r.json()).map((x:{telegram_id:number})=>x.telegram_id):[]}
 async function previewPost(chat:number){
- await tg('sendMessage',{chat_id:chat,text:POST.text,parse_mode:'HTML',reply_markup:postKeyboard});
+ await sendPostTo(chat);
  const n=(await guests()).length;
  await tg('sendMessage',{chat_id:chat,text:`👆 Так сообщение увидят гости. Получателей: ${n}.`,reply_markup:{inline_keyboard:[[{text:`✅ Отправить всем ${n}`,callback_data:'bc_go'}]]}});
 }
@@ -112,7 +119,7 @@ async function broadcast(chat:number){
  if(!claim.ok){await tg('sendMessage',{chat_id:chat,text:'Это сообщение уже отправлено, второй раз не шлю.'});return}
  let sent=0,failed=0;
  for(const id of await guests()){
-  const r=await tg('sendMessage',{chat_id:id,text:POST.text,parse_mode:'HTML',reply_markup:postKeyboard});
+  const r=await sendPostTo(id);
   r?.ok?sent++:failed++;
   await new Promise(res=>setTimeout(res,60));  // well under Telegram's 30 messages a second
  }
