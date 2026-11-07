@@ -151,7 +151,7 @@ async function stats(chat:number){
 // a channel admin). Once a post has been sent here it leaves the queue; the /smmnew menu entry shows only while the
 // queue is not empty (commands scoped to each SMM admin's chat, refreshed after every change and by GET ?smmcmd=1).
 const CHANNEL='@oneshotmira17';
-const MINIAPP='https://t.me/oneshotclubbot/oneshotclub';
+const MINIAPP='https://t.me/oneshotagent?startapp=channel';
 async function dbPatch(path:string,body:unknown){
  await fetch(`${SB}/rest/v1/${path}`,{method:'PATCH',headers:{apikey:SKEY,Authorization:'Bearer '+SKEY,'content-type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(body)});
 }
