@@ -36,11 +36,14 @@ h1 .lime{color:var(--lime)}
 .copy{position:absolute;left:72px;top:150px;bottom:60px;right:72px;display:grid;gap:30px;align-content:center}
 .sub{font:700 30px Unb}.sub b{color:var(--lime)}
 .rows{display:grid;gap:16px;width:1060px}
-.row{display:grid;grid-template-columns:200px 40px 300px 290px 150px;align-items:center;gap:10px;opacity:0;animation:fade .7s ease forwards}
+.row{display:grid;grid-template-columns:200px 40px 300px 330px 130px;align-items:center;gap:10px;opacity:0;animation:fade .7s ease forwards}
 .sum{font:800 42px Unb;font-variant-numeric:tabular-nums}
 .arrow{font:700 34px Unb;color:var(--muted)}
 .hrs{font:800 30px Unb;color:var(--lime);white-space:nowrap}
-.alt{font:600 21px Unb;color:var(--muted);white-space:nowrap}
+.alt{display:flex;align-items:center;gap:10px;white-space:nowrap}
+.alt i{font:500 19px Unb;font-style:normal;color:var(--muted)}
+.alt b{font:800 22px Unb;padding:6px 10px;border:2px solid currentColor}
+.alt .vip{color:var(--orange)}.alt .tv{color:var(--blue)}
 .bar{height:14px;background:#141414}
 .bar i{display:block;height:100%;width:0;background:var(--lime);animation:grow 1.2s cubic-bezier(.2,.9,.25,1) forwards}
 @keyframes grow{to{width:var(--w)}}
@@ -51,9 +54,8 @@ h1 .lime{color:var(--lime)}
 <div class="copy">
  <h1><span class="w">Пополняй</span> <span class="w">—</span> <span class="w">получай</span> <span class="w lime">часы</span></h1>
  <p class="sub in" style="animation-delay:.5s">Чем больше пополнение, <b>тем больше подарок</b></p>
- <div class="rows"><div class="row" style="animation-delay:0.7s"><span class="sum">700 ₽</span><span class="arrow">→</span><span class="hrs">1h STANDART</span><span class="alt"></span><span class="bar"><i style="--w:23%;animation-delay:1.0s"></i></span></div><div class="row" style="animation-delay:0.95s"><span class="sum">1 000 ₽</span><span class="arrow">→</span><span class="hrs">2h STANDART</span><span class="alt">или 1h VIP · 1h TV</span><span class="bar"><i style="--w:33%;animation-delay:1.25s"></i></span></div><div class="row" style="animation-delay:1.2s"><span class="sum">2 000 ₽</span><span class="arrow">→</span><span class="hrs">4h STANDART</span><span class="alt">или 2h VIP · 2h TV</span><span class="bar"><i style="--w:66%;animation-delay:1.5s"></i></span></div><div class="row" style="animation-delay:1.45s"><span class="sum">3 000 ₽</span><span class="arrow">→</span><span class="hrs">6h STANDART</span><span class="alt">или 3h VIP · 3h TV</span><span class="bar"><i style="--w:100%;animation-delay:1.75s"></i></span></div></div>
- <div class="notes in" style="animation-delay:2s"><span class="note">Раз в месяц</span><span class="note">Часы начисляются после пополнения</span><span class="note">Зал выбираешь сам</span></div>
-</div><svg viewBox="-1 -1 47 45" class="mascot" aria-hidden="true">
+ <div class="rows"><div class="row" style="animation-delay:0.7s"><span class="sum">700 ₽</span><span class="arrow">→</span><span class="hrs">1h STANDART</span><span class="alt"></span><span class="bar"><i style="--w:23%;animation-delay:1.0s"></i></span></div><div class="row" style="animation-delay:0.95s"><span class="sum">1 000 ₽</span><span class="arrow">→</span><span class="hrs">2h STANDART</span><span class="alt"><i>или</i><b class="vip">1h VIP</b><b class="tv">1h TV</b></span><span class="bar"><i style="--w:33%;animation-delay:1.25s"></i></span></div><div class="row" style="animation-delay:1.2s"><span class="sum">2 000 ₽</span><span class="arrow">→</span><span class="hrs">4h STANDART</span><span class="alt"><i>или</i><b class="vip">2h VIP</b><b class="tv">2h TV</b></span><span class="bar"><i style="--w:66%;animation-delay:1.5s"></i></span></div><div class="row" style="animation-delay:1.45s"><span class="sum">3 000 ₽</span><span class="arrow">→</span><span class="hrs">6h STANDART</span><span class="alt"><i>или</i><b class="vip">3h VIP</b><b class="tv">3h TV</b></span><span class="bar"><i style="--w:100%;animation-delay:1.75s"></i></span></div></div>
+ </div><svg viewBox="-1 -1 47 45" class="mascot" aria-hidden="true">
 
 <g id="mascot" stroke="currentColor" stroke-width="0.12" stroke-linejoin="miter">
   
