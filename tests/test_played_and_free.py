@@ -25,3 +25,23 @@ class FreeAtTests(unittest.TestCase):
  def test_long_deposit_has_no_end_time(self):
   rows={r['host_id']:r for r in LegacyBridge(Gizmo(20*3600),None,None).collect_hosts()}
   self.assertIsNone(rows['13']['free_at'])
+
+class ClubStats:
+ def __init__(self):self.calls=[]
+ def request(self,method,path,**kw):
+  self.calls.append(kw.get('params'))
+  return [{'userId':7,'totalSpan':{'totalHours':41.26}},{'userId':9,'hours':'03:30:00'}]
+
+class PlayedHoursTests(unittest.TestCase):
+ def test_one_club_read_serves_every_guest(self):
+  import time
+  from desktop.accounts import Accounts
+  accounts=Accounts.__new__(Accounts);accounts.gizmo=ClubStats()
+  accounts.statistics(7)  # counting starts in the background
+  for _ in range(50):
+   if accounts._hours['by_user'] is not None:break
+   time.sleep(.02)
+  self.assertEqual(accounts.statistics(7)['hours'],41.3)
+  self.assertEqual(accounts.statistics(9)['hours'],3.5)
+  self.assertEqual(accounts.statistics(12)['hours'],0.0,'a guest missing from the club table has played 0 hours')
+  self.assertEqual(len(accounts.gizmo.calls),1);self.assertNotIn('userId',accounts.gizmo.calls[0]);self.assertGreater(accounts.gizmo.calls[0]['max'],100)

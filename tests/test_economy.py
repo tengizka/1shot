@@ -13,8 +13,22 @@ class EconomyTests(unittest.TestCase):
   now[0]=31;self.assertEqual(budget.interval(rows),5)
   self.assertEqual([budget.interval(failed=True) for _ in range(5)],[20,40,60,60,60])
   self.assertEqual(budget.interval(),5)
- def cloud(self):
-  with patch.dict(os.environ,{'SUPABASE_URL':'https://example.test','AGENT_SECRET':'test-only'}):return Cloud()
+ def cloud(self,direct=False):
+  with patch.dict(os.environ,{'SUPABASE_URL':'https://example.test','AGENT_SECRET':'test-only'}):c=Cloud()
+  if not direct:c.rpc_base=None  # these tests cover the edge-function path
+  return c
+ def test_direct_snapshot_skips_the_function_and_falls_back_on_an_old_server(self):
+  cloud=self.cloud(direct=True);cloud.request=Mock(return_value={'eco_version':1});cloud.host_source=lambda:[]
+  ok=Mock(ok=True,status_code=200,text='{}');ok.json.return_value={'eco_version':1,'queues':[{'host_id':'13','username':'neo'}]}
+  with patch('desktop.services.requests.post',return_value=ok) as post:
+   self.assertEqual(cloud.snapshot(3)['queues'][0]['host_id'],'13')
+  self.assertFalse(cloud.request.called);self.assertTrue(cloud.direct)
+  args=post.call_args;self.assertTrue(args.args[0].endswith('/rest/v1/rpc/club_desk_snapshot'));self.assertEqual(args.kwargs['json']['p_secret'],'test-only');self.assertEqual(args.kwargs['json']['p_after'],3)
+  missing=Mock(ok=False,status_code=404,text='{"code":"PGRST202"}')
+  cloud=self.cloud(direct=True);cloud.request=Mock(return_value={'eco_version':1});cloud.host_source=lambda:[]
+  with patch('desktop.services.requests.post',return_value=missing) as post:
+   cloud.snapshot(0);cloud.snapshot(0)
+  self.assertEqual(post.call_count,1,'an old server is not asked again for ten minutes');self.assertEqual(cloud.request.call_count,2);self.assertFalse(cloud.direct)
  def test_idle_snapshot_is_one_request(self):
   cloud=self.cloud();cloud.request=Mock(return_value={'eco_version':1})
   cloud.host_source=lambda:[{'host_id':'11','status':'free'}]

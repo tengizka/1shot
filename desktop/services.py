@@ -68,6 +68,11 @@ class Cloud:
             if parsed.scheme=='http' and parsed.hostname not in ('localhost','127.0.0.1','::1'):
                 raise ApiError('HTTP разрешён только для локального сервера')
         self.headers={'x-agent-secret':os.environ['AGENT_SECRET']}
+        # Frequent calls go straight to the database (free on Supabase's plan, unlike edge functions). The public key
+        # only reaches RPCs that check the agent secret; the old function stays the fallback for ten minutes on a miss.
+        self.rpc_base=None if local else os.environ['SUPABASE_URL'].rstrip('/')+'/rest/v1/rpc/'
+        self.rpc_key=os.getenv('SUPABASE_PUBLISHABLE_KEY','').strip() or 'sb_publishable__oIYYAaNECSFsEBGHjzrUw_2baaoeF9'
+        self.rpc_off_until=0;self.direct=False
         self.worker_id=str(uuid.uuid4())
         self.host_source=lambda:None
         self.account_updates={}
@@ -82,15 +87,32 @@ class Cloud:
             except (ValueError,AttributeError):pass
             raise ApiError(f'{self.label}: ошибка {r.status_code}'+detail,status=r.status_code)
         return r.json()
+    def rpc(self,name,args):
+        """A database function called directly; None when it is not there yet (old server) so the caller falls back."""
+        if not self.rpc_base or time.time()<self.rpc_off_until:return None
+        try:r=requests.post(self.rpc_base+name,headers={'apikey':self.rpc_key,'Authorization':'Bearer '+self.rpc_key,'Content-Type':'application/json'},json={'p_secret':self.headers['x-agent-secret'],**args},timeout=(3,8))
+        except requests.RequestException as e:raise ApiError(f'{self.label}: нет связи') from e
+        if r.status_code in (401,403,404) or (r.status_code==400 and 'PGRST' in r.text):
+            self.rpc_off_until=time.time()+600;self.direct=False;return None
+        if not r.ok:
+            try:message=r.json().get('message')
+            except (ValueError,AttributeError):message=None
+            raise ApiError(f'{self.label}: ошибка {r.status_code}'+(': '+message[:180] if isinstance(message,str) else ''),status=409 if 'P0001' in r.text else r.status_code)
+        self.direct=True
+        return r.json()
     def snapshot(self,cursor):
         updates=list(self.account_updates.values())[:10]
-        result=self.request('club-agent',body={'action':'snapshot','eco':1,'worker_id':self.worker_id,'after_event':cursor,'hosts':self.host_source(),'accounts':updates})
+        result=self.rpc('club_desk_snapshot',{'p_worker':self.worker_id,'p_after':cursor,'p_hosts':self.host_source(),'p_accounts':updates})
+        if result is None:result=self.request('club-agent',body={'action':'snapshot','eco':1,'worker_id':self.worker_id,'after_event':cursor,'hosts':self.host_source(),'accounts':updates})
         if result.get('eco_version')!=1:raise ApiError('Сервер не поддерживает протокол Desk: обновите серверную часть')
         for item in updates:
             key=str(item['telegram_id'])
             if self.account_updates.get(key)==item:self.account_updates.pop(key,None)
         return result
     def desk(self,action,**data):
+        if action=='food_sync':
+            result=self.rpc('club_desk_food',{'p_worker':self.worker_id,'p_seats':data.get('seats'),'p_menu':data.get('menu'),'p_updates':data.get('updates') or []})
+            if result is not None:return result
         if action=='account':
             self.account_updates[str(data['telegram_id'])]={**data,'observed_at':datetime.now(timezone.utc).isoformat()}
             return {'ok':True,'queued':True}

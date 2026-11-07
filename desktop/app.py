@@ -50,7 +50,7 @@ class App:
         self.store=Store(HOME/'desk.sqlite3');self.cloud=Cloud();self.gizmo=Gizmo()
         self.controller=Controller(self.cloud,self.gizmo,self.store)
         self.bridge=LegacyBridge(self.gizmo,self.cloud,self.store)
-        self.stop=threading.Event();self.lock=threading.RLock();self.operations=threading.RLock();self.exit_prompt=threading.Lock()
+        self.stop=threading.Event();self.kick=threading.Event();self.queues=[];self.lock=threading.RLock();self.operations=threading.RLock();self.exit_prompt=threading.Lock()
         self.controller.stopping=self.stop.is_set
         self.bridge.guard=self.controller.guard
         self.accounts=Accounts(self.gizmo,self.cloud,self.store,self.controller.guard)
@@ -190,7 +190,7 @@ class App:
         try:
             with self.operations:
                 self.cloud.snapshot(self.store.get('event_cursor',0))
-                return self.cloud.desk('cancel',id=id)
+                return self.now(self.cloud.desk('cancel',id=id))
         except Exception as error:return {'error':str(error)}
     def approve_registration(self,id,confirmed=False):
         try:
@@ -247,7 +247,7 @@ class App:
         try:
             with self.operations:
                 self.renew_account_lease()
-                return self.cloud.desk('admin_booking',mode='reserve',host_id=str(host),starts_at=starts_at,guest_name=guest_name,request_id=request_id)
+                return self.now(self.cloud.desk('admin_booking',mode='reserve',host_id=str(host),starts_at=starts_at,guest_name=guest_name,request_id=request_id))
         except Exception as error:return {'error':str(error)}
     def login_account(self,host,id,username,request_id,booking_id=None,confirmed=False,privileged_confirmed=False):
         try:
@@ -257,7 +257,7 @@ class App:
                 if user['username']!=username or user.get('isDisabled'):raise ValueError('Аккаунт изменён или отключён. Повторите поиск')
                 if user['requires_privileged_confirmation'] and privileged_confirmed is not True:raise ValueError('Подтвердите работу со служебной группой')
                 self.renew_account_lease()
-                return self.cloud.desk('admin_booking',mode='login',host_id=str(host),gizmo_user_id=int(id),guest_name=username[:60],request_id=request_id,booking_id=booking_id)
+                return self.now(self.cloud.desk('admin_booking',mode='login',host_id=str(host),gizmo_user_id=int(id),guest_name=username[:60],request_id=request_id,booking_id=booking_id))
         except Exception as error:return {'error':str(error)}
     def booking_guest(self,id):
         try:
@@ -268,6 +268,10 @@ class App:
                 user=self.gizmo.user(int(booking['gizmo_user_id']))
                 return {'user':{k:user.get(k) for k in ('username','firstName','lastName','mobilePhone','phone')},'telegram_id':booking.get('telegram_id'),'gizmo_user_id':booking['gizmo_user_id']}
         except Exception:return {'error':'Не удалось получить данные гостя из Gizmo'}
+    def now(self,result):
+        """After an admin action: the booking round runs at once, so the change reaches Gizmo over the club network
+        in about a second instead of waiting for the next poll."""
+        self.kick.set();return result
     def renew_account_lease(self):
         started=time.time();mono=time.monotonic()
         self.cloud.snapshot(self.store.get('event_cursor',0))
@@ -335,7 +339,7 @@ class App:
 
     def snapshot(self):
         with self.lock:
-            return {'rentals':self.rentals.list(),'rental_history':self.rentals.history()[-200:],'rental_items':RENTAL_ITEMS,'password_grants':self.password_grants,'password_ready':self.password_ready and self.online,'registrations':self.registrations,'registration_history':self.registration.history()[:100],'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':' · '.join(x for x in (self.error,'Еда: '+self.food.error if self.food.error else '') if x),'food':dict(self.food.status),'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'update':self.updater.snapshot(),'version':VERSION,'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready}
+            return {'rentals':self.rentals.list(),'rental_history':self.rentals.history()[-200:],'rental_items':RENTAL_ITEMS,'password_grants':self.password_grants,'password_ready':self.password_ready and self.online,'registrations':self.registrations,'registration_history':self.registration.history()[:100],'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':' · '.join(x for x in (self.error,'Еда: '+self.food.error if self.food.error else '') if x),'food':dict(self.food.status),'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'update':self.updater.snapshot(),'version':VERSION,'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready,'queues':self.queues,'direct':getattr(self.cloud,'direct',False)}
     def acknowledge(self):
         with self.lock:self.store.set('alerts',{})
         self.sound.stop()
@@ -351,6 +355,7 @@ class App:
             try:
                 with self.operations:
                     snapshot=self.controller.tick()
+                    self.queues=snapshot.get('queues',[]) if isinstance(snapshot.get('queues'),list) else []
                     self.registration_ready='registrations' in snapshot.get('desk',{})
                     self.registrations=snapshot.get('desk',{}).get('registrations',[])
                     if self.registration_ready:self.registration.flush()
@@ -386,7 +391,10 @@ class App:
                 # Notification failure must never stop reservation processing.
                 pass
             delay=budget.interval(self.rows,failed)
-            self.stop.wait(max(1,delay-(time.monotonic()-started)))
+            # Straight to the database the poll is free, so new bookings from the app show up within ~2 seconds.
+            if not failed and getattr(self.cloud,'direct',False):delay=min(delay,2)
+            if self.kick.wait(max(0.5,delay-(time.monotonic()-started))):self.kick.clear()
+            if self.stop.is_set():break
     def food_loop(self):
         # Food orders run beside bookings: a slow menu refresh never delays the booking loop.
         while not self.stop.wait(8):

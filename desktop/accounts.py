@@ -53,28 +53,31 @@ class Accounts:
                 raise UnsafeOperation('Изменения разрешены только для гостевых групп клуба, не операторов')
         return user
     def statistics(self,uid):
-        """«Наиграно»: Gizmo counts it slowly (tens of seconds), so it runs in the background and is kept 6 hours."""
-        mem=self.__dict__.setdefault('_stats',{});busy=self.__dict__.setdefault('_stats_busy',set())
-        hit=mem.get(uid)
-        if hit and time.time()-hit['cached_at']<(6*3600 if hit['hours'] is not None else 600):return hit
-        if uid not in busy:
-            busy.add(uid)
-            threading.Thread(target=self._count_hours,args=(uid,mem,busy),daemon=True).start()
-        return hit or {'from':None,'to':None,'hours':None,'cached_at':0}
-    def _count_hours(self,uid,mem,busy):
+        """«Наиграно»: Gizmo counts it slowly (tens of seconds) and only for the whole club at once, so one background
+        read takes every guest's hours and is kept 6 hours; a guest missing from it has played 0 hours."""
+        table=self.__dict__.setdefault('_hours',{'at':0,'by_user':None,'busy':False})
+        # Kept 6 hours; a failed read is retried after 10 minutes.
+        stale=time.time()-table['at']>=(6*3600 if table['by_user'] is not None else 600)
+        if (table['at']==0 or stale) and not table['busy']:
+            table['busy']=True
+            threading.Thread(target=self._count_hours,args=(table,),daemon=True).start()
+        if table['by_user'] is None:return {'from':None,'to':None,'hours':None,'cached_at':0}
+        return {'from':table['from'],'to':table['to'],'hours':table['by_user'].get(int(uid),0.0),'cached_at':table['at']}
+    def _count_hours(self,table):
         end=datetime.now(timezone.utc);start=datetime(2024,1,1,tzinfo=timezone.utc)
-        result={'from':start.isoformat(),'to':end.isoformat(),'hours':None,'cached_at':time.time()}
         try:
-            rows=self.gizmo.request('GET','stats/session',timeout=(3,90),params={'userId':int(uid),'start':start.strftime('%Y-%m-%dT%H:%M:%S'),'end':end.strftime('%Y-%m-%dT%H:%M:%S'),'max':100})
-            own=[r for r in rows if r.get('userId')==int(uid)] if isinstance(rows,list) else None
-            if own==[]:result['hours']=0
-            elif own and len(own)==1:
-                value=span_hours(own[0].get('totalSpan'))
-                if value is None:value=span_hours(own[0].get('hours'))
-                if value is not None and value>=0:result['hours']=round(value,1)
+            # max: every guest of the club, not Gizmo's top 100 (the old reason «Наиграно» showed 0 for most guests).
+            rows=self.gizmo.request('GET','stats/session',timeout=(3,120),params={'start':start.strftime('%Y-%m-%dT%H:%M:%S'),'end':end.strftime('%Y-%m-%dT%H:%M:%S'),'max':100000})
+            if isinstance(rows,list):
+                by_user={}
+                for r in rows:
+                    value=span_hours(r.get('totalSpan'))
+                    if value is None:value=span_hours(r.get('hours'))
+                    if isinstance(r.get('userId'),int) and value is not None and value>=0:by_user[r['userId']]=round(value,1)
+                table.update({'by_user':by_user,'from':start.isoformat(),'to':end.isoformat()})
         except Exception:pass  # Statistics failure must not hide balance / session.
         finally:
-            mem[uid]=result;busy.discard(uid)
+            table['at']=time.time();table['busy']=False
     def read(self,uid):
         user=self.gizmo.user(uid)
         balance=self.gizmo.request('GET',f'users/{int(uid)}/balance')

@@ -35,6 +35,7 @@ def create_gizmo_account(gizmo,guard,req,remember):
     remember(uid)
     actual=gizmo.user(uid)
     if any(actual.get(k[0].lower()+k[1:])!=params[k] for k in ('Username','UserGroupId','FirstName','LastName','Sex')) or str(actual.get('birthDate',''))[:10]!=req['birth_date'] or phone_key(actual.get('mobilePhone'))!=phone_key(req['mobile_phone']):raise ValueError('Created profile mismatch')
+    if password is None:return 'done',uid  # reception: no password, the guest sets one at the PC
     guard();gizmo.request('POST',f'users/{uid}/password/{quote(password,safe="")}')
     verified=gizmo.request('GET',f'users/{quote(username,safe="")}/{quote(password,safe="")}/valid')
     if verified.get('result')!=0 or type(verified.get('identity',{}).get('userId')) is not int or verified['identity']['userId']!=uid:raise ValueError('Password not verified')
@@ -156,7 +157,7 @@ class RegistrationApproval:
             if not username:
                 try:username=free_username(self.gizmo,data.get('first_name',''),phone)
                 except Exception as error:return {'error':str(error) if isinstance(error,ApiError) else 'Не удалось подобрать ник. Проверьте связь'}
-            req={'username':username,'password':data.get('password'),'first_name':str(data.get('first_name','')),'last_name':str(data.get('last_name','')),
+            req={'username':username,'password':None,'first_name':str(data.get('first_name','')),'last_name':str(data.get('last_name','')),
                  'mobile_phone':phone,'birth_date':str(data.get('birth_date','')),'sex':data.get('sex')}
             try:registration_params(req,self.gizmo)
             except Exception as error:return {'error':str(error) if isinstance(error,ApiError) else 'Проверьте поля анкеты'}

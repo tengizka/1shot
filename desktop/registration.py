@@ -19,7 +19,9 @@ def adult_group(gizmo):
 
 def registration_params(req,gizmo,today=None):
     today=today or datetime.now(timezone(timedelta(hours=3))).date()
-    if not re.fullmatch(r'[\w.-]{3,30}',req.get('username','')) or not isinstance(req.get('password'),str) or not 1<=len(req['password'])<=64 or not req['password'].strip():
+    # At the reception the account is made without a password (req['password'] is None): the guest sets it at the PC.
+    password=req.get('password')
+    if not re.fullmatch(r'[\w.-]{3,30}',req.get('username','')) or 'password' not in req or (password is not None and (not isinstance(password,str) or not 1<=len(password)<=64 or not password.strip())):
         raise ApiError('Некорректный никнейм или пароль')
     if any(not isinstance(req.get(k),str) or not req[k].strip() or len(req[k])>45 for k in ('first_name','last_name')):
         raise ApiError('Имя и фамилия обязательны')
