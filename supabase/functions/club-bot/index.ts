@@ -146,6 +146,51 @@ async function stats(chat:number){
   `👤 Бронировали за 7 дней: ${s.bookers_week} чел.`;
  await tg('sendMessage',{chat_id:chat,text,parse_mode:'HTML'});
 }
+// /smmnew: the next queued post (tg_photo set, not sent yet) as it will look in the channel: picture, caption with our
+// custom emoji and the mini-app button. Below it «Опубликовать в канал» posts the same thing to CHANNEL (the bot must be
+// a channel admin). Once a post has been sent here it leaves the queue; the /smmnew menu entry shows only while the
+// queue is not empty (commands scoped to each SMM admin's chat, refreshed after every change and by GET ?smmcmd=1).
+const CHANNEL='@oneshotmira17';
+const MINIAPP='https://t.me/oneshotclubbot/oneshotclub';
+async function dbPatch(path:string,body:unknown){
+ await fetch(`${SB}/rest/v1/${path}`,{method:'PATCH',headers:{apikey:SKEY,Authorization:'Bearer '+SKEY,'content-type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(body)});
+}
+type QPost={id:number,title:string,tg_photo:string,tg_caption?:string,button_text?:string,button_url?:string,published_at?:string|null};
+const queue=async()=>(await db('smm_posts?tg_photo=not.is.null&sent_at=is.null&order=day.asc,id.asc&limit=1')) as QPost[];
+async function smmCommands(){
+ const pending=(await queue()).length>0;
+ for(const a of await db('smm_bot_admins?select=telegram_id')){
+  const commands=[{command:'start',description:'Открыть 1SHOT'},{command:'app',description:'Приложение для Android'},{command:'smm',description:'Готовые посты'},{command:'stats',description:'Статистика'}];
+  if(pending)commands.push({command:'smmnew',description:'Новый пост для канала'});
+  await tg('setMyCommands',{commands,scope:{type:'chat',chat_id:a.telegram_id}});
+ }
+ return pending;
+}
+// Our style for the button: green with the 1SHOT emoji, where Telegram supports it; otherwise a plain button.
+const btn=(p:QPost,fancy:boolean)=>({text:p.button_text||'🎮 Забронировать место',url:p.button_url||MINIAPP,...(fancy?{style:'success',icon_custom_emoji_id:'5384056395358315887'}:{})});
+async function sendQ(chat:number|string,p:QPost,extra:unknown[][]=[]){
+ const caption=p.tg_caption||'';const fancyCap=await withEmoji(caption);
+ for(const [cap,fancy] of [[fancyCap,true],[caption,true],[caption,false]] as [string,boolean][]){
+  const r=await tg('sendPhoto',{chat_id:chat,photo:p.tg_photo,caption:cap,parse_mode:'HTML',reply_markup:{inline_keyboard:[[btn(p,fancy)],...extra]}});
+  if(r?.ok)return r;
+  if(cap===caption&&!fancy)return r;
+ }
+}
+async function smmNew(chat:number){
+ const [p]=await queue();
+ if(!p){await tg('sendMessage',{chat_id:chat,text:'Новых постов пока нет.'});await smmCommands();return}
+ const r=await sendQ(chat,p,[[{text:'📢 Опубликовать в канал',callback_data:'pub:'+p.id}]]);
+ if(r?.ok){await dbPatch(`smm_posts?id=eq.${p.id}`,{sent_at:new Date().toISOString()});await smmCommands()}
+ else await tg('sendMessage',{chat_id:chat,text:'Не получилось отправить пост: '+String(r?.description||'')});
+}
+async function publish(chat:number,id:string){
+ const [p]=await db(`smm_posts?id=eq.${id}`) as QPost[];
+ if(!p){await tg('sendMessage',{chat_id:chat,text:'Пост не найден.'});return}
+ if(p.published_at){await tg('sendMessage',{chat_id:chat,text:'Этот пост уже опубликован.'});return}
+ const r=await sendQ(CHANNEL,p);
+ if(r?.ok){await dbPatch(`smm_posts?id=eq.${id}`,{published_at:new Date().toISOString()});await tg('sendMessage',{chat_id:chat,text:'✅ Опубликовано в канале.'})}
+ else await tg('sendMessage',{chat_id:chat,text:'Не вышло опубликовать: '+String(r?.description||'')+'\n\nПроверь, что бот добавлен в канал администратором с правом публиковать сообщения.'});
+}
 // Telegram signs every webhook call with this secret; it is derived from the bot token, never stored.
 async function secret(){
  const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('1shot-bot:'+TOKEN));
@@ -168,6 +213,7 @@ Deno.serve(async req=>{
    short:await tg('setMyShortDescription',{short_description:'Компьютерный клуб 1SHOT · Мытищи · 24/7'}),
   });
  }
+ if(req.method==='GET'&&url.searchParams.get('smmcmd')==='1')return ok({pending:await smmCommands()});
  if(req.method==='GET'&&url.searchParams.get('emojis')==='1')return ok(await emojis());
  // Starts the approved post (see broadcast()); without an approved, unstarted row it does nothing.
  if(req.method==='GET'&&url.searchParams.get('broadcast')===POST.key){
@@ -198,6 +244,8 @@ Deno.serve(async req=>{
     await tg('editMessageReplyMarkup',{chat_id:cb.message.chat.id,message_id:cb.message.message_id,reply_markup:{inline_keyboard:[]}});
     await broadcast(cb.message.chat.id);return ok({ok:true});
    }
+   const pb=/^pub:(\d+)$/.exec(String(cb.data||''));
+   if(pb&&cb.message?.chat?.id&&await isSmm(Number(cb.from?.id))){await publish(cb.message.chat.id,pb[1]);return ok({ok:true})}
    const sm=/^smm:(\d+)$/.exec(String(cb.data||''));
    if(sm&&cb.message?.chat?.id&&await isSmm(Number(cb.from?.id))){
     const [p]=await db(`smm_posts?id=eq.${sm[1]}`);if(p)await sendPost(cb.message.chat.id,p);
@@ -211,6 +259,7 @@ Deno.serve(async req=>{
   await seen(msg.chat.id);
   if(/^\/stats(@\w+)?$/i.test(text)&&await isSmm(Number(msg.from?.id))){await stats(msg.chat.id);return ok({ok:true})}
   if(text==='/broadcast'&&await isSmm(Number(msg.from?.id))){await previewPost(msg.chat.id);return ok({ok:true})}
+  if(/^\/smmnew(@\w+)?$/i.test(text)&&await isSmm(Number(msg.from?.id))){await smmNew(msg.chat.id);return ok({ok:true})}
   if(/^\/smm(@\w+)?$/i.test(text)&&await isSmm(Number(msg.from?.id))){await smmMenu(msg.chat.id);return ok({ok:true})}
   if(text.startsWith('/app')){await sendApp(msg.chat.id);return ok({ok:true})}
   if(text.startsWith('/start')){

@@ -1,0 +1,2 @@
+-- /smmnew in the club bot: a queue of channel posts (picture, caption, mini-app button) and when each was sent/published.
+alter table public.smm_posts add column if not exists tg_photo text, add column if not exists tg_caption text, add column if not exists button_text text, add column if not exists button_url text, add column if not exists sent_at timestamptz, add column if not exists published_at timestamptz;
