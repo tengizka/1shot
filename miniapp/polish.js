@@ -15,7 +15,8 @@
  window.showOccupied=(hostId)=>{
   let box=document.getElementById('occupied-dialog');
   if(!box){box=document.createElement('dialog');box.id='occupied-dialog';box.className='occupied-dialog';box.innerHTML='<div class="occupied-art"></div><p>Прости, но он занят..</p><button class="btn-main" autofocus>Другой ПК</button><button type="button" class="occupied-queue">Сообщи, когда освободится</button>';box.querySelector('.btn-main').onclick=()=>box.close();box.addEventListener('click',e=>{if(e.target===box)box.close()});box.addEventListener('close',()=>window.pickSeat?.(null));document.body.append(box)}
-  const queue=box.querySelector('.occupied-queue');queue.hidden=!hostId||!window.joinQueue;queue.onclick=()=>{if(window.queueTaken?.(hostId)){toast('На этот ПК уже стоит очередь. Выбери другое место','inf');return}box.close();window.joinQueue(hostId)};
+  const queue=box.querySelector('.occupied-queue');queue.hidden=true;  // «Сообщи, когда освободится» is retired: «Забронировать на …» covers it
+  queue.onclick=()=>{if(window.queueTaken?.(hostId)){toast('На этот ПК уже стоит очередь. Выбери другое место','inf');return}box.close();window.joinQueue(hostId)};
   handIndex=(handIndex+1)%hands.length;const hand=hands[handIndex];box.dataset.variant=String(handIndex);
   box.querySelector('.occupied-art').innerHTML='<svg viewBox="0 0 110 145" aria-hidden="true"><path d="'+hand[0]+'"/><path d="'+hand[1]+'"/></svg>';
   lastLine=next(occupiedLines.length,lastLine);lastAction=next(occupiedActions.length,lastAction);box.querySelector('p').textContent=occupiedLines[lastLine];box.querySelector('.btn-main').textContent=occupiedActions[lastAction];
@@ -26,7 +27,7 @@
   const at=Number.isFinite(end)?Math.ceil(Math.max(end,Date.now()+10*60000)/300000)*300000:NaN;
   const hm=t=>new Date(t).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'});
   free.hidden=!hostId;after.hidden=!Number.isFinite(at)||!window.openClubBooking;
-  free.textContent=Number.isFinite(end)?'Освободится примерно в '+hm(end):'Играет надолго';
+  if(Number.isFinite(end)){const t=document.createElement('span');t.className='free-time';t.textContent=hm(end);free.replaceChildren('Освободится примерно в ',t)}else free.textContent='Играет надолго';
   after.textContent='Забронировать на '+hm(at);
   after.onclick=()=>{box.close();window.openClubBooking(hostId,new Date(at).toISOString())};
   window.hallMotion?.cancel();if(!box.open)box.showModal();
