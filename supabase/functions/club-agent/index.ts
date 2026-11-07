@@ -1,4 +1,6 @@
-import {cors,json,db,codeHash} from '../_shared/club.ts';
+import {cors,json,db,codeHash,sha256hex} from '../_shared/club.ts';
+// Desk calls its frequent RPCs straight in the database with the agent secret; the database keeps only its hash.
+let keyStored=false;
 // A short calm note in @oneshotagent when a booking frees up, is taken off or runs out (the guest started the bot once).
 async function notifyGuest(client:ReturnType<typeof db>,id:string,from:string,to:string,message:string){
  const token=Deno.env.get('TELEGRAM_BOT_TOKEN');if(!token)return;
@@ -23,6 +25,7 @@ Deno.serve(async req=>{
  if(!secret||req.headers.get('x-agent-secret')!==secret)return json({error:'Unauthorized'},403);
  try{
   const b=await req.json();const client=db();
+  if(!keyStored){const {error}=await client.from('club_agent_key').upsert({id:true,secret_hash:await sha256hex(secret),updated_at:new Date().toISOString()});keyStored=!error;}
   if(b.action==='snapshot'&&b.eco===1){
    const {data,error}=await client.rpc('club_worker_poll',{p_worker:b.worker_id,p_after:Number(b.after_event)||0,p_hosts:b.hosts??null,p_accounts:b.accounts||[]});
    if(error)throw error;return json(data);
