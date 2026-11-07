@@ -22,10 +22,10 @@ body{display:grid;place-items:center;font-family:Unb,system-ui,sans-serif;color:
 @keyframes float{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-18px) rotate(-2deg)}}
 @keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
 h1{font:700 104px/.92 ReSquare,Unb,sans-serif;text-transform:uppercase;letter-spacing:.01em}
-h1 .w{display:inline-block;opacity:0;transform:translateY(40px);animation:rise .7s cubic-bezier(.2,.9,.25,1) forwards}
+h1 .w{display:inline-block;animation:rise .7s cubic-bezier(.2,.9,.25,1) both}
 h1 .lime{color:var(--lime)}
-@keyframes rise{to{opacity:1;transform:none}}
-.in{opacity:0;animation:fade .8s ease forwards}
+@keyframes rise{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
+.in{animation:fade .8s ease both}
 @keyframes fade{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 .note{font:500 20px/1.5 Unb;color:var(--muted);text-wrap:balance}
 .pill{display:inline-block;background:var(--lime);color:#000;font:800 30px/1 Unb;padding:14px 22px;letter-spacing:.02em}
@@ -36,7 +36,7 @@ h1 .lime{color:var(--lime)}
 .copy{position:absolute;left:72px;top:150px;bottom:60px;right:72px;display:grid;gap:30px;align-content:center}
 .sub{font:700 30px Unb}.sub b{color:var(--lime)}
 .rows{display:grid;gap:16px;width:1060px}
-.row{display:grid;grid-template-columns:200px 40px 300px 350px 130px;align-items:center;gap:10px;opacity:0;animation:fade .7s ease forwards}
+.row{animation:fade .7s ease both;display:grid;grid-template-columns:200px 40px 300px 350px 130px;align-items:center;gap:10px}
 .sum{font:800 42px Unb;font-variant-numeric:tabular-nums}
 .arrow{font:700 34px Unb;color:var(--muted)}
 .hrs{font:800 30px Unb;color:var(--lime);white-space:nowrap}
@@ -46,8 +46,8 @@ h1 .lime{color:var(--lime)}
 .alt b{font:800 22px Unb;font-variant-numeric:tabular-nums;padding:6px 0;border:2px solid currentColor;text-align:center}
 .alt .vip{color:var(--orange)}.alt .tv{color:var(--blue)}
 .bar{height:14px;background:#141414}
-.bar i{display:block;height:100%;width:0;background:var(--lime);animation:grow 1.2s cubic-bezier(.2,.9,.25,1) forwards}
-@keyframes grow{to{width:var(--w)}}
+.bar i{display:block;height:100%;width:var(--w);background:var(--lime);animation:grow 1.2s cubic-bezier(.2,.9,.25,1) both}
+@keyframes grow{from{width:0}}
 .mascot{right:110px;top:560px;width:190px}
 .notes{display:flex;gap:40px;flex-wrap:wrap}
 </style></head><body>

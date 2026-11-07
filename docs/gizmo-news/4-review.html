@@ -22,10 +22,10 @@ body{display:grid;place-items:center;font-family:Unb,system-ui,sans-serif;color:
 @keyframes float{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-18px) rotate(-2deg)}}
 @keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
 h1{font:700 104px/.92 ReSquare,Unb,sans-serif;text-transform:uppercase;letter-spacing:.01em}
-h1 .w{display:inline-block;opacity:0;transform:translateY(40px);animation:rise .7s cubic-bezier(.2,.9,.25,1) forwards}
+h1 .w{display:inline-block;animation:rise .7s cubic-bezier(.2,.9,.25,1) both}
 h1 .lime{color:var(--lime)}
-@keyframes rise{to{opacity:1;transform:none}}
-.in{opacity:0;animation:fade .8s ease forwards}
+@keyframes rise{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
+.in{animation:fade .8s ease both}
 @keyframes fade{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 .note{font:500 20px/1.5 Unb;color:var(--muted);text-wrap:balance}
 .pill{display:inline-block;background:var(--lime);color:#000;font:800 30px/1 Unb;padding:14px 22px;letter-spacing:.02em}
@@ -36,10 +36,10 @@ h1 .lime{color:var(--lime)}
 .copy{position:absolute;left:72px;top:180px;width:760px;display:grid;gap:26px}
 .big{font:700 32px/1.4 Unb}.big b{color:var(--lime)}
 .stars{display:flex;gap:10px}
-.star{width:56px;height:56px;fill:#1a1a1a;animation:star .5s ease forwards}
-@keyframes star{to{fill:var(--lime);transform:scale(1.08)}}
+.star{width:56px;height:56px;fill:var(--lime);animation:star .5s ease both}
+@keyframes star{from{fill:#1a1a1a;transform:scale(.8)}to{fill:var(--lime);transform:scale(1)}}
 .cards{position:absolute;right:72px;top:150px;bottom:60px;display:flex;gap:28px;align-items:center}
-.card{width:300px;border:3px solid var(--rule);padding:22px;display:grid;gap:16px;justify-items:center;background:#0b0b0b;opacity:0;animation:fade .8s ease forwards}
+.card{width:300px;border:3px solid var(--rule);padding:22px;display:grid;gap:16px;justify-items:center;background:#0b0b0b;animation:fade .8s ease both}
 .card .qr{width:240px;height:240px}
 .card h2{font:700 30px/1 ReSquare,Unb;text-transform:uppercase}
 .glow{position:absolute;inset:-3px;border:3px solid var(--lime);opacity:0;animation:glow 3s ease-in-out infinite}
