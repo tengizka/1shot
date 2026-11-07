@@ -13,7 +13,7 @@
 
  function build(){
   bar=document.createElement('div');bar.id='queue-bar';bar.className='queue-bar';bar.setAttribute('role','status');
-  bar.innerHTML='<span class="queue-text"><b></b><small></small></span><button type="button" class="queue-x" aria-label="Выйти из очереди"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>';
+  bar.innerHTML='<span class="queue-text"><b></b><small></small></span><button type="button" class="queue-x" aria-label="Снять бронь"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>';
   bar.querySelector('.queue-x').onclick=leave;
   document.body.append(bar);
  }
@@ -21,8 +21,8 @@
  function paint(){
   if(!current){bar?.remove();bar=null;return}
   if(!bar){build();dock();bar.classList.add('docked')}
-  bar.querySelector('b').textContent='Ты в очереди за '+pc(current.host_id);
-  bar.querySelector('small').textContent=left(current.free_at)||'ждём, когда освободится';
+  bar.querySelector('b').textContent=pc(current.host_id)+' забронируем за тобой';
+  bar.querySelector('small').textContent=(left(current.free_at)||'ждём, когда освободится')+' · напишем в бот';
  }
  // The confirmation: a green notice at the top that slides down into the bar.
  function arrive(){
@@ -40,13 +40,13 @@
    const res=await call('queue_join',{host_id:String(hostId)});
    current={host_id:String(res.host_id||hostId),free_at:res.free_at||null};
    tg?.HapticFeedback?.notificationOccurred?.('success');arrive();
-  }catch(e){toast(clubText(String(e?.message||'').replace(/^HTTP \d+:\s*/,''))||'Не получилось встать в очередь','err')}
+  }catch(e){toast(clubText(String(e?.message||'').replace(/^HTTP \d+:\s*/,''))||'Не получилось забронировать','err')}
   finally{busy=false}
  }
  async function leave(){
   if(busy||!current)return;busy=true;const was=current;current=null;paint();
-  try{await call('queue_leave');toast('Ты вышел из очереди на '+pc(was.host_id),'inf')}
-  catch{current=was;paint();toast('Не получилось выйти из очереди. Попробуй ещё раз','err')}
+  try{await call('queue_leave');toast('Бронь '+pc(was.host_id)+' «как освободится» снята','inf')}
+  catch{current=was;paint();toast('Не получилось снять бронь. Попробуй ещё раз','err')}
   finally{busy=false}
  }
  // The «tell me when it frees up» button appears only once the server keeps queues (its state carries «queue»).

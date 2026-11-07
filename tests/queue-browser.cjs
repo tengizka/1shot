@@ -20,7 +20,7 @@ const {chromium}=require('playwright');const path=require('path');const assert=r
  await p.evaluate(()=>joinQueue('101'));
  await p.waitForTimeout(1800);
  const text=await p.textContent('#queue-bar');
- assert.match(text,/Ты в очереди за ПК 101/);assert.match(text,/освободится через 2[45]m/);
+ assert.match(text,/ПК 101 забронируем за тобой/);assert.match(text,/освободится через 2[45]m/);
  assert.equal(await p.evaluate(()=>document.getElementById('queue-bar').classList.contains('docked')),true,'the notice docks as the bar');
  const box=await p.$eval('#queue-bar',e=>e.getBoundingClientRect().bottom);assert.ok(box<=844-70,'the bar sits above the bottom menu');
  await p.evaluate(()=>getClubState());assert.ok(await p.$('#queue-bar'),'server state keeps the bar');

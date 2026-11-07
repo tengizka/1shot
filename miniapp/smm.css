@@ -736,7 +736,9 @@ body:has(.overlay.open) :is(#session-screen,#my-session-banner,#booking-bar){vis
 .topup .btn-main:disabled{opacity:.45}
 @media(prefers-reduced-motion:reduce){.topup[open]{animation:none}}
 /* Busy PC: when it frees up, and booking right after */
-.occupied-dialog .occupied-free{margin:-4px 0 14px;font:700 12px/1.4 Unbounded,sans-serif;color:var(--smm-lime);text-transform:none}
+/* «Освободится примерно в …» in plain Unbounded: the pixel title font made the time unreadable. */
+.occupied-dialog .occupied-free{display:block!important;text-align:center;margin:-2px 0 16px!important;font:600 13px/1.4 Unbounded,sans-serif!important;color:#fff!important;text-transform:none!important;letter-spacing:0!important}
+.occupied-dialog .occupied-free .free-time{color:var(--smm-lime);font-weight:800}
 .occupied-dialog .occupied-free[hidden],.occupied-dialog .occupied-after[hidden]{display:none}
 .occupied-dialog .occupied-after{width:100%;min-height:46px;margin-bottom:8px;background:var(--smm-lime);color:#000;border:0;font:800 12px Unbounded,sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
 .occupied-dialog:has(.occupied-after:not([hidden])) .btn-main{background:#000!important;color:#fff!important;border:2px solid var(--smm-rule)!important}
@@ -744,3 +746,7 @@ body:has(.overlay.open) :is(#session-screen,#my-session-banner,#booking-bar){vis
 /* Time left on a busy PC (last hour only), small and grey under the tile. */
 .hall-plan .map-pc{overflow:visible!important}
 .hall-plan .map-pc .map-left{position:absolute;top:calc(100% + 2px);left:50%;transform:translateX(-50%);font:600 6.5px/1 Unbounded,sans-serif;letter-spacing:.02em;color:#8d8d8d;white-space:nowrap;pointer-events:none}
+
+/* The busy PC dialog's main action: «Забронировать, как освободится» (lime); «Посмотрю рядом» steps back. */
+.occupied-dialog .occupied-queue{width:100%;min-height:50px;margin-bottom:8px;background:var(--smm-lime)!important;color:#000!important;border:0!important;font:800 12px/1.25 Unbounded,sans-serif;letter-spacing:.05em;text-transform:uppercase;cursor:pointer}
+.occupied-dialog:has(.occupied-queue:not([hidden])) .btn-main{background:#000!important;color:#fff!important;border:2px solid var(--smm-rule)!important}
