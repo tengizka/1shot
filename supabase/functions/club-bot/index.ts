@@ -182,7 +182,7 @@ Deno.serve(async req=>{
  }
  // Notes the database queued (the PC queue): each row is claimed once, so a repeated call never sends twice.
  if(url.searchParams.get('outbox')==='1'){
-  const r=await rest('club_bot_outbox?sent_at=is.null&created_at=gt.'+new Date(Date.now()-3600e3).toISOString()+'&order=id&limit=50',{method:'PATCH',headers:{prefer:'return=representation'},body:JSON.stringify({sent_at:new Date().toISOString()})});
+  const r=await rest('club_bot_outbox?sent_at=is.null&created_at=gt.'+new Date(Date.now()-3600e3).toISOString(),{method:'PATCH',headers:{prefer:'return=representation'},body:JSON.stringify({sent_at:new Date().toISOString()})});
   const rows:{chat_id:number,text:string}[]=r.ok?await r.json():[];
   for(const m of rows)await tg('sendMessage',{chat_id:m.chat_id,text:m.text,parse_mode:'HTML',reply_markup:{inline_keyboard:[[{text:'🎮 Открыть 1SHOT',web_app:{url:APP}}]]}}).catch(()=>{});
   return ok({sent:rows.length});
