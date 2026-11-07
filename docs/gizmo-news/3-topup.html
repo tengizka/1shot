@@ -19,19 +19,18 @@ body{display:grid;place-items:center;font-family:Unb,system-ui,sans-serif;color:
 .mascot{position:absolute;width:300px;animation:float 5s ease-in-out infinite}
 .mascot *{fill:var(--lime);stroke:var(--lime)}
 #eyeL,#eyeR{transform-box:fill-box;transform-origin:center;animation:blink 4.6s infinite}
-.m-party{animation:bounce 1.6s ease-in-out infinite}.m-party #eyeL,.m-party #eyeR{animation:none}
-@keyframes bounce{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-26px) rotate(4deg)}}
-.m-party .hat{transform-box:fill-box;transform-origin:bottom center;animation:hat 1.6s ease-in-out infinite}
-@keyframes hat{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
-.m-wink #eyeR{animation:none}.m-wink #eyeL{animation:blink 3s infinite}
-.m-wink .heart{transform-box:fill-box;transform-origin:center;animation:beat 1.2s ease-in-out infinite}
-@keyframes beat{0%,100%{transform:scale(1)}30%{transform:scale(1.35)}60%{transform:scale(.95)}}
-.m-money #eyeL,.m-money #eyeR{animation:spin 2.4s ease-in-out infinite}
-@keyframes spin{0%,70%,100%{transform:scaleX(1)}85%{transform:scaleX(.15)}}
-.m-money .coin{transform-box:fill-box;animation:drop 2.1s ease-in infinite}
-@keyframes drop{0%{transform:translateY(-10px);opacity:0}20%{opacity:1}80%{opacity:1}100%{transform:translateY(22px);opacity:0}}
-.m-stars #eyeL,.m-stars #eyeR{animation:twinkle 1.4s ease-in-out infinite}.m-stars #eyeR{animation-delay:.35s}
-@keyframes twinkle{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.25) rotate(18deg)}}
+.m-party{animation:bounce 1.8s ease-in-out infinite}.m-party #eyeL,.m-party #eyeR{animation:none}
+@keyframes bounce{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-20px) rotate(2deg)}}
+.m-party .hat{transform-box:fill-box;transform-origin:50% 100%;animation:hat 1.8s ease-in-out infinite}
+@keyframes hat{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+.m-wink #eyeR{animation:none}
+.m-wink .heart{transform-box:fill-box;transform-origin:center;animation:beat 1.3s ease-in-out infinite}
+@keyframes beat{0%,100%{transform:scale(1)}25%{transform:scale(1.22)}45%{transform:scale(.96)}60%{transform:scale(1.1)}}
+.m-clock #eyeL,.m-clock #eyeR{animation:none}
+.m-clock .minute{animation:turn 3s linear infinite}.m-clock .hour{animation:turn 36s linear infinite -9s}  /* the hour hand starts at three o'clock */
+@keyframes turn{to{transform:rotate(360deg)}}
+.m-stars #eyeL,.m-stars #eyeR{transform-box:fill-box;transform-origin:center;animation:twinkle 1.6s ease-in-out infinite}.m-stars #eyeR{animation-delay:.4s}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
 @keyframes float{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-18px) rotate(-2deg)}}
 @keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
 h1{font:700 104px/.92 ReSquare,Unb,sans-serif;text-transform:uppercase;letter-spacing:.01em}
@@ -61,7 +60,7 @@ h1 .lime{color:var(--lime)}
 .bar{height:14px;background:#141414}
 .bar i{display:block;height:100%;width:var(--w);background:var(--lime);animation:grow 1.2s cubic-bezier(.2,.9,.25,1) both}
 @keyframes grow{from{width:0}}
-.mascot{right:110px;top:560px;width:190px}
+.mascot{right:90px;top:500px;width:250px}
 .notes{display:flex;gap:40px;flex-wrap:wrap}
 </style></head><body>
 <div class="stage"><div class="grid"></div><div class="scan"></div><svg class="logo" aria-hidden="true" viewBox="0 0 522 138"><path fill-rule="evenodd" d="M478.042 17.5467V52.4814H440.879V61.4825H478.042V127.032H487.105V61.4825H521.737V52.478H487.105V17.5502L478.042 17.5467ZM97.1209 52.4814H50.0112V61.4825H125.311V77.1869L103.824 108.092V72.4431H94.7577V136.975L134.371 79.9952V52.4814H108.213L125.307 28.397V41.7347H134.371V0.00345001L97.1209 52.478V52.4814ZM263.77 52.4814H230.108V17.5502H221.045V52.4814H156.306V61.4825H221.045V127.032H230.108V61.4825H263.77V127.032H272.829V17.5536H263.773V52.4849L263.77 52.4814ZM346.594 0L346.58 52.4814H296.165V61.4859H346.58L346.573 79.3259L386.283 137.11V61.4859H410.954V52.4814H383.823L346.594 0ZM355.64 76.5486L355.65 28.397L372.735 52.4814H365.814V61.4859H377.22V107.957L355.64 76.5486ZM14.3692 17.5502V52.4814H0V61.4859H14.3692V118.031H0V127.036H37.7982V118.031H23.4324V17.5536H14.3692V17.5502Z"/></svg><div class="tag">Одним чеком</div>
@@ -69,7 +68,7 @@ h1 .lime{color:var(--lime)}
  <h1><span class="w">Пополняй</span> <span class="w">—</span> <span class="w">получай</span> <span class="w lime">часы</span></h1>
  <p class="sub in" style="animation-delay:.5s">Чем больше пополнение, <b>тем больше подарок</b></p>
  <div class="rows"><div class="row" style="animation-delay:0.7s"><span class="sum">700 ₽</span><span class="arrow">→</span><span class="hrs">1h STANDART</span><span class="alt"></span><span class="bar"><i style="--w:23%;animation-delay:1.0s"></i></span></div><div class="row" style="animation-delay:0.95s"><span class="sum">1 000 ₽</span><span class="arrow">→</span><span class="hrs">2h STANDART</span><span class="alt"><i>или</i><b class="vip">1h VIP</b><b class="tv">1h TV</b></span><span class="bar"><i style="--w:33%;animation-delay:1.25s"></i></span></div><div class="row" style="animation-delay:1.2s"><span class="sum">2 000 ₽</span><span class="arrow">→</span><span class="hrs">4h STANDART</span><span class="alt"><i>или</i><b class="vip">2h VIP</b><b class="tv">2h TV</b></span><span class="bar"><i style="--w:66%;animation-delay:1.5s"></i></span></div><div class="row" style="animation-delay:1.45s"><span class="sum">3 000 ₽</span><span class="arrow">→</span><span class="hrs">6h STANDART</span><span class="alt"><i>или</i><b class="vip">3h VIP</b><b class="tv">3h TV</b></span><span class="bar"><i style="--w:100%;animation-delay:1.75s"></i></span></div></div>
- </div><svg viewBox="-1 -16 47 60" class="mascot m-money" aria-hidden="true">
+ </div><svg viewBox="-1 -1 47 45" class="mascot m-clock" aria-hidden="true">
 
 <g id="mascot" stroke="currentColor" stroke-width="0.12" stroke-linejoin="miter">
   
@@ -86,15 +85,15 @@ h1 .lime{color:var(--lime)}
     <polygon id="noseFoot" points="24.1044,25.6707 20.0552,25.6707 20.0552,28.3446 24.1044,28.3446 24.1044,25.6707"/>
   </g>
   
-  <g id="eyeL" class="eye"><circle cx="19.6" cy="16.3" r="3.3"/><rect x="19.0" y="14.2" width="1.2" height="4.2" style="fill:#000;stroke:#000"/></g>
+  <g id="eyeL" class="eye"><circle cx="19.7" cy="16.3" r="3.45"/><circle cx="19.7" cy="16.3" r="2.4" style="fill:#000;stroke:#000"/><rect x="19.279999999999998" y="15.05" width=".84" height="1.25" style="transform-box:view-box;transform-origin:19.7px 16.3px" class="hour"/><rect x="19.34" y="14.3" width=".72" height="2" style="transform-box:view-box;transform-origin:19.7px 16.3px" class="minute"/><circle cx="19.7" cy="16.3" r=".55"/></g>
   
-  <g id="eyeR" class="eye"><circle cx="31.6" cy="16.3" r="3.3"/><rect x="31.0" y="14.2" width="1.2" height="4.2" style="fill:#000;stroke:#000"/></g>
+  <g id="eyeR" class="eye"><circle cx="29.7" cy="16.3" r="3.45"/><circle cx="29.7" cy="16.3" r="2.4" style="fill:#000;stroke:#000"/><rect x="29.279999999999998" y="15.05" width=".84" height="1.25" style="transform-box:view-box;transform-origin:29.7px 16.3px" class="hour"/><rect x="29.34" y="14.3" width=".72" height="2" style="transform-box:view-box;transform-origin:29.7px 16.3px" class="minute"/><circle cx="29.7" cy="16.3" r=".55"/></g>
   
   <g id="mouth">
     <polygon id="mouth" points="25.4032,32.9495 20.4105,32.9495 19.5,32.9495 18.0918,32.9495 18.0918,35.6616 22.7292,35.6616 25.4032,35.6616 25.4032,32.9495"/>
   </g>
 </g>
-<g class="coin" style="animation-delay:0s"><circle cx="8" cy="-8" r="2.8"/><rect x="7.5" y="-9.8" width="1" height="3.6" style="fill:#000;stroke:#000"/></g><g class="coin" style="animation-delay:0.7s"><circle cx="23" cy="-8" r="2.8"/><rect x="22.5" y="-9.8" width="1" height="3.6" style="fill:#000;stroke:#000"/></g><g class="coin" style="animation-delay:1.4s"><circle cx="38" cy="-8" r="2.8"/><rect x="37.5" y="-9.8" width="1" height="3.6" style="fill:#000;stroke:#000"/></g></svg></div><script>
+</svg></div><script>
 // Fit the 1600x900 stage into whatever frame Gizmo gives the news item.
 const stage=document.querySelector('.stage');
 const fit=()=>{const k=Math.min(innerWidth/1600,innerHeight/900);stage.style.transform=`scale(${k})`};

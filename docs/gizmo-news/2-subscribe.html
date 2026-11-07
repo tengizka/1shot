@@ -19,19 +19,18 @@ body{display:grid;place-items:center;font-family:Unb,system-ui,sans-serif;color:
 .mascot{position:absolute;width:300px;animation:float 5s ease-in-out infinite}
 .mascot *{fill:var(--lime);stroke:var(--lime)}
 #eyeL,#eyeR{transform-box:fill-box;transform-origin:center;animation:blink 4.6s infinite}
-.m-party{animation:bounce 1.6s ease-in-out infinite}.m-party #eyeL,.m-party #eyeR{animation:none}
-@keyframes bounce{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-26px) rotate(4deg)}}
-.m-party .hat{transform-box:fill-box;transform-origin:bottom center;animation:hat 1.6s ease-in-out infinite}
-@keyframes hat{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
-.m-wink #eyeR{animation:none}.m-wink #eyeL{animation:blink 3s infinite}
-.m-wink .heart{transform-box:fill-box;transform-origin:center;animation:beat 1.2s ease-in-out infinite}
-@keyframes beat{0%,100%{transform:scale(1)}30%{transform:scale(1.35)}60%{transform:scale(.95)}}
-.m-money #eyeL,.m-money #eyeR{animation:spin 2.4s ease-in-out infinite}
-@keyframes spin{0%,70%,100%{transform:scaleX(1)}85%{transform:scaleX(.15)}}
-.m-money .coin{transform-box:fill-box;animation:drop 2.1s ease-in infinite}
-@keyframes drop{0%{transform:translateY(-10px);opacity:0}20%{opacity:1}80%{opacity:1}100%{transform:translateY(22px);opacity:0}}
-.m-stars #eyeL,.m-stars #eyeR{animation:twinkle 1.4s ease-in-out infinite}.m-stars #eyeR{animation-delay:.35s}
-@keyframes twinkle{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.25) rotate(18deg)}}
+.m-party{animation:bounce 1.8s ease-in-out infinite}.m-party #eyeL,.m-party #eyeR{animation:none}
+@keyframes bounce{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-20px) rotate(2deg)}}
+.m-party .hat{transform-box:fill-box;transform-origin:50% 100%;animation:hat 1.8s ease-in-out infinite}
+@keyframes hat{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+.m-wink #eyeR{animation:none}
+.m-wink .heart{transform-box:fill-box;transform-origin:center;animation:beat 1.3s ease-in-out infinite}
+@keyframes beat{0%,100%{transform:scale(1)}25%{transform:scale(1.22)}45%{transform:scale(.96)}60%{transform:scale(1.1)}}
+.m-clock #eyeL,.m-clock #eyeR{animation:none}
+.m-clock .minute{animation:turn 3s linear infinite}.m-clock .hour{animation:turn 36s linear infinite -9s}  /* the hour hand starts at three o'clock */
+@keyframes turn{to{transform:rotate(360deg)}}
+.m-stars #eyeL,.m-stars #eyeR{transform-box:fill-box;transform-origin:center;animation:twinkle 1.6s ease-in-out infinite}.m-stars #eyeR{animation-delay:.4s}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
 @keyframes float{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-18px) rotate(-2deg)}}
 @keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
 h1{font:700 104px/.92 ReSquare,Unb,sans-serif;text-transform:uppercase;letter-spacing:.01em}
@@ -86,17 +85,17 @@ h1 .lime{color:var(--lime)}
     <polygon id="noseFoot" points="24.1044,25.6707 20.0552,25.6707 20.0552,28.3446 24.1044,28.3446 24.1044,25.6707"/>
   </g>
   
-  <g id="eyeL">
+  <g id="eyeL" class="eye">
     <polygon id="eyeL" points="23.3114,15 18.3187,15 17.4082,15 16,15 16,17.7122 20.6374,17.7122 23.3114,17.7122 23.3114,15"/>
   </g>
   
-  <g id="eyeR" class="eye"><polygon points="28.0,18.2 31.6,14.1 35.2,18.2 33.5,18.2 31.6,16.2 29.700000000000003,18.2"/></g>
+  <g id="eyeR" class="eye"><polygon points="27.2,18.2 30.2,14.2 33.2,18.2 31.500000000000004,18.2 30.2,16.2 28.9,18.2"/></g>
   
   <g id="mouth">
     <polygon id="mouth" points="25.4032,32.9495 20.4105,32.9495 19.5,32.9495 18.0918,32.9495 18.0918,35.6616 22.7292,35.6616 25.4032,35.6616 25.4032,32.9495"/>
   </g>
 </g>
-<g class="heart"><path d="M51 8h3v2h2V8h3v2h1v4h-1v2h-2v2h-2v2h-2v-2h-2v-2h-2v-2h-1v-4h1z"/></g></svg></div><script>
+<g class="heart"><rect x="51.5" y="3.0" width="1.52" height="1.52"/><rect x="53.0" y="3.0" width="1.52" height="1.52"/><rect x="56.0" y="3.0" width="1.52" height="1.52"/><rect x="57.5" y="3.0" width="1.52" height="1.52"/><rect x="50.0" y="4.5" width="1.52" height="1.52"/><rect x="51.5" y="4.5" width="1.52" height="1.52"/><rect x="53.0" y="4.5" width="1.52" height="1.52"/><rect x="54.5" y="4.5" width="1.52" height="1.52"/><rect x="56.0" y="4.5" width="1.52" height="1.52"/><rect x="57.5" y="4.5" width="1.52" height="1.52"/><rect x="59.0" y="4.5" width="1.52" height="1.52"/><rect x="50.0" y="6.0" width="1.52" height="1.52"/><rect x="51.5" y="6.0" width="1.52" height="1.52"/><rect x="53.0" y="6.0" width="1.52" height="1.52"/><rect x="54.5" y="6.0" width="1.52" height="1.52"/><rect x="56.0" y="6.0" width="1.52" height="1.52"/><rect x="57.5" y="6.0" width="1.52" height="1.52"/><rect x="59.0" y="6.0" width="1.52" height="1.52"/><rect x="51.5" y="7.5" width="1.52" height="1.52"/><rect x="53.0" y="7.5" width="1.52" height="1.52"/><rect x="54.5" y="7.5" width="1.52" height="1.52"/><rect x="56.0" y="7.5" width="1.52" height="1.52"/><rect x="57.5" y="7.5" width="1.52" height="1.52"/><rect x="53.0" y="9.0" width="1.52" height="1.52"/><rect x="54.5" y="9.0" width="1.52" height="1.52"/><rect x="56.0" y="9.0" width="1.52" height="1.52"/><rect x="54.5" y="10.5" width="1.52" height="1.52"/></g></svg></div><script>
 // Fit the 1600x900 stage into whatever frame Gizmo gives the news item.
 const stage=document.querySelector('.stage');
 const fit=()=>{const k=Math.min(innerWidth/1600,innerHeight/900);stage.style.transform=`scale(${k})`};
