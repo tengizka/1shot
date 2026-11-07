@@ -15,6 +15,8 @@ const {chromium}=require('playwright');const path=require('path');const assert=r
   window.getClubState=async()=>({hosts:[],bookings:[],queue:serverQueue});
  });
  await p.addScriptTag({path:path.join(__dirname,'..','miniapp','queue.js')});
+ assert.equal(await p.evaluate(()=>typeof window.joinQueue),'undefined','no queue button before the server keeps queues');
+ await p.evaluate(()=>getClubState());
  await p.evaluate(()=>joinQueue('101'));
  await p.waitForTimeout(1800);
  const text=await p.textContent('#queue-bar');

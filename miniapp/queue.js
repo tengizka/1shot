@@ -49,12 +49,14 @@
   catch{current=was;paint();toast('Не получилось выйти из очереди. Попробуй ещё раз','err')}
   finally{busy=false}
  }
- window.joinQueue=join;window.leaveQueue=leave;
+ // The «tell me when it frees up» button appears only once the server keeps queues (its state carries «queue»).
+ window.leaveQueue=leave;
  window.queueTaken=id=>{const h=(typeof hostsData!=='undefined'?hostsData:{})[String(id)];return !!h?.queued&&current?.host_id!==String(id)};
  // Every poll of the club state brings the guest's place in the queue; a booked PC ends it.
  const original=window.getClubState;
  if(typeof original==='function')window.getClubState=async(...args)=>{
   const data=await original(...args);
+  if(data&&'queue' in data)window.joinQueue=join;
   if(!busy&&data&&'queue' in data){
    const next=data.queue?{host_id:String(data.queue.host_id),free_at:data.queue.free_at||null}:null;
    if(current&&!next&&(data.bookings||[]).some(b=>b.host_id===current.host_id))toast(pc(current.host_id)+' освободился и теперь твой 🎮','ok');
