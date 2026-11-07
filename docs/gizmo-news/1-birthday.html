@@ -19,6 +19,19 @@ body{display:grid;place-items:center;font-family:Unb,system-ui,sans-serif;color:
 .mascot{position:absolute;width:300px;animation:float 5s ease-in-out infinite}
 .mascot *{fill:var(--lime);stroke:var(--lime)}
 #eyeL,#eyeR{transform-box:fill-box;transform-origin:center;animation:blink 4.6s infinite}
+.m-party{animation:bounce 1.6s ease-in-out infinite}.m-party #eyeL,.m-party #eyeR{animation:none}
+@keyframes bounce{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-26px) rotate(4deg)}}
+.m-party .hat{transform-box:fill-box;transform-origin:bottom center;animation:hat 1.6s ease-in-out infinite}
+@keyframes hat{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+.m-wink #eyeR{animation:none}.m-wink #eyeL{animation:blink 3s infinite}
+.m-wink .heart{transform-box:fill-box;transform-origin:center;animation:beat 1.2s ease-in-out infinite}
+@keyframes beat{0%,100%{transform:scale(1)}30%{transform:scale(1.35)}60%{transform:scale(.95)}}
+.m-money #eyeL,.m-money #eyeR{animation:spin 2.4s ease-in-out infinite}
+@keyframes spin{0%,70%,100%{transform:scaleX(1)}85%{transform:scaleX(.15)}}
+.m-money .coin{transform-box:fill-box;animation:drop 2.1s ease-in infinite}
+@keyframes drop{0%{transform:translateY(-10px);opacity:0}20%{opacity:1}80%{opacity:1}100%{transform:translateY(22px);opacity:0}}
+.m-stars #eyeL,.m-stars #eyeR{animation:twinkle 1.4s ease-in-out infinite}.m-stars #eyeR{animation-delay:.35s}
+@keyframes twinkle{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.25) rotate(18deg)}}
 @keyframes float{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-18px) rotate(-2deg)}}
 @keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
 h1{font:700 104px/.92 ReSquare,Unb,sans-serif;text-transform:uppercase;letter-spacing:.01em}
@@ -49,7 +62,7 @@ h1 .lime{color:var(--lime)}
  <p class="big in" style="animation-delay:.9s">Отмечай в 1SHOT —<br><b>дарим часы</b> тебе и друзьям</p>
  <div class="gift in" style="animation-delay:1.2s"><span class="pill">3h STANDART тебе</span><span class="pill" style="background:#fff">по 1h STANDART трём друзьям</span></div>
  <p class="note in" style="animation-delay:1.5s">Возьми с собой документ, удостоверяющий личность</p>
-</div><svg viewBox="-1 -1 47 45" class="mascot" aria-hidden="true">
+</div><svg viewBox="-1 -15 47 59" class="mascot m-party" aria-hidden="true">
 
 <g id="mascot" stroke="currentColor" stroke-width="0.12" stroke-linejoin="miter">
   
@@ -66,19 +79,13 @@ h1 .lime{color:var(--lime)}
     <polygon id="noseFoot" points="24.1044,25.6707 20.0552,25.6707 20.0552,28.3446 24.1044,28.3446 24.1044,25.6707"/>
   </g>
   
-  <g id="eyeL">
-    <polygon id="eyeL" points="23.3114,15 18.3187,15 17.4082,15 16,15 16,17.7122 20.6374,17.7122 23.3114,17.7122 23.3114,15"/>
-  </g>
+  <g id="eyeL" class="eye"><polygon points="16.0,18.2 19.6,14.1 23.200000000000003,18.2 21.5,18.2 19.6,16.2 17.700000000000003,18.2"/></g>
   
-  <g id="eyeR">
-    <polygon id="eyeR" points="35.3114,15 30.3187,15 29.4082,15 28,15 28,17.7122 32.6374,17.7122 35.3114,17.7122 35.3114,15"/>
-  </g>
+  <g id="eyeR" class="eye"><polygon points="28.0,18.2 31.6,14.1 35.2,18.2 33.5,18.2 31.6,16.2 29.700000000000003,18.2"/></g>
   
-  <g id="mouth">
-    <polygon id="mouth" points="25.4032,32.9495 20.4105,32.9495 19.5,32.9495 18.0918,32.9495 18.0918,35.6616 22.7292,35.6616 25.4032,35.6616 25.4032,32.9495"/>
-  </g>
+  <g id="mouth"><polygon points="17,32 27,32 27,34.2 25,36.4 19,36.4 17,34.2"/></g>
 </g>
-</svg><div id="confetti"></div></div><script>
+<g class="hat"><polygon points="17,13 29,13 23,-10"/><polygon points="19.2,6 26.8,6 25.9,2.6 20.1,2.6" style="fill:#000;stroke:#000"/><circle cx="23" cy="-10.5" r="2.6"/></g></svg><div id="confetti"></div></div><script>
 // Fit the 1600x900 stage into whatever frame Gizmo gives the news item.
 const stage=document.querySelector('.stage');
 const fit=()=>{const k=Math.min(innerWidth/1600,innerHeight/900);stage.style.transform=`scale(${k})`};
