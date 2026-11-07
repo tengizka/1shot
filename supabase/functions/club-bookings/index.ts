@@ -86,6 +86,12 @@ Deno.serve(async req=>{
    await client.from('club_bot_reach').upsert({telegram_id:user,reachable:!!r?.ok,checked_at:new Date().toISOString()});
    return json({reachable:!!r?.ok});
   }
+  // Queue for a busy PC: the database keeps it and books the PC for the guest once it has been free for 3 minutes.
+  if(b.action==='queue_join'){
+   if(typeof b.host_id!=='string'||!/^\d{1,4}$/.test(b.host_id))return json({error:'Некорректный ПК'},400);
+   const {data,error}=await client.rpc('club_queue_join',{p_user:user,p_host:b.host_id});if(error)throw error;return json(data);
+  }
+  if(b.action==='queue_leave'){const {error}=await client.rpc('club_queue_leave',{p_user:user});if(error)throw error;return json({ok:true});}
   if(b.action==='account'){
    const {error}=await client.rpc('club_account_request',{p_user:user});if(error)throw error;
    const {data:account,error:readError}=await client.from('club_accounts').select('data,updated_at').eq('telegram_id',user).single();if(readError)throw readError;
