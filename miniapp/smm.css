@@ -755,13 +755,23 @@ body:has(.overlay.open) :is(#session-screen,#my-session-banner,#booking-bar){vis
 .booking-bar:not([hidden]){animation:bbIn .5s cubic-bezier(.2,.9,.25,1) both}
 @keyframes bbIn{from{transform:translateY(100%);opacity:0}}
 
-/* «Мои брони»: a booking card with even padding and two full-width actions of the same height. */
-.club-booking-dialog .club-reservation{display:flex;flex-direction:column;align-items:stretch;gap:0;padding:20px 18px 18px!important;margin:0 0 12px!important;text-align:left}
-.club-booking-dialog .club-reservation h2{margin:0 0 10px!important;font:700 34px/1 var(--smm-display)!important;text-transform:uppercase}
-.club-booking-dialog .club-reservation strong{display:block;margin:0 0 6px!important;font:700 14px/1.3 Unbounded,sans-serif!important;color:var(--smm-lime)}
-.club-booking-dialog .club-reservation .club-note{margin:0 0 4px!important;font:500 11px/1.5 Unbounded,sans-serif!important;color:#9a9a9a}
-.club-booking-dialog .club-reservation .btn-main{width:100%;min-height:52px;margin:16px 0 0!important}
-.club-booking-dialog .club-reservation .club-cancel{width:100%;min-height:48px;margin:10px 0 0!important;padding:0 14px!important;background:#000!important;border:2px solid var(--smm-rule)!important;color:#fff!important;font:700 11px Unbounded,sans-serif!important;letter-spacing:.08em;text-transform:uppercase;text-decoration:none!important}
-.club-booking-dialog .club-reservation .club-cancel:active{border-color:var(--smm-pink)!important;color:var(--smm-pink)!important}
+/* «Мои брони»: one lime sheet with black text. No box inside a box: bookings are plain blocks split by a black line. */
+.club-booking-dialog:has(#club-mine:not([hidden])){background:var(--smm-lime)!important;color:#000!important;border:0!important;padding:20px 20px 18px!important}
+.club-booking-dialog:has(#club-mine:not([hidden])) .club-sheet-head #club-pc{color:#000;opacity:.6}
+.club-booking-dialog:has(#club-mine:not([hidden])) #club-close{background:transparent;border:2px solid #000;color:#000}
+.club-booking-dialog:has(#club-mine:not([hidden])) .club-help{border-top:2px solid #000!important;color:#000!important}
+.club-booking-dialog:has(#club-mine:not([hidden])) #club-error{color:#000}
+#club-mine>p{margin:18px 0;font:600 13px Unbounded,sans-serif;color:#000}
+.club-booking-dialog .club-reservation{display:flex;flex-direction:column;align-items:stretch;gap:0;padding:14px 0 18px!important;margin:0!important;background:transparent!important;border:0!important;border-radius:0!important;color:#000!important;text-align:left}
+.club-booking-dialog .club-reservation+.club-reservation{border-top:2px solid #000!important;padding-top:18px!important}
+.club-booking-dialog .club-reservation h2{margin:0 0 12px!important;font:700 clamp(44px,14vw,60px)/.9 var(--smm-display)!important;text-transform:uppercase;color:#000}
+.club-booking-dialog .club-reservation strong{display:block;margin:0 0 6px!important;font:800 15px/1.3 Unbounded,sans-serif!important;color:#000}
+.club-booking-dialog .club-reservation .club-note{margin:0 0 4px!important;font:600 11px/1.5 Unbounded,sans-serif!important;color:#000;opacity:.65}
+.club-booking-dialog .club-reservation input{margin-top:12px;background:#000;color:#fff;border:0;min-height:48px;padding:0 14px}
+.club-booking-dialog .club-reservation .btn-main{width:100%;min-height:54px;margin:18px 0 0!important;background:#000!important;color:var(--smm-lime)!important}
+.club-booking-dialog .club-reservation .club-cancel{width:100%;min-height:48px;margin:10px 0 0!important;padding:0 14px!important;background:transparent!important;border:2px solid #000!important;color:#000!important;font:800 11px Unbounded,sans-serif!important;letter-spacing:.08em;text-transform:uppercase;text-decoration:none!important}
+.club-booking-dialog .club-reservation .club-cancel:active{background:#000!important;color:var(--smm-lime)!important}
 /* The close cross keeps one frame: the focus ring shows only for keyboard users. */
 .club-booking-dialog .club-sheet-head button:focus:not(:focus-visible){outline:0!important;box-shadow:none!important}
+.club-booking-dialog .club-reservation.current-session h2{font-size:clamp(26px,8vw,34px)!important;line-height:1!important}
+.club-booking-dialog .club-reservation.current-session p{margin:0 0 4px;font:600 12px/1.5 Unbounded,sans-serif;color:#000}
