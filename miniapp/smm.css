@@ -750,3 +750,18 @@ body:has(.overlay.open) :is(#session-screen,#my-session-banner,#booking-bar){vis
 /* The busy PC dialog's main action: «Забронировать, как освободится» (lime); «Посмотрю рядом» steps back. */
 .occupied-dialog .occupied-queue{width:100%;min-height:50px;margin-bottom:8px;background:var(--smm-lime)!important;color:#000!important;border:0!important;font:800 12px/1.25 Unbounded,sans-serif;letter-spacing:.05em;text-transform:uppercase;cursor:pointer}
 .occupied-dialog:has(.occupied-queue:not([hidden])) .btn-main{background:#000!important;color:#fff!important;border:2px solid var(--smm-rule)!important}
+
+/* The green booking bar slides up from the menu when it appears (after the «Ждём вас» card closes). */
+.booking-bar:not([hidden]){animation:bbIn .5s cubic-bezier(.2,.9,.25,1) both}
+@keyframes bbIn{from{transform:translateY(100%);opacity:0}}
+
+/* «Мои брони»: a booking card with even padding and two full-width actions of the same height. */
+.club-booking-dialog .club-reservation{display:flex;flex-direction:column;align-items:stretch;gap:0;padding:20px 18px 18px!important;margin:0 0 12px!important;text-align:left}
+.club-booking-dialog .club-reservation h2{margin:0 0 10px!important;font:700 34px/1 var(--smm-display)!important;text-transform:uppercase}
+.club-booking-dialog .club-reservation strong{display:block;margin:0 0 6px!important;font:700 14px/1.3 Unbounded,sans-serif!important;color:var(--smm-lime)}
+.club-booking-dialog .club-reservation .club-note{margin:0 0 4px!important;font:500 11px/1.5 Unbounded,sans-serif!important;color:#9a9a9a}
+.club-booking-dialog .club-reservation .btn-main{width:100%;min-height:52px;margin:16px 0 0!important}
+.club-booking-dialog .club-reservation .club-cancel{width:100%;min-height:48px;margin:10px 0 0!important;padding:0 14px!important;background:#000!important;border:2px solid var(--smm-rule)!important;color:#fff!important;font:700 11px Unbounded,sans-serif!important;letter-spacing:.08em;text-transform:uppercase;text-decoration:none!important}
+.club-booking-dialog .club-reservation .club-cancel:active{border-color:var(--smm-pink)!important;color:var(--smm-pink)!important}
+/* The close cross keeps one frame: the focus ring shows only for keyboard users. */
+.club-booking-dialog .club-sheet-head button:focus:not(:focus-visible){outline:0!important;box-shadow:none!important}

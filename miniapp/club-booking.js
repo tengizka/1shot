@@ -171,7 +171,7 @@ window.clubV2=false;
  const hello=document.createElement('dialog');hello.id='bk-welcome';hello.className='bk-welcome';
  hello.innerHTML='<p class="bkw-tag">Бронь оформлена</p><h2 class="bkw-title">Ждём<br>вас</h2><div class="bkw-pc"><b></b><span></span></div><p class="bkw-time"></p><p class="bkw-note">Садись за свой ПК, аккаунт откроется сам. Если планы поменяются, бронь можно снять в зелёной плашке внизу.</p><button type="button" class="btn-main">Отлично</button>';
  document.body.append(hello);
- hello.querySelector('button').onclick=()=>hello.close();hello.addEventListener('click',e=>{if(e.target===hello)hello.close()});
+ hello.querySelector('button').onclick=()=>hello.close();hello.addEventListener('close',()=>renderBar());hello.addEventListener('click',e=>{if(e.target===hello)hello.close()});
  function welcome(host,start){
   const room=ROOMS[roomOf(host)]||ROOMS.std;
   hello.querySelector('.bkw-pc b').textContent=hostName(host);hello.querySelector('.bkw-pc span').textContent=room[0];
@@ -185,7 +185,7 @@ window.clubV2=false;
  bar.onclick=()=>{const b=activeBooking();if(b){state.host=b.host_id;showMine()}};
  function activeBooking(){return state.rows.find(b=>!terminal.has(b.status)&&!['in_session','checkin_pending'].includes(b.status)&&!b.instant)}
  function renderBar(){
-  const b=state.account?.session?null:activeBooking();bar.hidden=!b;document.getElementById('app')?.classList.toggle('has-booking-bar',!!b);if(!b)return;
+  const b=state.account?.session||hello.open?null:activeBooking();bar.hidden=!b;document.getElementById('app')?.classList.toggle('has-booking-bar',!!b);if(!b)return;
   const when=b.starts_at?clubArrivalLabel(b.starts_at):(b.hold_until?'до '+fmt(b.hold_until):'');
   const text=hostName(b.host_id)+(when?' · '+when:'')+(b.status==='attention'?' · подойди к админу':'');
   const node=bar.querySelector('.bb-text');if(node.textContent!==text)node.textContent=text;
