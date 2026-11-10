@@ -183,11 +183,21 @@ async function smmNew(chat:number){
  if(r?.ok){await dbPatch(`smm_posts?id=eq.${p.id}`,{sent_at:new Date().toISOString()});await smmCommands()}
  else await tg('sendMessage',{chat_id:chat,text:'Не получилось отправить пост: '+String(r?.description||'')});
 }
-async function publish(chat:number,id:string){
+// Telegram lets bots send custom emoji in private chats and groups but not in channels, so a fresh sendPhoto to the
+// channel loses them. Copying the preview the admin already has keeps the emoji (copy works like a forward without
+// the «forwarded from» line); the button is attached again. A fresh send stays as the last resort.
+async function copyPreview(src:number,msg:number,p:QPost){
+ for(const fancy of [true,false]){
+  const r=await tg('copyMessage',{chat_id:CHANNEL,from_chat_id:src,message_id:msg,reply_markup:{inline_keyboard:[[btn(p,fancy)]]}});
+  if(r?.ok)return r;
+ }
+ return null;
+}
+async function publish(chat:number,id:string,msg?:number){
  const [p]=await db(`smm_posts?id=eq.${id}`) as QPost[];
  if(!p){await tg('sendMessage',{chat_id:chat,text:'Пост не найден.'});return}
  if(p.published_at){await tg('sendMessage',{chat_id:chat,text:'Этот пост уже опубликован.'});return}
- const r=await sendQ(CHANNEL,p);
+ const r=(msg&&await copyPreview(chat,msg,p))||await sendQ(CHANNEL,p);
  if(r?.ok){await dbPatch(`smm_posts?id=eq.${id}`,{published_at:new Date().toISOString()});await tg('sendMessage',{chat_id:chat,text:'✅ Опубликовано в канале.'})}
  else await tg('sendMessage',{chat_id:chat,text:'Не вышло опубликовать: '+String(r?.description||'')+'\n\nПроверь, что бот добавлен в канал администратором с правом публиковать сообщения.'});
 }
@@ -245,7 +255,7 @@ Deno.serve(async req=>{
     await broadcast(cb.message.chat.id);return ok({ok:true});
    }
    const pb=/^pub:(\d+)$/.exec(String(cb.data||''));
-   if(pb&&cb.message?.chat?.id&&await isSmm(Number(cb.from?.id))){await publish(cb.message.chat.id,pb[1]);return ok({ok:true})}
+   if(pb&&cb.message?.chat?.id&&await isSmm(Number(cb.from?.id))){await publish(cb.message.chat.id,pb[1],cb.message.message_id);return ok({ok:true})}
    const sm=/^smm:(\d+)$/.exec(String(cb.data||''));
    if(sm&&cb.message?.chat?.id&&await isSmm(Number(cb.from?.id))){
     const [p]=await db(`smm_posts?id=eq.${sm[1]}`);if(p)await sendPost(cb.message.chat.id,p);
