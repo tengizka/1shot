@@ -10,6 +10,8 @@ from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import unquote
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+import desktop.promo
+desktop.promo.sleep=lambda s:None  # no real waits in tests
 from desktop.engine import Store
 from desktop.registration_approval import RegistrationApproval
 
@@ -122,6 +124,15 @@ class PromoTests(unittest.TestCase):
  def test_order_error_is_attention_not_retry(self):
   self.gizmo.order_error=True;self.build();self.assertEqual(self.api.approve(self.id,True)['promo']['result'],'attention')
   self.gizmo.order_error=False;self.api.promo.grant(self.id,7,'HEADSHOT');self.assertEqual(len(self.gizmo.orders()),1)
+ def test_slow_gizmo_answer_still_counts_the_new_hour(self):
+  # Gizmo made the invoice but answered after the timeout: the new hour line on the account confirms it, nothing is re-ordered.
+  real=self.gizmo.request;state={'ordered':False}
+  def slow(method,path,**kw):
+   if '/order/' in path:self.gizmo.writes.append((method,path));state['ordered']=True;raise RuntimeError('read timeout')
+   if path.endswith('/producttime'):return [{'invoiceId':901,'totalSeconds':3600,'isVoided':False}] if state['ordered'] else []
+   return real(method,path,**kw)
+  self.gizmo.request=slow;self.build();result=self.api.approve(self.id,True)
+  self.assertEqual(result['promo']['result'],'granted');self.assertEqual(len(self.gizmo.orders()),1);self.assertEqual(self.cloud.rewards,['granted'])
  def test_nonzero_invoice_stops(self):
   self.gizmo.invoice={'id':900,'total':150,'subTotal':150,'outstanding':0};self.build();result=self.api.approve(self.id,True)
   self.assertEqual(result['promo']['result'],'attention');self.assertEqual(self.cloud.rewards,[]);self.assertIn('проверьте',unquote(self.gizmo.notes()[0][1]))

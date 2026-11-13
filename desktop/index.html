@@ -60,15 +60,26 @@
 <section id="panel-accounts" hidden>
  <div class="page-head"><h2>Аккаунты</h2></div>
  <div class="account-layout">
-  <div class="surface">
-   <h3>Сменить пароль</h3>
-   
-   <form id="find-user"><label>Никнейм, телефон, имя или фамилия<input id="account-search" maxlength="80" autocomplete="off" required></label><button>Найти аккаунт</button></form>
-   <div id="account-options" class="account-options"></div><div id="account-result"></div>
-   <form id="reset-user" hidden><label>Новый пароль<input type="password" id="new-password" minlength="3" maxlength="64" autocomplete="new-password" required></label><label class="check"><input type="checkbox" id="identity-checked" required> Личность владельца проверена</label><label id="privileged-wrap" class="check" hidden><input type="checkbox" id="privileged-checked"> Подтверждаю смену пароля служебной или неподтверждённой гостевой группы</label><button>Установить новый пароль</button></form>
-   <p id="account-message" role="status"></p>
+  <aside class="account-side">
+   <div class="surface account-find">
+    <h3>Найти гостя</h3>
+    <form id="find-user"><label>Ник, телефон, имя или фамилия<input id="account-search" maxlength="80" autocomplete="off" enterkeyhint="done" required></label><button>Найти</button></form>
+    <div id="account-options" class="account-options"></div>
+   </div>
+   <div class="surface"><h3>Запросы на сброс</h3><div id="password-requests"></div></div>
+  </aside>
+  <div class="account-main">
+   <p id="account-empty" class="account-empty">Найдите гостя слева: здесь будет всё про его аккаунт.</p>
+   <div id="account-card" class="account-card" hidden>
+    <div class="surface account-head"><div id="account-result"></div></div>
+    <div id="account-dossier" class="account-dossier"></div>
+   </div>
+   <div class="surface account-password" id="account-password" hidden>
+    <h3>Пароль</h3>
+    <form id="reset-user" hidden><label>Новый пароль<input type="password" id="new-password" minlength="3" maxlength="64" autocomplete="new-password" enterkeyhint="done" required></label><label class="check"><input type="checkbox" id="identity-checked" required> Личность владельца проверена</label><label id="privileged-wrap" class="check" hidden><input type="checkbox" id="privileged-checked"> Подтверждаю смену пароля служебной или неподтверждённой гостевой группы</label><button>Установить новый пароль</button></form>
+    <p id="account-message" role="status"></p>
+   </div>
   </div>
-  <div class="surface"><h3>Запросы на сброс</h3><div id="password-requests"></div></div>
  </div>
 </section>
 
@@ -94,7 +105,7 @@
  <div class="settings-pane" data-settings="tests" hidden>
   <section class="surface test-box" id="test-box">
    <h3>Тестовые аккаунты</h3>
-   <p class="note">Аккаунты, созданные из мини-аппа с Telegram тестеров. Удаление стирает аккаунт в Gizmo и все его следы на сервере, в статистику они не попадают.</p>
+   <p class="note">Аккаунты, созданные из мини-аппа с Telegram тестеров, и аккаунты, добавленные в список по ID. Удаление стирает аккаунт в Gizmo и все его следы на сервере, в статистику они не попадают.</p>
    <div id="test-list" class="test-list"></div>
    <p id="test-message" class="note" role="status"></p>
    <div class="actions"><button type="button" id="test-refresh">Обновить список</button></div>
@@ -109,4 +120,4 @@
 </section>
 </main>
 
-<script src="brand.js"></script><script src="assets/hall-map.js"></script><script src="assets/arrival-time.js"></script><script src="assets/oneshot-loader.js"></script><script src="test-accounts.js" defer></script><script src="desk.js"></script><script src="admin-tools.js"></script><script src="desk-menu.js"></script><script src="rentals.js"></script><script src="registrations.js"></script><script src="desk-registration.js"></script><script src="guest-passwords.js"></script><script src="desk-shell.js"></script></body></html>
+<script src="brand.js"></script><script src="assets/hall-map.js"></script><script src="assets/arrival-time.js"></script><script src="assets/oneshot-loader.js"></script><script src="test-accounts.js" defer></script><script src="desk.js"></script><script src="admin-tools.js"></script><script src="account-profile.js"></script><script src="notes.js"></script><script src="desk-menu.js"></script><script src="rentals.js"></script><script src="registrations.js"></script><script src="desk-registration.js"></script><script src="guest-passwords.js"></script><script src="desk-shell.js"></script></body></html>

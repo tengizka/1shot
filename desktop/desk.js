@@ -12,7 +12,7 @@ function panel(name){
  document.querySelectorAll('[data-panel]').forEach(e=>e.classList.toggle('active',e.dataset.panel===name));
 }
 document.querySelectorAll('[data-panel]').forEach(e=>e.onclick=()=>panel(e.dataset.panel));
-async function invoke(method,...args){try{const result=await window.pywebview.api[method](...args);if(!['booking_guest','find_account','search_accounts','select_account','check_update','download_update'].includes(method))await refresh();return result}catch{$('error').textContent='Не удалось выполнить команду. Проверьте связь с агентом';return null}}
+async function invoke(method,...args){try{const result=await window.pywebview.api[method](...args);if(!['booking_guest','find_account','search_accounts','select_account','account_profile','notes','check_update','download_update'].includes(method))await refresh();return result}catch{$('error').textContent='Не удалось выполнить команду. Проверьте связь с агентом';return null}}
 /* The list always shows every booking; a picked PC only highlights its own and owns the «+». */
 let picked=new Set();
 // Left click picks a PC, Ctrl+click or a drag frame picks several (company booking); right click opens actions.
@@ -111,7 +111,8 @@ function makeGroup(key){
 }
 function bookings(s){
  const grid=$('grid');
- const rows=s.rows.filter(b=>!b.instant||b.status==='attention').sort((a,b)=>Date.parse(a.starts_at)-Date.parse(b.starts_at)||Number(a.host_id)-Number(b.host_id));
+ // A guest who already sat down is a session, not a booking: the card leaves the list at once.
+ const rows=s.rows.filter(b=>(!b.instant||b.status==='attention')&&b.status!=='in_session').sort((a,b)=>Date.parse(a.starts_at)-Date.parse(b.starts_at)||Number(a.host_id)-Number(b.host_id));
  setDeskText($('booking-total'),rows.length||'');
  const existing=new Map([...grid.querySelectorAll('.card[data-booking-id]')].map(card=>[card.dataset.bookingId,card]));
  const groups=new Map([...grid.querySelectorAll('.booking-group')].map(g=>[g.dataset.key,g]));

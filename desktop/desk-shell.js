@@ -8,7 +8,7 @@
  });
 
  // Tabs injected later (e.g. «Анкеты») get the same icon + label layout as the rest of the sidebar.
- const icons={registrations:'<path d="M6 3h9l4 4v14H6Z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>'};
+ const icons={registrations:'<path d="M6 3h9l4 4v14H6Z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>',notes:'<path d="M4 4h16v12l-4 4H4Z"/><path d="M16 20v-4h4M8 9h8M8 13h5"/>'};
  for(const [name,path] of Object.entries(icons)){
   const tab=document.querySelector(`nav .tab[data-panel="${name}"]`);if(!tab||tab.querySelector('svg'))continue;
   const label=document.createElement('span');label.textContent=tab.textContent;tab.replaceChildren();

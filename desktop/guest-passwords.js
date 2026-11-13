@@ -16,7 +16,7 @@
   if(!installed){
    installed=true;const password=$('new-password');password.value='';password.required=false;password.disabled=true;password.closest('label').hidden=true;password.type='text';password.minLength=3;password.autocomplete='off';
    // With the guest's request: the owner types the password on the phone. Without it: the admin sets one here (3 random digits by default).
-   const oldChoose=chooseAccount;chooseAccount=(user,id=null)=>{oldChoose(user,id);const direct=!id;password.disabled=!direct;password.closest('label').hidden=!direct;password.value=direct?String(Math.floor(Math.random()*1000)).padStart(3,'0'):'';setDeskText($('reset-user').querySelector('button'),direct?'Сменить пароль':'Разрешить ввод пароля на телефоне');$('identity-checked').focus({preventScroll:true});$('account-message').textContent=id?'Разрешение на 10 минут. Пароль владелец введёт сам.':'Новый пароль скажите гостю лично'};
+   const oldChoose=chooseAccount;chooseAccount=(user,id=null,...rest)=>{oldChoose(user,id,...rest);const direct=!id;password.disabled=!direct;password.closest('label').hidden=!direct;password.value=direct?String(Math.floor(Math.random()*1000)).padStart(3,'0'):'';setDeskText($('reset-user').querySelector('button'),direct?'Сменить пароль':'Разрешить ввод пароля на телефоне');$('identity-checked').focus({preventScroll:true});$('account-message').textContent=id?'Разрешение на 10 минут. Пароль владелец введёт сам.':'Новый пароль скажите гостю лично'};
    const heading=$('reset-user').closest('.surface').querySelector('h3');setDeskText(heading,'Пароль');
    $('reset-user').onsubmit=async event=>{
     event.preventDefault();if(busy||!foundAccount||!$('identity-checked').checked)return;

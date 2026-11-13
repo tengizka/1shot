@@ -4,6 +4,7 @@ import sys
 import threading
 import time
 import types
+import uuid
 from pathlib import Path
 from .engine import Controller,Store
 from .accounts import Accounts
@@ -243,6 +244,32 @@ class App:
     def select_account(self,id):
         try:return {'user':self.accounts.directory.get(int(id),fresh=True)}
         except Exception:return {'error':'Аккаунт недоступен. Повторите поиск'}
+    def notes(self):
+        return {'notes':self.store.get('desk-notes',[])}
+    def save_note(self,id,text,done=None):
+        """Staff notes kept on this Desk: a new id adds one, a known id edits its text or ticks it off."""
+        text=str(text or '').strip()[:2000]
+        with self.lock:
+            notes=self.store.get('desk-notes',[]);now=time.time()
+            row=next((n for n in notes if n.get('id')==id),None)
+            if row is None:
+                if not text:return {'error':'Пустая заметка'}
+                row={'id':str(uuid.uuid4()),'text':text,'at':now,'done':False};notes.insert(0,row)
+            else:
+                if text:row['text']=text
+                if done is not None:row['done']=bool(done)
+                row['edited']=now
+            self.store.set('desk-notes',notes[:500]);return {'ok':True,'notes':notes[:500]}
+    def delete_note(self,id):
+        with self.lock:
+            notes=[n for n in self.store.get('desk-notes',[]) if n.get('id')!=id];self.store.set('desk-notes',notes);return {'ok':True,'notes':notes}
+    def account_profile(self,id):
+        """The full account page: profile, balance, visits, purchases, notes, rentals and how the guest registered."""
+        try:
+            from .accounts import profile
+            uid=int(id)
+            return profile(self.gizmo,self.accounts.directory,uid,self.accounts.statistics(uid),self.rentals.history(),self.registration.history())
+        except Exception:return {'error':'Аккаунт недоступен. Проверьте связь с Gizmo'}
     def create_manual_booking(self,host,starts_at,guest_name,request_id):
         try:
             with self.operations:

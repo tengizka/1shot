@@ -9,6 +9,8 @@ from datetime import datetime, timezone, timedelta, date
 from pathlib import Path
 from unittest.mock import patch
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+import desktop.promo
+desktop.promo.sleep=lambda s:None  # no real waits in tests
 from desktop.engine import Store
 from desktop.registration import registration_params
 from desktop.registration_approval import RegistrationApproval

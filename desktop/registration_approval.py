@@ -42,17 +42,20 @@ def create_gizmo_account(gizmo,guard,req,remember):
     return 'done',uid
 
 
-_LATIN=dict(zip('абвгдеёжзийклмнопрстуфхцчшщъыьэюя',['a','b','v','g','d','e','e','zh','z','i','y','k','l','m','n','o','p','r','s','t','u','f','h','ts','ch','sh','sch','','y','','e','yu','ya']))
+def phone_username(phone):
+    """Reception accounts are named by the phone without the country code: 9991234567. Staff find guests in Gizmo that way."""
+    digits=re.sub(r'\D','',str(phone))
+    if len(digits)==11 and digits[0] in '78':digits=digits[1:]
+    if len(digits)!=10:raise ApiError('Телефон: 10 цифр после +7')
+    return digits
 
 
 def free_username(gizmo,first_name,phone):
-    """Reception guests do not pick a nickname: name in Latin + the phone's last digits, the first one Gizmo has free."""
-    base=re.sub(r'[^a-z0-9]','',''.join(_LATIN.get(c,c) for c in str(first_name).strip().lower()))[:16] or 'guest'
-    digits=re.sub(r'\D','',str(phone))
-    for tail in (digits[-4:],digits[-6:],digits[-8:])+tuple(digits[-4:]+str(n) for n in range(2,10)):
-        name=(base+tail)[:30]
-        if len(name)>=3 and gizmo.request('GET',f'users/loginname/{quote(name,safe="")}/exist') is False:return name
-    raise ApiError('Не удалось подобрать свободный ник')
+    """The phone without 7/8; if Gizmo already holds that name (an old deleted account), a short suffix keeps it searchable."""
+    base=phone_username(phone)
+    for name in (base,)+tuple(f'{base}-{n}' for n in range(2,10)):
+        if gizmo.request('GET',f'users/loginname/{quote(name,safe="")}/exist') is False:return name
+    raise ApiError('Ник '+base+' уже занят в Gizmo')
 
 
 class RegistrationApproval:

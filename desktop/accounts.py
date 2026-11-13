@@ -228,3 +228,59 @@ class Accounts:
         targets=[request_id] if request_id else [r['id'] for r in self.requests if r['gizmo_user_id']==int(uid)]
         for id in targets:self.queue_password_result(id,'done',True)
         return True
+
+
+def _rows(value,key):
+    """Gizmo reports wrap their rows ({sessions:[…]}, {data:[…]}); a bare list is the rows themselves."""
+    if isinstance(value,list):return value
+    if isinstance(value,dict):
+        for k in (key,'data','result'):
+            if isinstance(value.get(k),list):return value[k]
+    return []
+
+def _money(value):
+    return round(float(value),2) if finite(value) else None
+
+def profile(gizmo,directory,uid,statistics=None,rentals=(),registrations=()):
+    """Everything the desk knows about one account for the «Аккаунты» page: who it is, money and time, visits,
+    purchases and notes. Every part is read on its own, so a slow Gizmo report only leaves its own block empty."""
+    uid=int(uid);user=directory.get(uid,fresh=True);full=gizmo.user(uid)
+    out={'user':user|{k:full.get(k) for k in ('birthDate','email','createdTime','sex','isDisabled')},'errors':[]}
+    end=datetime.now(timezone.utc);start=end-timedelta(days=365)
+    span={'DateFrom':start.strftime('%Y-%m-%dT%H:%M:%S'),'DateTo':end.strftime('%Y-%m-%dT%H:%M:%S')}
+    try:
+        balance=gizmo.request('GET',f'users/{uid}/balance')
+        if not isinstance(balance,dict) or balance.get('userId')!=uid:raise ValueError()
+        out['balance']={'deposit':_money(balance.get('deposits',balance.get('balance'))),'balance':_money(balance.get('balance')),
+                        'points':balance.get('points') if finite(balance.get('points')) else None,
+                        'time':balance.get('availableTime') if finite(balance.get('availableTime')) and balance.get('availableTime')>=0 else None}
+    except Exception:out['errors'].append('баланс')
+    try:
+        active=[s for s in gizmo.sessions() if s.get('userId')==uid]
+        out['playing']=[{'host':str(s.get('hostNumber','')),'since':s.get('lastLogin')} for s in active]
+    except Exception:out['playing']=[]
+    try:
+        rows=_rows(gizmo.request('GET','reports/sessionslog',params={'UserId':uid,**span},timeout=(3,40)),'sessions')
+        visits=[{'start':r.get('startTime'),'end':r.get('endTime'),'host':str(r.get('hostNumber') or r.get('hostName') or ''),
+                 'minutes':round(r['totalMinutes']) if finite(r.get('totalMinutes')) else (round(span_hours(r.get('span'))*60) if span_hours(r.get('span')) is not None else None)}
+                for r in rows if isinstance(r,dict) and r.get('userId') in (None,uid)]
+        visits.sort(key=lambda v:str(v['start'] or ''),reverse=True)
+        out['visits']=visits[:60];out['visit_count']=len(visits)
+        out['last_visit']=visits[0]['start'] if visits else None
+    except Exception:out['visits']=None;out['errors'].append('посещения')
+    try:
+        rows=_rows(gizmo.request('GET','reports/transactionslog',params={'UserId':uid,**span},timeout=(3,40)),'transactions')
+        buys=[{'at':r.get('transactionDate') or r.get('invoiceDate'),'title':str(r.get('title') or '')[:80],'value':_money(r.get('total',r.get('value'))),
+               'method':str(r.get('paymentMethodName') or '')[:40]} for r in rows if isinstance(r,dict)]
+        buys.sort(key=lambda b:str(b['at'] or ''),reverse=True)
+        out['purchases']=buys[:80]
+    except Exception:out['purchases']=None;out['errors'].append('покупки')
+    try:
+        notes=_rows(gizmo.request('GET',f'v2.0/users/{uid}/notes',params={'Pagination.Limit':30}),'data')
+        out['notes']=[str(n.get('text') or '')[:300] for n in notes if isinstance(n,dict) and n.get('text')]
+    except Exception:out['notes']=None
+    out['hours']=(statistics or {}).get('hours')
+    out['rentals']=[{'item':r.get('item'),'at':r.get('at'),'returned_at':r.get('returned_at'),'host':r.get('host')} for r in rentals if r.get('user_id')==uid][-30:][::-1]
+    reg=[h for h in registrations if h.get('gizmo_user_id')==uid]
+    out['registration']={'at':reg[0].get('at'),'code':reg[0].get('code'),'source':reg[0].get('source')} if reg else None
+    return out

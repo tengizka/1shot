@@ -5,7 +5,7 @@
  const open=document.createElement('button');open.type='button';open.id='desk-reg-open';open.textContent='+ Новый гость';
  const form=document.createElement('form');form.id='desk-reg';form.className='surface desk-reg';form.hidden=true;form.noValidate=true;
  form.innerHTML=`<h3>Регистрация на ресепшене</h3>
-  <p class="note">Для гостей без Telegram. Данные — с документа. Ник подберётся сам, пароль гость поставит сам за компом.</p>
+  <p class="note">Для гостей без Telegram. Данные — с документа. Ник — номер телефона без +7, пароль гость поставит сам за компом.</p>
   <div class="desk-reg-grid">
    <label>Имя<input name="first_name" maxlength="45" autocomplete="off" required></label>
    <label>Фамилия<input name="last_name" maxlength="45" autocomplete="off" required></label>
@@ -47,10 +47,13 @@
   const data={first_name:$f('first_name').value.trim(),last_name:$f('last_name').value.trim(),mobile_phone:$f('mobile_phone').value.trim(),birth_date:$f('birth_date').value,sex};
   let r;try{r=await invoke('register_guest',requestId,data,code||null,true)}finally{busy=false}
   const p=r?.promo,hour=!p?'':p.result==='granted'?' Час STANDART начислен ('+p.code+').':p.result==='pending'?' '+p.error:p.result==='failed'?' Час не начислен: '+(p.error||'проверьте товар standart 1 h'):' Проверьте в Gizmo, начислен ли час. Не начисляйте повторно не проверив.';
-  if(r?.ok&&(!p||p.result==='granted')){
-   window.deskFlash?.('Гость зарегистрирован');reset();setDeskText(message,'Готово. Ник для входа: '+(r.username||'—')+' · ID '+r.gizmo_user_id+'. Пароль гость поставит сам при первом входе за компом.'+hour);
-  }else if(r?.ok&&p?.result==='pending')setDeskText(message,'Аккаунт создан · ID '+r.gizmo_user_id+'.'+hour);
-  else if(r?.ok){setDeskText(message,'Аккаунт создан · ID '+r.gizmo_user_id+'.'+hour)}
+  // Account made: the form starts clean for the next guest, whatever happened with the free hour.
+  // «pending» keeps the form: the same request finishes the free hour without a second account.
+  if(r?.ok&&p?.result==='pending')setDeskText(message,'Аккаунт создан · ID '+r.gizmo_user_id+'.'+hour);
+  else if(r?.ok){
+   window.deskFlash?.('Гость зарегистрирован');reset();
+   setDeskText(message,'Готово. Ник для входа: '+(r.username||'—')+' · ID '+r.gizmo_user_id+'. Пароль гость поставит сам при первом входе за компом.'+hour);
+  }
   else if(r?.status==='rejected'){requestId=crypto.randomUUID();setDeskText(message,'Гость с таким телефоном уже есть в Gizmo. Используйте существующий аккаунт.')}
   else setDeskText(message,r?.error||'Нужна ручная сверка в Gizmo. Не создавайте аккаунт повторно, пока не проверите.');
   sync();

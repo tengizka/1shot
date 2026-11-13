@@ -2,10 +2,12 @@
 Granted at most once per application; an interrupted order is never repeated automatically."""
 import os
 import re
+import time
 from urllib.parse import quote
 from .services import money_gizmo
 
 PRODUCT='standart 1 h'
+sleep=time.sleep  # tests replace it to skip the waits
 
 
 def free_hour_product(gizmo):
@@ -102,8 +104,14 @@ class PromoReward:
             # Nothing was ordered; the reason is shown to the admin, who can give the hour by hand.
             record['error']=str(error)[:160] or 'Проверка товара не прошла';self.store.set(key,record);return self.report(id,record)
         self.store.set(key,{'phase':'ordering','code':code,'gizmo_user_id':uid,**({'tax_warning':record['tax_warning']} if record.get('tax_warning') else {})})
+        hour=lambda t,known:isinstance(t,dict) and t.get('invoiceId') not in known and not (t.get('isVoided') or t.get('isDeleted')) and float(t.get('totalSeconds') or 0)>=3600
         try:
-            invoice=seller.request('POST',f'users/{int(uid)}/order/{product}/invoice/payment/{method}')
+            before=seller.request('GET',f'users/{int(uid)}/producttime')
+            known={t.get('invoiceId') for t in before if isinstance(t,dict)} if isinstance(before,list) else None
+        except Exception:known=None
+        try:
+            # Gizmo can take well over 5 s to make the invoice; a short timeout used to leave the hour «unconfirmed».
+            invoice=seller.request('POST',f'users/{int(uid)}/order/{product}/invoice/payment/{method}',timeout=(3,45))
             if not isinstance(invoice,dict) or type(invoice.get('id')) is not int:raise ValueError('Unknown order outcome')
             record['invoice_id']=invoice['id']
             # Accounting guard: the free hour must never move money. Any non-zero invoice stops for staff review.
@@ -111,11 +119,22 @@ class PromoReward:
             if strict_tax():
                 if any('tax' in k.lower() and isinstance(v,(int,float)) and not isinstance(v,bool) and v!=0 for k,v in invoice.items()):raise ValueError('Non-zero tax')
                 if not invoice_tax_free(seller,invoice['id']):raise ValueError('Invoice tax not 0%')
-            lines=seller.request('GET',f'users/{int(uid)}/producttime')
-            ok=isinstance(lines,list) and any(isinstance(t,dict) and t.get('invoiceId')==invoice['id'] and not (t.get('isVoided') or t.get('isDeleted')) and float(t.get('totalSeconds') or 0)>=3600 for t in lines)
+            ok=False
+            for wait in (0,2,5):
+                sleep(wait)
+                lines=seller.request('GET',f'users/{int(uid)}/producttime',timeout=(3,20))
+                ok=isinstance(lines,list) and any(isinstance(t,dict) and t.get('invoiceId')==invoice['id'] and hour(t,()) for t in lines)
+                if ok:break
             record['result']='granted' if ok else 'attention'
-        except Exception:
+        except Exception as error:
             record['result']='attention'
+            # The answer was lost, but the hour may be there: a new hour line that was not on the account before counts.
+            if known is not None and str(error)!='Non-zero invoice':
+                for wait in (3,6,10):
+                    sleep(wait)
+                    try:lines=seller.request('GET',f'users/{int(uid)}/producttime',timeout=(3,20))
+                    except Exception:continue
+                    if isinstance(lines,list) and sum(1 for t in lines if hour(t,known))==1:record['result']='granted';break
         try:
             text=(f'Автоматически (1SHOT Desk): выдан 1 час STANDART за промокод {code} при регистрации' if record['result']=='granted'
                   else f'Автоматически (1SHOT Desk): промокод {code} — начисление часа STANDART не подтверждено, проверьте вручную')
