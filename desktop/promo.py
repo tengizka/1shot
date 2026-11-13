@@ -126,18 +126,23 @@ class PromoReward:
                 ok=isinstance(lines,list) and any(isinstance(t,dict) and t.get('invoiceId')==invoice['id'] and hour(t,()) for t in lines)
                 if ok:break
             record['result']='granted' if ok else 'attention'
+            if not ok:
+                seen=[{k:t.get(k) for k in ('invoiceId','totalSeconds','isVoided','isDeleted')} for t in lines if isinstance(t,dict)][:3] if isinstance(lines,list) else lines
+                record['error']=f'счёт {invoice["id"]} создан, но часа нет на счету гостя (Gizmo показывает: {seen})'[:200]
         except Exception as error:
             record['result']='attention'
+            # Shown to the admin and kept in the Gizmo note, so the real reason is never lost.
+            record['error']=('Gizmo ответил: '+str(error))[:200]
             # The answer was lost, but the hour may be there: a new hour line that was not on the account before counts.
             if known is not None and str(error)!='Non-zero invoice':
                 for wait in (3,6,10):
                     sleep(wait)
                     try:lines=seller.request('GET',f'users/{int(uid)}/producttime',timeout=(3,20))
                     except Exception:continue
-                    if isinstance(lines,list) and sum(1 for t in lines if hour(t,known))==1:record['result']='granted';break
+                    if isinstance(lines,list) and sum(1 for t in lines if hour(t,known))==1:record['result']='granted';record.pop('error',None);break
         try:
             text=(f'Автоматически (1SHOT Desk): выдан 1 час STANDART за промокод {code} при регистрации' if record['result']=='granted'
-                  else f'Автоматически (1SHOT Desk): промокод {code} — начисление часа STANDART не подтверждено, проверьте вручную')
+                  else f'Автоматически (1SHOT Desk): промокод {code} — начисление часа STANDART не подтверждено, проверьте вручную'+(f'. Причина: {record["error"]}' if record.get('error') else ''))
             self.guard();seller.request('PUT',f'users/{int(uid)}/note/{quote(text,safe="")}/0');record['note']=True
         except Exception:pass
         self.store.set(key,record)

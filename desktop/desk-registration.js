@@ -46,7 +46,7 @@
   e.preventDefault();if(submit.disabled)return;busy=true;sync();setDeskText(message,'Создаём аккаунт…');
   const data={first_name:$f('first_name').value.trim(),last_name:$f('last_name').value.trim(),mobile_phone:$f('mobile_phone').value.trim(),birth_date:$f('birth_date').value,sex};
   let r;try{r=await invoke('register_guest',requestId,data,code||null,true)}finally{busy=false}
-  const p=r?.promo,hour=!p?'':p.result==='granted'?' Час STANDART начислен ('+p.code+').':p.result==='pending'?' '+p.error:p.result==='failed'?' Час не начислен: '+(p.error||'проверьте товар standart 1 h'):' Проверьте в Gizmo, начислен ли час. Не начисляйте повторно не проверив.';
+  const p=r?.promo,hour=!p?'':p.result==='granted'?' Час STANDART начислен ('+p.code+').':p.result==='pending'?' '+p.error:p.result==='failed'?' Час не начислен: '+(p.error||'проверьте товар standart 1 h'):' Проверьте в Gizmo, начислен ли час. Не начисляйте повторно не проверив.'+(p.error?' Причина: '+p.error:'');
   // Account made: the form starts clean for the next guest, whatever happened with the free hour.
   // «pending» keeps the form: the same request finishes the free hour without a second account.
   if(r?.ok&&p?.result==='pending')setDeskText(message,'Аккаунт создан · ID '+r.gizmo_user_id+'.'+hour);

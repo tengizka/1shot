@@ -133,6 +133,10 @@ class PromoTests(unittest.TestCase):
    return real(method,path,**kw)
   self.gizmo.request=slow;self.build();result=self.api.approve(self.id,True)
   self.assertEqual(result['promo']['result'],'granted');self.assertEqual(len(self.gizmo.orders()),1);self.assertEqual(self.cloud.rewards,['granted'])
+ def test_refusal_reason_is_kept_for_the_admin_and_the_note(self):
+  # When Gizmo refuses the order, the admin sees Gizmo's own words, and so does the note on the account.
+  self.gizmo.order_error=True;self.build();result=self.api.approve(self.id,True)
+  self.assertEqual(result['promo']['result'],'attention');self.assertIn('timeout',result['promo']['error']);self.assertIn('Причина',unquote(self.gizmo.notes()[0][1]))
  def test_nonzero_invoice_stops(self):
   self.gizmo.invoice={'id':900,'total':150,'subTotal':150,'outstanding':0};self.build();result=self.api.approve(self.id,True)
   self.assertEqual(result['promo']['result'],'attention');self.assertEqual(self.cloud.rewards,[]);self.assertIn('проверьте',unquote(self.gizmo.notes()[0][1]))
