@@ -249,9 +249,12 @@ class Controller:
         self.rows=snapshot['bookings']
         alerts=self.store.get('alerts',{})
         instant_ids={b['id'] for b in self.rows if b.get('instant')}
-        alerts={key:event for key,event in alerts.items() if event.get('kind') in ('created','attention','waiting') and not event.get('instant') and event.get('booking_id') not in instant_ids}
+        # The admin made these bookings in Desk himself: no «new booking» toast or sound for them (problems still alert).
+        admin_ids={b['id'] for b in self.rows if b.get('admin_created')}
+        quiet=lambda e:e.get('instant') or e.get('booking_id') in instant_ids or (e.get('kind')=='created' and e.get('booking_id') in admin_ids)
+        alerts={key:event for key,event in alerts.items() if event.get('kind') in ('created','attention','waiting') and not quiet(event)}
         for event in snapshot.get('events',[]):
-            if not event.get('instant') and event.get('booking_id') not in instant_ids and event['kind'] in ('created','attention','waiting'):
+            if not quiet(event) and event['kind'] in ('created','attention','waiting'):
                 alerts[str(event['id'])]=event
             self.store.set('alerts',alerts)
             self.store.set('event_cursor',event['id'])

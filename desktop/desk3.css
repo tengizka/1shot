@@ -465,3 +465,6 @@ nav .exit span{white-space:normal}
 .note-list .empty{padding:28px 12px;border:2px dashed var(--rule);text-align:center;color:var(--muted)}
 .tab[data-panel="registrations"] span{letter-spacing:0}
 .dossier-tile b{font:700 15px var(--text);text-transform:none}
+/* Cancelled cards fade at once; the server confirms in the background */
+#grid .card,.booking-group{transition:opacity .25s ease,transform .25s ease}
+#grid .card.leaving,.booking-group.leaving{opacity:.25;transform:scale(.98);pointer-events:none}

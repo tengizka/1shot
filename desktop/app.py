@@ -5,6 +5,7 @@ import threading
 import time
 import types
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from .engine import Controller,Store
 from .accounts import Accounts
@@ -270,6 +271,41 @@ class App:
             uid=int(id)
             return profile(self.gizmo,self.accounts.directory,uid,self.accounts.statistics(uid),self.rentals.history(),self.registration.history())
         except Exception:return {'error':'Аккаунт недоступен. Проверьте связь с Gizmo'}
+    def create_group_booking(self,hosts,starts_at,guest_name,request_ids):
+        """Several PCs at once for one guest name: one lease renewal, the PCs sent side by side, one result."""
+        try:
+            if not isinstance(hosts,list) or not 1<=len(hosts)<=40 or not isinstance(request_ids,dict):raise ValueError('Некорректный выбор ПК')
+            hosts=[str(h) for h in hosts]
+            with self.operations:
+                self.renew_account_lease()
+                def one(h):
+                    try:return h,self.cloud.desk('admin_booking',mode='reserve',host_id=h,starts_at=starts_at,guest_name=guest_name,request_id=request_ids.get(h)),None
+                    except Exception as error:return h,None,str(error).rsplit(': ',1)[-1]
+                with ThreadPoolExecutor(max_workers=6) as pool:results=list(pool.map(one,hosts))
+            self.kick.set()
+            failed=[{'host':h,'error':e or (r or {}).get('error') or 'нет ответа'} for h,r,e in results if e or not (r or {}).get('ok')]
+            return {'ok':not failed,'created':len(hosts)-len(failed),'failed':failed}
+        except Exception as error:return {'error':str(error)}
+    def cancel_bookings(self,ids):
+        """«Отменить всех»: every booking of the group in one go."""
+        try:
+            if not isinstance(ids,list) or not 1<=len(ids)<=40:raise ValueError('Нечего отменять')
+            with self.operations:
+                self.cloud.snapshot(self.store.get('event_cursor',0))
+                def one(i):
+                    try:r=self.cloud.desk('cancel',id=str(i));return None if r.get('ok') or not r.get('error') else r['error']
+                    except Exception as error:return str(error).rsplit(': ',1)[-1]
+                with ThreadPoolExecutor(max_workers=6) as pool:errors=[e for e in pool.map(one,ids) if e]
+            self.kick.set()
+            return {'ok':not errors,'cancelled':len(ids)-len(errors),'error':errors[0] if errors else None}
+        except Exception as error:return {'error':str(error)}
+    def lock_hosts(self,hosts,locked):
+        """Block or unblock several PCs at once."""
+        failed=[]
+        for h in hosts if isinstance(hosts,list) else []:
+            r=self.lock_host(h,locked)
+            if not (r or {}).get('ok'):failed.append(str(h))
+        return {'ok':not failed,'failed':failed}
     def create_manual_booking(self,host,starts_at,guest_name,request_id):
         try:
             with self.operations:

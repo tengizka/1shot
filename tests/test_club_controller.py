@@ -102,6 +102,11 @@ class TestClubController(unittest.TestCase):
   self.cloud.b.update(protocol=2,instant=True)
   self.cloud.snapshot=lambda cursor:{'bookings':[copy.deepcopy(self.cloud.b)],'events':[{'id':1,'kind':'created','booking_id':'b'},{'id':2,'kind':'attention','booking_id':'old','instant':True}],'lease_seconds':30}
   self.ctrl.tick();self.assertEqual(self.store.get('alerts'),{});self.assertEqual(self.store.get('event_cursor'),2)
+ def test_admin_bookings_do_not_notify_but_problems_do(self):
+  # Bookings the admin made in Desk (one per PC of a group) give no «new booking» toast; a problem with them still alerts.
+  self.cloud.b.update(admin_created=True)
+  self.cloud.snapshot=lambda cursor:{'bookings':[copy.deepcopy(self.cloud.b)],'events':[{'id':1,'kind':'created','booking_id':'b'},{'id':2,'kind':'attention','booking_id':'b'}],'lease_seconds':30}
+  self.ctrl.tick();self.assertEqual(list(self.store.get('alerts')),['2'])
  def test_normal_booking_still_notifies(self):
   self.cloud.snapshot=lambda cursor:{'bookings':[copy.deepcopy(self.cloud.b)],'events':[{'id':1,'kind':'created','booking_id':'b'}],'lease_seconds':30}
   self.ctrl.tick();self.assertIn('1',self.store.get('alerts'))

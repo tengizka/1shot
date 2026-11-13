@@ -27,7 +27,7 @@
  }
  function tile(action,label,extra=''){return `<button type="button" class="menu-tile ${extra}" data-action="${action}">${svg(action)}<span>${label}</span></button>`}
  function header(title,back){
-  const st=statusOf(host),label=HOST_LABELS[st]||'';
+  const st=statusOf(host),label=view==='multi'||view==='group'?'':HOST_LABELS[st]||'';  // several PCs: no single state
   return `<div class="menu-head">${back?`<button type="button" class="icon-btn" data-action="back" aria-label="Назад">${svg('back')}</button>`:''}<strong>${esc(title||hostName(host))}</strong><span class="menu-state ${st}">${esc(label)}</span><button type="button" class="icon-btn" data-action="close" aria-label="Закрыть">${svg('close')}</button></div>`;
  }
  function infoRows(){
@@ -50,15 +50,21 @@
     tiles.push(tile('rent','Аренда'));
     html+=`<div class="menu-tiles">${tiles.join('')}</div>`;
    }
+  }else if(view==='multi'){
+   // Several PCs picked: block / unblock them together or book them for one guest.
+   const free=group.filter(id=>statusOf(id)==='free'&&id!=='1'),locked=group.filter(id=>statusOf(id)==='reserved'&&!activeBooking(id));
+   html=header('Выбрано · '+group.length+' ПК')+`<p class="menu-group">${group.map(id=>`<span>${esc(id)}</span>`).join('')}</p>`;
+   const tiles=[];if(free.length)tiles.push(tile('book','Бронь'),tile('lock','Блок'));if(locked.length)tiles.push(tile('unlock','Разблок'));
+   html+=tiles.length?`<div class="menu-tiles">${tiles.join('')}</div>`:'<p class="menu-loading">Среди выбранных нет свободных ПК</p>';
   }else if(view==='login'){
    html=header('Вход · '+hostName(host),true)+`<input id="menu-login-search" placeholder="Ник, телефон или имя" autocomplete="off" maxlength="80"><div id="menu-login-options" class="account-options menu-options"></div>`;
   }else if(view==='book'||view==='group'){
    const isGroup=view==='group',free=isGroup?group.filter(id=>statusOf(id)==='free'&&id!=='1'):[host];
    const times=slotTimes();if(!times.some(t=>t===slot))slot=times[0];let day='';
    const cells=times.map(t=>{const d=new Date(t+3*3600000),label=d.toISOString().slice(11,16),key=d.toISOString().slice(0,10);let head='';if(key!==day){head=`<span class="slot-day">${day?'Завтра':'Сегодня'}</span>`;day=key}return head+`<button type="button" data-at="${t}" aria-pressed="${t===slot}">${label}</button>`}).join('');
-   html=header(isGroup?'Компания · '+free.length+' ПК':'Бронь · '+hostName(host),!isGroup)
+   html=header(isGroup?'Бронь · '+free.length+' ПК':'Бронь · '+hostName(host),true)
     +(isGroup?`<p class="menu-group">${free.map(id=>`<span>${esc(id)}</span>`).join('')}${free.length<group.length?`<small>занятые ПК пропущены</small>`:''}</p>`:'')
-    +`<div class="menu-slots">${cells}</div><input id="menu-book-name" maxlength="60" placeholder="${isGroup?'Название компании':'Имя гостя'}" autocomplete="off"><button type="button" class="menu-primary" data-action="book-go" ${free.length?'':'disabled'}>Забронировать${isGroup?' '+free.length+' ПК':''} · <span id="menu-book-at"></span></button>`;
+    +`<div class="menu-slots">${cells}</div><input id="menu-book-name" maxlength="60" placeholder="На кого бронь" autocomplete="off" enterkeyhint="done"><button type="button" class="menu-primary" data-action="book-go" ${free.length?'':'disabled'}>Забронировать${isGroup?' '+free.length+' ПК':''} · <span id="menu-book-at"></span></button>`;
   }else if(view==='rent'){
    const items=current?.rental_items||{};
    html=header('Аренда · '+hostName(host),true)+`<div class="menu-tiles rent-tiles">${Object.entries(items).map(([id,name])=>`<button type="button" class="menu-tile rent-item" data-item="${id}">${window.rentalIcon?.(id)||''}<span>${esc(name)}</span></button>`).join('')}</div>`;
@@ -87,9 +93,16 @@
   const t=e.target.closest('button,input');if(!t||working)return;
   const action=t.dataset.action;
   if(action==='close')return closeHostMenu();
-  if(action==='back'){view='main';return render()}
+  if(action==='back'){view=view==='group'?'multi':'main';return render()}
   if(t.dataset.copy!==undefined){if(await deskCopy(t.dataset.copy)){t.classList.add('copied');setTimeout(()=>t.classList.remove('copied'),900);say('Скопировано: '+t.dataset.copy)}else say('Не удалось скопировать');return}
   if(action==='logout'){armTap(t.querySelector('span'),'Точно?',async()=>{working=true;const id=host;const r=await invoke('logout_host',id,info.user_id);working=false;say(r?.ok?'Гость вышел с '+hostName(id):r?.error||'Нет ответа');if(r?.ok)closeHostMenu()});return}
+  if(view==='multi'&&action==='book'){view='group';render();$('menu-book-name')?.focus();return}
+  if(view==='multi'&&(action==='lock'||action==='unlock')){
+   const ids=group.filter(id=>action==='lock'?statusOf(id)==='free'&&id!=='1':statusOf(id)==='reserved'&&!activeBooking(id));
+   working=true;t.disabled=true;const r=await invoke('lock_hosts',ids,action==='lock');working=false;
+   if(r?.ok){closeHostMenu();say((action==='lock'?'Заблокировано':'Разблокировано')+' · '+ids.length+' ПК')}else{t.disabled=false;say('Не получилось: '+(r?.failed||[]).map(hostName).join(', '))}
+   return;
+  }
   if(['login','book','rent'].includes(action)){view=action;render();if(action==='login')$('menu-login-search')?.focus();return}
   if(action==='lock'||action==='unlock'){working=true;t.disabled=true;const id=host;const r=await invoke('lock_host',id,action==='lock');working=false;say(r?.ok?hostName(id)+(action==='lock'?' заблокирован':' разблокирован'):r?.error||'Нет ответа');if(r?.ok)closeHostMenu();else t.disabled=false;return}
   if(t.dataset.at){slot=Number(t.dataset.at);menu.querySelectorAll('[data-at]').forEach(b=>b.setAttribute('aria-pressed',String(b===t)));requestId=null;return updateBookTime()}
@@ -97,10 +110,12 @@
    const at=bookStart();if(!at)return;working=true;t.disabled=true;if(!requestId){requestId=crypto.randomUUID();groupReq={}}
    const iso=new Date(at.getTime()+3*3600000).toISOString().slice(0,16)+':00+03:00',name=$('menu-book-name').value.trim();
    const targets=view==='group'?group.filter(id=>statusOf(id)==='free'&&id!=='1'):[host];
-   // A company booking is one booking per PC with the same time and name; each PC keeps its own request id.
-   const failed=[];for(const id of targets){const r=await invoke('create_manual_booking',id,iso,view==='group'?(name||'Компания'):name,targets.length>1?(groupReq[id] ||= crypto.randomUUID()):requestId);if(!r?.ok)failed.push(id+': '+(r?.error||'нет ответа'))}
+   // Several PCs go to Desk in one call (sent side by side); each PC keeps its own request id, so a retry never doubles.
+   let failed=[];
+   if(targets.length>1){targets.forEach(id=>groupReq[id] ||= crypto.randomUUID());const r=await invoke('create_group_booking',targets,iso,name||'Гость',groupReq);failed=r?.failed?.map(f=>hostName(f.host)+': '+f.error)||(r?.ok?[]:[r?.error||'нет ответа'])}
+   else{const r=await invoke('create_manual_booking',targets[0],iso,name,requestId);if(!r?.ok)failed=[r?.error||'нет ответа']}
    working=false;t.disabled=false;
-   if(!failed.length){closeHostMenu();say(targets.length>1?'Бронь компании · '+targets.length+' ПК':'Бронь '+hostName(targets[0])+' создана')}else say(failed.join(' · '));
+   if(!failed.length){closeHostMenu();say(targets.length>1?'Бронь · '+targets.length+' ПК'+(name?' · '+name:''):'Бронь '+hostName(targets[0])+' создана')}else say(failed.join(' · '));
    return;
   }
   if(t.dataset.item){working=true;const id=host;const r=await invoke('add_rental',t.dataset.item,id,info?.username||'',Number.isInteger(info?.user_id)?info.user_id:null);working=false;if(r?.ok){closeHostMenu();say((current?.rental_items?.[t.dataset.item]||'Вещь')+' · '+hostName(id))}else say(r?.error||'Нет ответа')}

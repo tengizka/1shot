@@ -87,9 +87,9 @@ function makeBookingCard(){
  const copy=document.createElement('button');copy.type='button';copy.className='icon-btn';copy.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="8" y="8" width="13" height="13"/><path d="M16 8V3H3v13h5"/></svg>';copy.setAttribute('aria-label','Копировать номер брони');copy.title='Копировать номер брони';actions.append(copy);
  const cancel=document.createElement('button');cancel.type='button';cancel.className='btn-cancel';cancel.textContent='Отменить';cancel.setAttribute('aria-label','Отменить бронь');actions.append(cancel);
  const copyStatus=el(card,'copyStatus','p','note');copyStatus.setAttribute('role','status');copy.onclick=()=>copyDeskText(card.booking.id,copyStatus);
- cancel.onclick=()=>armTap(cancel,'Точно?',async()=>{const b=card.booking;cancel.disabled=true;try{const r=await invoke('cancel_booking',b.id);if(r?.error)setDeskText($('error'),r.error)}finally{cancel.disabled=false}});
+ cancel.onclick=()=>armTap(cancel,'Точно?',async()=>{const b=card.booking;cancel.disabled=true;card.classList.add('leaving');try{const r=await invoke('cancel_booking',b.id);if(r?.error){card.classList.remove('leaving');setDeskText($('error'),r.error)}}finally{cancel.disabled=false}});
  card.update=b=>{
-  card.booking=b;card.dataset.bookingId=b.id;const cl='card '+b.status;if(card.className!==cl)card.className=cl;
+  card.booking=b;card.dataset.bookingId=b.id;const cl='card '+b.status+(card.classList.contains('leaving')?' leaving':'');if(card.className!==cl)card.className=cl;
   const identity=JSON.stringify([b.gizmo_user_id,b.telegram_id]);if(identity!==card.identity){card.identity=identity;delete details.dataset.loaded;setDeskText(detailStatus,'')}
   setDeskText(fields.tag,b.instant?'ВХОД СЕЙЧАС':b.admin_created?'ОТ АДМИНА':b.mode==='arrival'?'В ТЕЧЕНИЕ ЧАСА':'КО ВРЕМЕНИ');setDeskText(fields.host,hostName(b.host_id));
   setDeskText(fields.guest,(b.guest_name||b.username||'Гость')+(b.for_friend?' · для друга':''));setDeskText(fields.status,labels[b.status]||b.status);
@@ -105,8 +105,13 @@ function makeBookingCard(){
 const groupKey=b=>b.admin_created&&b.guest_name?b.starts_at+'|'+b.guest_name:null;
 function makeGroup(key){
  const box=document.createElement('section');box.className='booking-group';box.dataset.key=key;
- box.innerHTML='<div class="group-head"><span class="tag">Компания</span><h3></h3><p class="time"></p></div><p class="group-pcs"></p><div class="group-body"></div><div class="actions"><button type="button" class="btn-cancel group-cancel" aria-label="Отменить бронь компании">Отменить всех</button></div>';
- box.querySelector('.group-cancel').onclick=e=>armTap(e.currentTarget,'Точно всех?',async()=>{for(const card of box.querySelectorAll('.card[data-booking-id]'))await invoke('cancel_booking',card.booking.id)});
+ box.innerHTML='<div class="group-head"><span class="tag">Группа</span><h3></h3><p class="time"></p></div><p class="group-pcs"></p><div class="group-body"></div><div class="actions"><button type="button" class="btn-cancel group-cancel" aria-label="Отменить бронь компании">Отменить всех</button></div>';
+ box.querySelector('.group-cancel').onclick=e=>{const btn=e.currentTarget;armTap(btn,'Точно всех?',async()=>{
+  // One call for the whole group; the cards fade at once instead of waiting for the next poll.
+  const cards=[...box.querySelectorAll('.card[data-booking-id]')],ids=cards.map(c=>c.booking.id);btn.disabled=true;box.classList.add('leaving');
+  const r=await invoke('cancel_bookings',ids);btn.disabled=false;
+  if(r?.ok)window.deskFlash?.('Отменено · '+ids.length+' ПК');else{box.classList.remove('leaving');window.deskFlash?.(r?.error||'Не все брони отменились')}
+ })};
  return box;
 }
 function bookings(s){
@@ -163,7 +168,7 @@ function hall(s){
    if(e?.ctrlKey||e?.metaKey){const next=new Set(picked);next.has(id)?next.delete(id):next.add(id);selectHosts([...next],false)}
    else selectHosts(picked.size===1&&picked.has(id)?[]:[id]);
   },
-  onMenu:id=>{if(picked.has(id)&&picked.size>1)window.openHostMenu?.(id,'group',[...picked]);else{selectHosts([id],false);window.openHostMenu?.(id,'main')}}
+  onMenu:id=>{if(picked.has(id)&&picked.size>1)window.openHostMenu?.(id,'multi',[...picked]);else{selectHosts([id],false);window.openHostMenu?.(id,'main')}}
  });setupFrameSelect(map)}
  const hosts=new Map((s.hosts||[]).map(h=>[h.host_id,h]));let free=0,busy=0,booked=0;
  for(const btn of map.querySelectorAll('[data-host-id]')){
@@ -285,7 +290,7 @@ setTimeout(()=>$('desk-splash').classList.add('done'),2500);setTimeout(()=>$('de
 
 let pickMode=false;
 function setPickMode(on){pickMode=on;$('pick-hint').hidden=!on;document.body.classList.toggle('pick-mode',on)}
-$('add-booking').onclick=()=>{if(picked.size>1){window.openHostMenu?.(selectedHost,'group',[...picked]);return}if(selectedHost){window.openHostMenu?.(selectedHost,'book');return}setPickMode(!pickMode)};
+$('add-booking').onclick=()=>{if(picked.size>1){window.openHostMenu?.(selectedHost,'multi',[...picked]);return}if(selectedHost){window.openHostMenu?.(selectedHost,'book');return}setPickMode(!pickMode)};
 // Drag on empty floor draws a frame; every PC it touches is picked (Ctrl adds to the current pick).
 function setupFrameSelect(map){
  let start=null,frame=null;
