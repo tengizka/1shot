@@ -468,3 +468,7 @@ nav .exit span{white-space:normal}
 /* Cancelled cards fade at once; the server confirms in the background */
 #grid .card,.booking-group{transition:opacity .25s ease,transform .25s ease}
 #grid .card.leaving,.booking-group.leaving{opacity:.25;transform:scale(.98);pointer-events:none}
+.test-steps{display:flex;flex-direction:column;gap:4px}
+.test-steps p{padding:6px 10px;border-left:2px solid var(--rule);font-size:10.5px;word-break:break-word}
+.test-steps p.good{border-color:var(--lime);color:var(--lime);font-weight:700}
+.test-steps p.bad{border-color:var(--pink);color:var(--pink)}

@@ -27,5 +27,15 @@
   const r=await window.pywebview.api.test_order(user.value);go.disabled=false;
   setDeskText(orderMsg,r?.ok?`Готово: ${r.item} · ${r.price} ₽ для ${r.user}, оплата с депозита (способ ${r.method}). `+(r.owner_account?'От аккаунта владельца.':'⚠ MONEY_GIZMO_LOGIN не задан — заказ от основного логина Desk.')+' Проверьте его в Gizmo и отмените.':r?.error||'Не получилось');
  });
+ // «Тестовый бесплатный час»: two taps, then every step Desk did in Gizmo, the failing one in pink.
+ const hourUser=$('test-hour-user'),hourGo=$('test-hour-go'),hourSteps=$('test-hour-steps');
+ hourUser.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();hourUser.blur()}});
+ hourGo.onclick=()=>armTap(hourGo,'Точно выдать?',async()=>{
+  hourGo.disabled=true;hourSteps.replaceChildren(Object.assign(document.createElement('p'),{className:'note',textContent:'Выдаём час…'}));
+  const r=await window.pywebview.api.test_free_hour(hourUser.value);hourGo.disabled=false;
+  const rows=(r?.steps||['Нет ответа от Desk']).map((t,i,a)=>Object.assign(document.createElement('p'),{className:i===a.length-1&&!r?.ok?'bad':'',textContent:t}));
+  rows.push(Object.assign(document.createElement('p'),{className:r?.ok?'good':'bad',textContent:r?.ok?'Готово: час выдан и подписан':'Час не выдан. Скиньте этот список Claude'}));
+  hourSteps.replaceChildren(...rows);
+ });
  document.querySelector('.settings-tabs [data-settings="tests"]')?.addEventListener('click',load);
 })();

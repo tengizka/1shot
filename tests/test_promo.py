@@ -144,4 +144,27 @@ class PromoTests(unittest.TestCase):
   self.assertEqual(result['promo']['result'],'attention');self.assertEqual(self.cloud.rewards,[]);self.assertIn('проверьте',unquote(self.gizmo.notes()[0][1]))
  def test_malformed_code_ignored(self):
   self.build('vk; drop');self.assertNotIn('promo',self.api.approve(self.id,True));self.assertEqual(self.gizmo.orders(),[])
+class TestHourTests(unittest.TestCase):
+ def gizmo(self):
+  g=Gizmo();g.request_real=g.request
+  def req(method,path,**kw):
+   if path=='users' and method=='GET':return [{'id':7,'username':'9991234567'}]
+   return g.request_real(method,path,**kw)
+  g.request=req;return g
+ def test_steps_and_note(self):
+  from desktop.promo import test_hour
+  g=self.gizmo();state={'n':0}
+  real=g.request
+  def req(method,path,**kw):
+   if path.endswith('/producttime'):state['n']+=1;return [] if state['n']==1 else [{'invoiceId':900,'totalSeconds':3600}]
+   return real(method,path,**kw)
+  g.request=req;r=test_hour(g,'9991234567')
+  self.assertTrue(r['ok'],r);self.assertIn('Час на счету гостя ✓',r['steps']);self.assertEqual(len(g.orders()),1);self.assertEqual(len(g.notes()),1)
+ def test_refusal_shows_gizmo_words(self):
+  from desktop.promo import test_hour
+  g=self.gizmo();g.order_error=True;r=test_hour(g,'9991234567')
+  self.assertFalse(r['ok']);self.assertIn('Gizmo не продал час: timeout',r['steps'][-1])
+ def test_unknown_nickname(self):
+  from desktop.promo import test_hour
+  r=test_hour(self.gizmo(),'nobody');self.assertFalse(r['ok']);self.assertIn('не найден',r['steps'][-1])
 if __name__=='__main__':unittest.main()

@@ -146,3 +146,38 @@ class PromoReward:
         except Exception:pass
         self.store.set(key,record)
         return self.report(id,record)
+
+
+def test_hour(gizmo,username):
+    """Settings → «Тесты» → «Тестовый бесплатный час»: the same steps as the free hour at registration, for an account
+    picked by nickname, with every step reported, so staff see exactly where and why Gizmo stops."""
+    from .test_order import find_user
+    steps=[]
+    def step(text):steps.append(text)
+    try:
+        user=find_user(gizmo,username);uid=int(user['id']);step(f'Аккаунт {user.get("username")} · ID {uid}')
+        product=free_hour_product(gizmo);step(f'Товар standart 1 h найден · ID {product}')
+        method=payment_method();step(f'Способ оплаты {method}')
+        before=gizmo.request('GET',f'users/{uid}/producttime')
+        known={t.get('invoiceId') for t in before if isinstance(t,dict)} if isinstance(before,list) else set()
+        try:invoice=gizmo.request('POST',f'users/{uid}/order/{product}/invoice/payment/{method}',timeout=(3,45))
+        except Exception as error:
+            step(f'Gizmo не продал час: {error}');return {'ok':False,'steps':steps}
+        if not isinstance(invoice,dict) or type(invoice.get('id')) is not int:
+            step(f'Gizmo ответил непонятно: {str(invoice)[:120]}');return {'ok':False,'steps':steps}
+        step(f'Счёт {invoice["id"]} · сумма {invoice.get("total")} ₽')
+        lines=[]
+        for wait in (0,2,5):
+            sleep(wait);lines=gizmo.request('GET',f'users/{uid}/producttime',timeout=(3,20))
+            if isinstance(lines,list) and any(isinstance(t,dict) and t.get('invoiceId') not in known and float(t.get('totalSeconds') or 0)>=3600 for t in lines):break
+        else:
+            seen=[{k:t.get(k) for k in ('invoiceId','totalSeconds','isVoided')} for t in lines if isinstance(t,dict)][:4] if isinstance(lines,list) else str(lines)[:120]
+            step(f'Часа на счету не видно. Gizmo показывает: {seen}')
+            ok=False
+        if not steps[-1].startswith('Часа на счету'):step('Час на счету гостя ✓');ok=True
+        try:
+            gizmo.request('PUT',f'users/{uid}/note/{quote("Тест (1SHOT Desk): бесплатный час STANDART"+(" выдан" if ok else " — не подтверждён"),safe="")}/0');step('Заметка в Gizmo ✓')
+        except Exception as error:step(f'Заметка не записалась: {error}')
+        return {'ok':ok,'steps':steps}
+    except Exception as error:
+        step(f'Остановились: {error}');return {'ok':False,'steps':steps}

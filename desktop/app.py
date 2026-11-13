@@ -128,6 +128,12 @@ class App:
             from .services import money_gizmo
             with self.operations:return place(self.gizmo,money_gizmo(self.gizmo),self.food.menu(),username)
         except Exception as error:return {'error':str(error)[:200] or 'Не удалось сделать тестовый заказ'}
+    def test_free_hour(self,username):
+        """«Тестовый бесплатный час»: the registration free hour for one account by nickname, every step reported."""
+        try:
+            from .promo import test_hour
+            with self.operations:return test_hour(self.gizmo,username)
+        except Exception as error:return {'ok':False,'steps':[str(error)[:200] or 'Не получилось']}
     def delete_test_account(self,uid):
         try:
             with self.operations:return self.tests.delete(uid)
