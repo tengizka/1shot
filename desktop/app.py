@@ -543,7 +543,22 @@ def main():
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_ID)
     app=App();app.window=webview.create_window(APP_TITLE,str(ROOT/'desktop'/'index.html'),js_api=app,width=1120,height=760,min_size=(900,600),frameless=True,easy_drag=False,background_color='#000000')
     app.window.events.closing+=app.close
-    webview.start(app.started,gui='qt',debug=False,icon=str(ROOT/'desktop'/'assets'/'app.ico'))
+    try:webview.start(app.started,gui='qt',debug=False,icon=str(ROOT/'desktop'/'assets'/'app.ico'))
+    except Exception as error:
+        # The first launch after an update sometimes finds Qt not ready yet (Windows / antivirus still checking the new
+        # files): pywebview then reports a missing fallback («pythonnet»). A fresh start a moment later works, so Desk
+        # restarts itself up to three times before telling the admin.
+        app.stop.set();handle.close()
+        attempt=int(os.getenv('DESK_START_ATTEMPT','0') or 0)
+        if getattr(sys,'frozen',False) and attempt<3:
+            import subprocess
+            time.sleep(2+attempt*2)
+            subprocess.Popen([sys.executable,*sys.argv[1:]],env=dict(os.environ,DESK_START_ATTEMPT=str(attempt+1)),close_fds=True)
+            return
+        if sys.platform=='win32':
+            import ctypes
+            ctypes.windll.user32.MessageBoxW(None,'Окно 1SHOT Desk не открылось ('+type(error).__name__+'). Подождите минуту и запустите Desk снова. Если повторится, перезагрузите компьютер.','1SHOT Desk',0x30)
+        return
     handle.close()
 
 if __name__=='__main__':main()
