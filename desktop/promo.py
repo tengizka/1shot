@@ -4,7 +4,6 @@ import os
 import re
 import time
 from urllib.parse import quote
-from .services import money_gizmo
 
 PRODUCT='standart 1 h'
 sleep=time.sleep  # tests replace it to skip the waits
@@ -64,9 +63,9 @@ class PromoReward:
         self._seller=None
 
     def seller(self):
-        """The Gizmo login that sells the free hour: the owner's money account (see services.money_gizmo)."""
-        if self._seller is None:self._seller=money_gizmo(self.gizmo)
-        return self._seller
+        """The free hour and its note always go through Desk's main Gizmo login (GIZMO_LOGIN), the way that has always worked.
+        MONEY_GIZMO_* is for money only (top-ups): an owner account without API access must never block the free hour."""
+        return self.gizmo
 
     def report(self,id,record):
         if record.get('result') in ('granted','failed') and not record.get('synced'):

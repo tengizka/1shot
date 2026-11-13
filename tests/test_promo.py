@@ -54,8 +54,10 @@ class PromoTests(unittest.TestCase):
   # The hour is sold by its own operator login; the fake records both clients in one place.
   self.made=[];self.seller=patch('desktop.services.Gizmo',lambda login,password:(self.made.append(login),self.gizmo)[1]);self.seller.start()
  def tearDown(self):self.seller.stop();self.env.stop();self.temp.cleanup()
- def test_hour_is_sold_by_its_own_login(self):
-  self.build();self.assertEqual(self.api.approve(self.id,True)['promo']['result'],'granted');self.assertEqual(self.made,['promo'])
+ def test_hour_is_sold_by_desks_main_login_even_with_a_money_account(self):
+  # A MONEY/PROMO account without API access once blocked every free hour: the hour now always goes through GIZMO_LOGIN.
+  with patch.dict(os.environ,{'MONEY_GIZMO_LOGIN':'owner','MONEY_GIZMO_PASSWORD':'x'}):
+   self.build();self.assertEqual(self.api.approve(self.id,True)['promo']['result'],'granted');self.assertEqual(self.made,[])
  def test_without_separate_login_desk_login_sells(self):
   with patch.dict(os.environ,{'PROMO_GIZMO_LOGIN':''}):
    self.made.clear();self.build();r=self.api.approve(self.id,True)
