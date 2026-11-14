@@ -21,3 +21,8 @@ desktop/assets/oneshot-loader.js
 
 # Local club backup archives
 *.dump
+
+# Club data with guest details or money: never in the public repo
+*.xlsx
+*.xls
+*.csv
