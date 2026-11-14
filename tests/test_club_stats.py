@@ -64,6 +64,22 @@ class RevenueTests(ClubStatsTests):
         self.assertEqual(oct_['topups'], 500)
         self.assertEqual(oct_['from_deposit'], 150)
 
+    def test_revenue_is_gizmos_own_overview_figure(self):
+        raw = self.raw()
+        raw['overview'] = {'2026-10': {'totalRevenue': 1442107.54}}
+        oct_ = next(m for m in compute(raw)['months'] if m['month'] == '2026-10')
+        self.assertEqual((oct_['revenue'], oct_['revenue_source']), (1442108, 'gizmo'))
+
+    def test_products_come_from_the_products_report(self):
+        raw = self.raw()
+        raw['sales'] = [{'transactionDate': '2026-10-05T18:00:00+03:00', 'title': 'Auto Payment', 'total': 500, 'paymentMethodName': 'Депозит'}]
+        raw['sold'] = [{'productName': 'Пакет 3h STANDART', 'sold': 40, 'returned': 2, 'value': 17100},
+                       {'productName': 'Red Bull 0.25', 'sold': 120, 'returned': 0, 'value': 18000},
+                       {'productName': 'Старый товар', 'sold': 0, 'returned': 0, 'value': 0}]
+        r = compute(raw)
+        self.assertEqual([(g['title'], g['count'], g['kind']) for g in r['products']], [('Red Bull 0.25', 120, 'goods'), ('Пакет 3h STANDART', 38, 'hours')])
+        self.assertNotIn('Auto Payment', str(r['products']) + str(r['facts']))
+
     def test_server_copy_has_guests_by_id_only(self):
         pub = public(compute(self.raw()))
         self.assertEqual({g['id'] for g in pub['guests']}, {1, 2, 3})

@@ -100,11 +100,25 @@
    bars('Часы по ПК',(st.pcs||[]).slice(0,40),r=>hostName(r.pc),r=>r.hours,null,'h'));
   box.append(two);return box;
  }
+ let salesKind='all';
  function salesPane(st){
   const box=el('div','stat-pane'),rows=st.months||[];
-  box.append(bars('Выручка по месяцам',[...rows].reverse(),r=>r.label,r=>r.revenue,null,' ₽'));
-  if(st.products?.length)box.append(bars('Что покупают чаще всего',st.products,r=>r.title,r=>r.count,null,' шт'));
-  box.append(el('p','note','Выручка — живые деньги (наличные, карта, ТБанк, СБП) вместе с пополнениями депозита. Покупки с депозита в неё не входят, иначе деньги посчитались бы дважды.'));
+  const fromGizmo=rows.some(r=>r.revenue_source==='gizmo');
+  box.append(bars('Выручка по месяцам',[...rows].reverse().filter(r=>r.revenue||r.visits),r=>r.label,r=>r.revenue,null,' ₽'));
+  box.append(el('p','note',fromGizmo?'Выручка — итог самого Gizmo (его отчёт «Обзор») за каждый месяц.':'Gizmo не отдал свой итог, поэтому выручка посчитана по журналу операций: живые деньги вместе с пополнениями.'));
+  const all=st.products||[];
+  if(all.length){
+   const b=block('Все товары и пакеты за год','Из отчёта Gizmo по продажам: сколько продано (за вычетом возвратов) и на какую сумму.');
+   const chips=el('div','chips stat-chips');const table=el('div','guest-table sales-table');
+   [['all','Все'],['hours','Пакеты часов'],['goods','Бар и товары']].forEach(([k,t])=>{const c=el('button',null,t);c.type='button';c.onclick=()=>{salesKind=k;draw()};c.dataset.k=k;chips.append(c)});
+   function draw(){
+    chips.querySelectorAll('button').forEach(c=>c.setAttribute('aria-pressed',String(c.dataset.k===salesKind)));
+    const list=all.filter(g=>salesKind==='all'||g.kind===salesKind),total=list.reduce((a,g)=>a+g.money,0)||1;
+    table.replaceChildren(...['Товар','Продано','Сумма','Доля'].map(h=>el('span','head',h)));
+    for(const g of list)table.append(el('span','first',g.title),el('span',null,num(g.count)+' шт.'),el('span',null,rub(g.money)),el('span',null,(Math.round(1000*g.money/total)/10)+'%'));
+   }
+   draw();b.append(chips,table);box.append(b);
+  }
   return box;
  }
  function render(st){

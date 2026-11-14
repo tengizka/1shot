@@ -8,6 +8,7 @@ the busiest days and hours; the zones and PCs; sleeping accounts; and a few fact
 The full result (with nicknames of the top guests) stays on this PC. Only numbers go to the server
 (club_desk_reports, kind «club_stats»): no names, phones, nicknames or Gizmo ids leave the club.
 """
+import re
 import threading
 import time
 from collections import Counter, defaultdict
@@ -77,6 +78,7 @@ def fetch(gizmo, now=None, months=12):
     groups = {g.get('id'): str(g.get('name', '')).strip().casefold() for g in gizmo.request('GET', 'usergroups') or []}
     first = (now.replace(day=1, hour=0, minute=0, second=0, microsecond=0) - timedelta(days=31 * (months - 1))).replace(day=1)
     sessions, sales, errors = [], [], []
+    overview = {}
     start = first
     while start < now:
         end = (start + timedelta(days=32)).replace(day=1)
@@ -90,14 +92,28 @@ def fetch(gizmo, now=None, months=12):
             sales += _rows(gizmo.request('GET', 'reports/transactionslog', params=span, timeout=(3, 120)), 'transactions')
         except Exception:
             errors.append('продажи ' + month_label(month_key(start)))
+        try:
+            ov = gizmo.request('GET', 'reports/overview', params=span, timeout=(3, 120))
+            if isinstance(ov, dict):
+                overview[month_key(start)] = ov
+        except Exception:
+            errors.append('выручка Gizmo ' + month_label(month_key(start)))
         start = end
     try:
         spending = gizmo.request('GET', 'reports/users/spending', params={'start': first.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}, timeout=(3, 120))
     except Exception:
         spending = []
         errors.append('траты гостей')
+    try:
+        report = gizmo.request('GET', 'reports/products', params={'DateFrom': first.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S'),
+                               'DateTo': now.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S'), 'HideUnused': True}, timeout=(3, 120))
+        sold = _rows(report, 'products')
+    except Exception:
+        sold = []
+        errors.append('продажи по товарам')
     return {'users': users if isinstance(users, list) else [], 'groups': groups, 'sessions': sessions, 'sales': sales,
-            'spending': spending if isinstance(spending, list) else [], 'first': first, 'now': now, 'errors': errors}
+            'spending': spending if isinstance(spending, list) else [], 'first': first, 'now': now, 'errors': errors,
+            'overview': overview, 'sold': sold}
 
 
 def compute(raw):
@@ -198,8 +214,13 @@ def compute(raw):
             product_money[title] += float(value)
     spend = sorted((float(r.get('total') or 0), r.get('userId')) for r in raw['spending'] if isinstance(r, dict) and r.get('userId') in users)
     paying = [v for v, _ in spend if v > 0]
+    overview = raw.get('overview') or {}
     for r in rows:
-        r['revenue'] = round(revenue[r['month']])
+        ov = overview.get(r['month']) or {}
+        # Gizmo's own figure (the one its Overview report shows) wins; the transaction log sum is the fallback.
+        r['revenue'] = round(ov['totalRevenue']) if isinstance(ov.get('totalRevenue'), (int, float)) else round(revenue[r['month']])
+        r['revenue_source'] = 'gizmo' if isinstance(ov.get('totalRevenue'), (int, float)) else 'log'
+        r['money_in'] = round(revenue[r['month']])
         r['topups'] = round(topups[r['month']])
         r['from_deposit'] = round(from_deposit[r['month']])
 
@@ -245,10 +266,31 @@ def compute(raw):
     facts.append(f'Ночные сессии (00:00–06:00): {summary["night_share"]}% от всех')
     if summary['avg_session_min']:
         facts.append(f'Средняя сессия длится {summary["avg_session_min"] // 60}h {summary["avg_session_min"] % 60}m')
-    if products:
-        facts.append('Чаще всего покупают: ' + ', '.join(f'{t} ({n})' for t, n in products.most_common(3)))
+    # (what guests buy comes from the products report below; the log's titles are operation types)
     if never:
         facts.append(f'Аккаунтов, которые ни разу не играли за последний год: {never}')
+
+    # What guests buy: Gizmo's products report (every product and hour package), not the transaction log, whose
+    # titles are only operation types («Payment», «Auto Payment», «Pay In»).
+    goods = []
+    for g in raw.get('sold') or []:
+        if not isinstance(g, dict) or not str(g.get('productName') or '').strip():
+            continue
+        name = str(g['productName']).strip()
+        sold_n = float(g.get('sold') or 0) - float(g.get('returned') or 0)
+        if sold_n <= 0:
+            continue
+        hours = bool(re.search(r'\d+\s*(h|ч|час)|пакет|standart|vip|tv|ps5', name, re.I))
+        goods.append({'title': name, 'count': round(sold_n), 'money': round(float(g.get('value') or 0)), 'kind': 'hours' if hours else 'goods'})
+    goods.sort(key=lambda g: (-g['money'], -g['count']))
+    if goods:
+        top_goods = [g for g in goods if g['kind'] == 'goods'][:3]
+        top_hours = [g for g in goods if g['kind'] == 'hours'][:3]
+        facts = [f for f in facts if not f.startswith('Чаще всего покупают')]
+        if top_hours:
+            facts.append('Больше всего денег из пакетов приносят: ' + ', '.join(f"{g['title']} ({g['count']} шт.)" for g in top_hours))
+        if top_goods:
+            facts.append('Из бара лучше всего продаются: ' + ', '.join(f"{g['title']} ({g['count']} шт.)" for g in top_goods))
 
     # Local-only extras: who the regulars are. Never sent to the server.
     local = {
@@ -272,7 +314,7 @@ def compute(raw):
         'heat': [[heat[(wd, h)] for h in range(24)] for wd in range(7)],
         'zones': [{'zone': z, 'hours': round(v)} for z, v in zone_hours.most_common()],
         'pcs': [{'pc': p, 'hours': round(v)} for p, v in pc_hours.most_common()],
-        'products': [{'title': t, 'count': n, 'money': round(product_money[t])} for t, n in products.most_common(10)],
+        'products': goods,
         'anonymous_sessions': anonymous, 'errors': raw['errors'], 'local': local,
     }
 

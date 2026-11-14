@@ -547,3 +547,8 @@ nav .exit span{white-space:normal}
 .guest-table span.head{font:700 7.5px var(--text);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);position:sticky;top:0;background:#000}
 .nick-link{border:0;background:none;padding:0;min-height:0;color:var(--lime);font:700 12px var(--text);text-transform:none;letter-spacing:0;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .nick-link:hover{color:#fff}
+.sales-table{grid-template-columns:minmax(0,2.4fr) repeat(3,minmax(0,1fr));max-height:520px;overflow:auto}
+.sales-table span.first{color:#fff}
+.stat-chips{display:flex;gap:4px}
+.stat-chips button{min-height:30px;font-size:9px}
+.stat-chips button[aria-pressed="true"]{background:var(--lime);border-color:var(--lime);color:#000}
