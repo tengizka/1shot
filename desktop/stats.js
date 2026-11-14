@@ -8,7 +8,12 @@
  section.innerHTML=`<div class="page-head"><h2>Статистика</h2></div>
   <section class="surface tbank" id="tbank">
    <div class="tbank-head"><div><h3>ТБанк за смену</h3><p class="note" id="tbank-since"></p></div>
-    <button type="button" id="tbank-close">Закрыть смену</button></div>
+    <div class="tbank-actions"><button type="button" id="tbank-start-open">Считать с…</button><button type="button" id="tbank-close">Закрыть смену</button></div></div>
+   <form id="tbank-start" class="tbank-start" hidden>
+    <label>Считать ТБанк с<input type="datetime-local" id="tbank-start-at" enterkeyhint="done" required></label>
+    <button type="submit">Пересчитать</button>
+    <p class="note">Забыли нажать «Закрыть смену»? Найдите в Gizmo первую платёжку ТБанка этой смены и поставьте её дату и время — Desk пересчитает всё с этого момента.</p>
+   </form>
    <div class="tbank-numbers"><div><small>Пришло через ТБанк</small><b id="tbank-sum">—</b></div><div><small>Операций</small><b id="tbank-count">—</b></div></div>
    <p class="note tbank-safe">Кнопка только обнуляет этот счётчик в Desk. Смена в Gizmo не закрывается и вообще не трогается.</p>
    <p class="note" id="tbank-message" role="status"></p>
@@ -50,28 +55,66 @@
    row.append(el('span',null,label(r)),el('div','track'),el('b',null,num(value(r))+unit));row.children[1].append(fill);list.append(row)}
   b.append(list);return b;
  }
- function render(st){
-  body.replaceChildren();if(!st)return;
-  const s=st.summary||{};
+ // Tabs inside «Статистика клуба»: Обзор · Гости · Когда и где · Продажи. The chosen tab survives a refresh.
+ let statTab='overview',guestSort='hours',guestQuery='';
+ const TABS=[['overview','Обзор'],['guests','Гости'],['time','Когда и где'],['sales','Продажи']];
+ const ago=d=>{const n=Math.round((Date.now()-new Date(d))/86400000);return n<=0?'сегодня':n===1?'вчера':n+' дн. назад'};
+ const nickLink=(nick,id)=>{const b=el('button','nick-link',nick||('ID '+id));b.type='button';b.title='Открыть досье гостя';b.onclick=()=>window.openGuestProfile?.({userId:id});return b};
+ function overview(st){
+  const s=st.summary||{},box=el('div','stat-pane');
   const tiles=el('div','stat-tiles');
   tiles.append(tile('Гостей с игрой за год',num(s.played),`из ${num(s.accounts)} аккаунтов`,true),tile('Играли за 30 дней',num(s.active_30)),
    tile('Спят 1–6 месяцев',num(s.sleeping),'можно позвать акцией'),tile('Новые вернулись',s.return_rate==null?'—':s.return_rate+'%','пришли ещё раз'),
    tile('Средняя сессия',s.avg_session_min?`${Math.floor(s.avg_session_min/60)}h ${s.avg_session_min%60}m`:'—'),tile('Средний гость тратит',rub(s.avg_spend),s.median_spend!=null?'медиана '+rub(s.median_spend):''));
-  body.append(tiles);
-  if(st.facts?.length){const f=block('Интересные факты');const ul=el('ul','stat-facts');st.facts.forEach(t=>ul.append(el('li',null,t)));f.append(ul);body.append(f)}
-  body.append(months(st.months||[]),heat(st.heat||[]));
+  box.append(tiles);
+  if(st.facts?.length){const f=block('Интересные факты');const ul=el('ul','stat-facts');st.facts.forEach(t=>ul.append(el('li',null,t)));f.append(ul);box.append(f)}
+  box.append(months(st.months||[]));return box;
+ }
+ function guestsPane(st){
+  const l=st.local||{},all=l.guests||[],box=el('div','stat-pane');
+  const tools=el('div','guest-tools');
+  const search=el('input');search.type='search';search.placeholder='Ник или номер аккаунта';search.value=guestQuery;search.setAttribute('enterkeyhint','done');search.autocomplete='off';
+  search.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();search.blur()}});
+  const sorts=el('div','chips');[['hours','По часам'],['visits','По визитам'],['spent','По тратам'],['last','Недавние'],['sleeping','Давно не были']].forEach(([k,t])=>{const b=el('button',null,t);b.type='button';b.setAttribute('aria-pressed',String(k===guestSort));b.onclick=()=>{guestSort=k;draw()};sorts.append(b)});
+  tools.append(search,sorts);
+  const count=el('p','note'),table=el('div','guest-table');
+  box.append(block('Все гости за год','Нажмите на ник — откроется досье гостя: посещения, покупки, заметки. Ники видны только на этом компьютере.'),tools,count,table);
+  const SORT={hours:(a,b)=>b.hours-a.hours,visits:(a,b)=>b.visits-a.visits,spent:(a,b)=>b.spent-a.spent,last:(a,b)=>String(b.last).localeCompare(a.last),sleeping:(a,b)=>String(a.last).localeCompare(b.last)};
+  function draw(){
+   sorts.querySelectorAll('button').forEach((b,i)=>b.setAttribute('aria-pressed',String(['hours','visits','spent','last','sleeping'][i]===guestSort)));
+   const q=guestQuery.trim().toLowerCase();
+   const rows=all.filter(g=>!q||String(g.nick).toLowerCase().includes(q)||String(g.id).includes(q)).sort(SORT[guestSort]).slice(0,300);
+   setDeskText(count,q?`Найдено ${rows.length}`:`Всего ${num(all.length)}`+(all.length>300?', показаны первые 300':''));
+   table.replaceChildren(...['Гость','Визитов','Часов','Потратил','Первый раз','Последний раз'].map(h=>el('span','head',h)));
+   for(const g of rows)table.append(Object.assign(el('span','first'),{}),el('span',null,num(g.visits)),el('span',null,num(g.hours)+'h'),el('span',null,rub(g.spent)),el('span',null,new Date(g.first).toLocaleDateString('ru-RU')),el('span',null,ago(g.last)));
+   [...table.querySelectorAll('span.first')].forEach((cell,i)=>cell.append(nickLink(rows[i].nick,rows[i].id)));
+  }
+  search.oninput=()=>{guestQuery=search.value;draw()};draw();
+  if(l.longest)box.append(el('p','note',`Самая длинная сессия за год: ${l.longest.nick}, ${l.longest.hours}h (${l.longest.date})`));
+  return box;
+ }
+ function timePane(st){
+  const box=el('div','stat-pane');box.append(heat(st.heat||[]));
   const two=el('div','stat-two');
   two.append(bars('Часы по залам',st.zones||[],r=>r.zone,r=>r.hours,r=>ZONE_COLOR[r.zone]||'var(--lime)','h'),
-   bars('Часы по ПК',(st.pcs||[]).slice(0,30),r=>hostName(r.pc),r=>r.hours,null,'h'));
-  body.append(two);
-  if(st.products?.length)body.append(bars('Что покупают чаще всего',st.products,r=>r.title,r=>r.count,null,' шт'));
-  const l=st.local||{};
-  if(l.top_hours?.length){
-   const b=block('Самые постоянные гости','Только на этом компьютере, на сервер ники не уходят.');const g=el('div','stat-three');
-   const list=(title,rows,fmt)=>{const c=el('div');c.append(el('h4',null,title));const ol=el('ol','stat-top');rows.forEach(r=>{const li=el('li');li.append(el('span',null,r.nick),el('b',null,fmt(r)));ol.append(li)});c.append(ol);return c};
-   g.append(list('По часам',l.top_hours,r=>num(r.hours)+'h'),list('По визитам',l.top_visits||[],r=>num(r.visits)),list('По тратам',l.top_spend||[],r=>rub(r.spent)));
-   b.append(g);if(l.longest)b.append(el('p','note',`Самая длинная сессия: ${l.longest.nick}, ${l.longest.hours}h (${l.longest.date})`));body.append(b);
-  }
+   bars('Часы по ПК',(st.pcs||[]).slice(0,40),r=>hostName(r.pc),r=>r.hours,null,'h'));
+  box.append(two);return box;
+ }
+ function salesPane(st){
+  const box=el('div','stat-pane'),rows=st.months||[];
+  box.append(bars('Выручка по месяцам',[...rows].reverse(),r=>r.label,r=>r.revenue,null,' ₽'));
+  if(st.products?.length)box.append(bars('Что покупают чаще всего',st.products,r=>r.title,r=>r.count,null,' шт'));
+  box.append(el('p','note','Выручка — живые деньги (наличные, карта, ТБанк, СБП) вместе с пополнениями депозита. Покупки с депозита в неё не входят, иначе деньги посчитались бы дважды.'));
+  return box;
+ }
+ function render(st){
+  body.replaceChildren();if(!st)return;
+  const nav=el('div','stat-tabs');nav.setAttribute('role','tablist');
+  const pane=el('div');
+  const show=k=>{statTab=k;nav.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===k)));
+   pane.replaceChildren(k==='guests'?guestsPane(st):k==='time'?timePane(st):k==='sales'?salesPane(st):overview(st))};
+  for(const [k,t] of TABS){const b=el('button',null,t);b.type='button';b.dataset.tab=k;b.setAttribute('role','tab');b.onclick=()=>show(k);nav.append(b)}
+  body.append(nav,pane);show(statTab);
   if(st.errors?.length)body.append(el('p','note','Gizmo не отдал: '+st.errors.join(', ')+'. Нажмите «Обновить» позже.'));
  }
  let timer=null;
@@ -105,6 +148,13 @@
   rowsInto(T('tbank-history'),r.history||[],[h=>when(h.start)+' → '+clock(h.end),h=>num(h.count)+' опер.',h=>rub(h.sum)],'Закрытых смен ещё нет');
   clearTimeout(tTimer);if(!section.hidden)tTimer=setTimeout(()=>tbank(),30000);
  }
+ // «Считать с»: pick the start by hand (e.g. the first T-Bank payment of the shift in Gizmo).
+ const local=d=>{const m=new Date(new Date(d).getTime()+3*3600e3);return m.toISOString().slice(0,16)};
+ T('tbank-start-open').onclick=()=>{const f=T('tbank-start');f.hidden=!f.hidden;if(!f.hidden){T('tbank-start-at').value=local(Date.now());T('tbank-start-at').focus()}};
+ T('tbank-start-at').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.target.blur()}});
+ T('tbank-start').onsubmit=async e=>{e.preventDefault();const v=T('tbank-start-at').value;if(!v)return;
+  const r=await invoke('set_tbank_start',shiftId,v+':00+03:00');
+  if(r?.ok){T('tbank-start').hidden=true;setDeskText(T('tbank-message'),'Пересчитали с '+v.replace('T',' '));tbank(true)}else setDeskText(T('tbank-message'),r?.error||'Нет ответа')};
  T('tbank-close').onclick=e=>armTap(e.currentTarget,'Точно закрыть?',async()=>{
   const b=T('tbank-close');b.disabled=true;setDeskText(T('tbank-message'),'Считаем итог…');
   const r=await invoke('close_tbank_shift',shiftId,true);b.disabled=false;

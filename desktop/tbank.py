@@ -90,6 +90,25 @@ class TBankShift:
             self.cache, self.cache_at = result, time.time()
             return {**result, 'history': history[:30]}
 
+    def set_start(self, shift_id, start):
+        """«Считать с»: when nobody pressed «Закрыть смену», the admin finds the first T-Bank payment in Gizmo and
+        sets the start to its date and time; the counter recounts from there. Our counter only, Gizmo is not touched."""
+        at = _date(start)
+        now = datetime.now(MSK)
+        if not at:
+            return {'error': 'Укажите дату и время'}
+        if at > now:
+            return {'error': 'Время ещё не наступило'}
+        if now - at > timedelta(days=7):
+            return {'error': 'Можно считать максимум за 7 дней'}
+        with self.lock:
+            st = self.state()
+            if shift_id != st['id']:
+                return {'error': 'Смена изменилась. Обновите страницу'}
+            self.store.set('tbank-shift', {'id': st['id'], 'start': at.isoformat(), 'manual': True})
+            self.cache = None
+        return {'ok': True}
+
     def close(self, shift_id, confirmed=False):
         """Our counter only: saves the totals and starts a new count. Nothing is sent to Gizmo."""
         if confirmed is not True:

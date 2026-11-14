@@ -262,6 +262,10 @@ class App:
         """«ТБанк за смену»: read-only count from Gizmo's transaction log since our own shift started."""
         try:return self.tbank.status(fresh is True)
         except Exception:return {'error':'Счётчик ТБанка недоступен'}
+    def set_tbank_start(self,shift_id,start):
+        """«Считать с»: move our counter's start to a chosen date and time (our counter only)."""
+        try:return self.tbank.set_start(shift_id,start)
+        except Exception:return {'error':'Не удалось изменить начало'}
     def close_tbank_shift(self,shift_id,confirmed=False):
         """Our T-Bank counter only: never closes the shift in Gizmo."""
         try:return self.tbank.close(shift_id,confirmed)

@@ -265,6 +265,8 @@ def compute(raw):
               for uid, days in visits.items() if days]
     guests.sort(key=lambda g: -g['hours'])
     guests = guests[:3000]  # the server keeps a report up to 500 KB
+    # The same guests with nicknames, for the «Гости» tab on this PC only.
+    local['guests'] = [dict(g, nick=nick(g['id'])) for g in guests]
     return {
         'at': now.isoformat(), 'months': rows, 'guests': guests, 'summary': summary, 'facts': facts,
         'heat': [[heat[(wd, h)] for h in range(24)] for wd in range(7)],

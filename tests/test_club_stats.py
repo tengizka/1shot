@@ -68,6 +68,8 @@ class RevenueTests(ClubStatsTests):
         pub = public(compute(self.raw()))
         self.assertEqual({g['id'] for g in pub['guests']}, {1, 2, 3})
         self.assertNotIn('username', str(pub['guests']))
+        self.assertEqual(compute(self.raw())['local']['guests'][0]['nick'], 'old')
+        self.assertNotIn('nick', str(pub))
 
 
 if __name__ == '__main__':

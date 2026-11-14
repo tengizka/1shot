@@ -526,3 +526,24 @@ nav .exit span{white-space:normal}
 .tbank-ops summary{cursor:pointer;color:var(--muted);font:700 9px var(--text);letter-spacing:.08em;text-transform:uppercase}
 .tbank-ops[open] summary{margin-bottom:8px}
 .stats-club-head{margin-top:14px;padding-top:18px;border-top:2px solid var(--rule)}
+.tbank-actions{display:flex;gap:6px}
+#tbank-start-open{background:transparent}
+.tbank-start{display:grid;grid-template-columns:minmax(0,260px) auto;gap:8px;align-items:end;padding:12px;border:2px dashed var(--rule)}
+.tbank-start .note{grid-column:1/-1}
+.tbank-start button{background:var(--lime);border-color:var(--lime);color:#000;justify-self:start;padding:0 22px}
+
+/* Statistics tabs, guests table */
+.stat-tabs{display:flex;gap:4px;border-bottom:2px solid var(--rule);margin-bottom:14px}
+.stat-tabs button{border:0;border-bottom:3px solid transparent;background:transparent;color:var(--muted);padding:10px 14px;margin-bottom:-2px;font:700 10px var(--text);letter-spacing:.08em;text-transform:uppercase}
+.stat-tabs button[aria-selected="true"]{color:#fff;border-bottom-color:var(--lime)}
+.stat-pane{display:flex;flex-direction:column;gap:14px}
+.guest-tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.guest-tools input{flex:1;min-width:220px}
+.guest-tools .chips{display:flex;gap:4px;flex-wrap:wrap}
+.guest-tools .chips button{min-height:30px;font-size:9px}
+.guest-tools .chips button[aria-pressed="true"]{background:var(--lime);border-color:var(--lime);color:#000}
+.guest-table{display:grid;grid-template-columns:minmax(0,1.6fr) repeat(5,minmax(0,1fr));border:2px solid var(--rule);background:rgba(0,0,0,.86)}
+.guest-table span{padding:9px 12px;border-bottom:1px solid var(--rule);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.guest-table span.head{font:700 7.5px var(--text);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);position:sticky;top:0;background:#000}
+.nick-link{border:0;background:none;padding:0;min-height:0;color:var(--lime);font:700 12px var(--text);text-transform:none;letter-spacing:0;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.nick-link:hover{color:#fff}

@@ -61,6 +61,16 @@ class TBankTests(unittest.TestCase):
         self.assertEqual(s['history'][0]['sum'], 500.0)
         self.assertIn(('report', 'tbank_shifts'), self.cloud.reports)
 
+    def test_start_can_be_set_to_the_first_payment(self):
+        self.gizmo.rows = [op(30, 500), op(90, 700), op(200, 900)]
+        start = (datetime.now(MSK) - timedelta(minutes=100)).strftime('%Y-%m-%dT%H:%M')
+        self.assertEqual(self.t.set_start('s1', start), {'ok': True})
+        s = self.t.status(True)
+        self.assertEqual((s['count'], s['sum'], s['id']), (2, 1200.0, 's1'))
+        self.assertIn('error', self.t.set_start('s1', (datetime.now(MSK) + timedelta(hours=1)).isoformat()))
+        self.assertIn('error', self.t.set_start('s1', (datetime.now(MSK) - timedelta(days=9)).isoformat()))
+        self.assertIn('error', self.t.set_start('old', start))
+
     def test_never_writes_to_gizmo(self):
         # «Закрыть смену» is our counter only: Gizmo is read, never written, and its shift is never closed.
         self.gizmo.rows = [op(10, 500)]
