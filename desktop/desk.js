@@ -76,6 +76,12 @@ function makeBookingCard(){
  const seat=document.createElement('button');seat.type='button';seat.className='btn-seat';seat.textContent='Посадить';seat.setAttribute('aria-label','Гость пришёл / Посадить за ПК');seat.title='Гость пришёл — посадить за ПК';actions.append(seat);
  seat.onclick=async()=>{
   const b=card.booking;
+  if(arrivedMode(b)){
+   seat.disabled=true;card.classList.add('leaving');
+   const r=await invoke('guest_arrived',b.id);seat.disabled=false;
+   if(r?.ok)window.deskFlash?.('Гость пришёл · '+hostName(b.host_id)+' разблокирован');else{card.classList.remove('leaving');setDeskText(copyStatus,r?.error||'Нет ответа от сервера')}
+   return;
+  }
   if(b.gizmo_user_id&&b.gizmo_user_id>0){
    setDeskText(copyStatus,'Выполняем посадку за ПК…');
    const res=await invoke('seat_guest',b.id,b.host_id,b.gizmo_user_id);
@@ -84,6 +90,17 @@ function makeBookingCard(){
   else{panel('accounts');$('account-search').focus();setDeskText(copyStatus,'Бронь без аккаунта. Выберите аккаунт гостя для посадки за ПК '+b.host_id)}
  };
  fields.seat=seat;
+ // A note on the booking (who called, what they asked for): written now or later, saved on the server.
+ const noteBtn=document.createElement('button');noteBtn.type='button';noteBtn.className='btn-note';noteBtn.textContent='Заметка';actions.append(noteBtn);
+ const noteText=el(card,'note','p','booking-note');
+ const noteEdit=document.createElement('div');noteEdit.className='booking-note-edit';noteEdit.hidden=true;
+ const noteInput=document.createElement('textarea');noteInput.maxLength=300;noteInput.rows=2;noteInput.placeholder='Например: придут втроём, нужен руль';noteInput.setAttribute('enterkeyhint','done');
+ const noteSave=document.createElement('button');noteSave.type='button';noteSave.className='btn-note-save';noteSave.textContent='Сохранить';
+ noteEdit.append(noteInput,noteSave);card.insertBefore(noteEdit,actions);card.insertBefore(noteText,noteEdit);
+ noteInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();noteInput.blur()}});
+ noteBtn.onclick=()=>{noteEdit.hidden=!noteEdit.hidden;if(!noteEdit.hidden){noteInput.value=card.booking.admin_note||'';noteInput.focus()}};
+ noteSave.onclick=async()=>{noteSave.disabled=true;const text=noteInput.value.trim();const r=await invoke('booking_note',card.booking.id,text);noteSave.disabled=false;
+  if(r?.ok){card.booking.admin_note=text;setDeskText(noteText,text);noteText.hidden=!text;noteEdit.hidden=true;}else setDeskText(copyStatus,r?.error||'Заметка не сохранилась')};
  const copy=document.createElement('button');copy.type='button';copy.className='icon-btn';copy.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="8" y="8" width="13" height="13"/><path d="M16 8V3H3v13h5"/></svg>';copy.setAttribute('aria-label','Копировать номер брони');copy.title='Копировать номер брони';actions.append(copy);
  const cancel=document.createElement('button');cancel.type='button';cancel.className='btn-cancel';cancel.textContent='Отменить';cancel.setAttribute('aria-label','Отменить бронь');actions.append(cancel);
  const copyStatus=el(card,'copyStatus','p','note');copyStatus.setAttribute('role','status');copy.onclick=()=>copyDeskText(card.booking.id,copyStatus);
@@ -96,11 +113,15 @@ function makeBookingCard(){
   setDeskText(fields.time,clubArrivalLabel(b.starts_at)+' → '+(b.duration_kind==='open'?'как пойдёт':fmt(b.ends_at)));
   if(!details.dataset.loaded)guestInfo([[b.first_name,b.last_name].filter(Boolean).join(' '),b.username,b.mobile_phone,b.gizmo_user_id,b.telegram_id]);
   fields.codeLabel.hidden=fields.code.hidden=!b.code;setDeskText(fields.code,b.code);setDeskText(fields.message,b.message||'');setDeskText(fields.id,'Бронь '+b.id);
-  fields.seat.hidden=!['holding','requested','waiting','checkin_pending'].includes(b.status)||b.host_id==='1';
+  const arrive=arrivedMode(b);setDeskText(fields.seat,arrive?'Гость пришёл':'Посадить');fields.seat.title=arrive?'Гость пришёл: бронь закрывается, ПК разблокируется':'Гость пришёл — посадить за ПК';fields.seat.setAttribute('aria-label',fields.seat.title);
+  fields.seat.hidden=!(arrive?['holding','requested','waiting','attention']:['holding','requested','waiting','checkin_pending']).includes(b.status)||b.host_id==='1';
+  setDeskText(fields.note,b.admin_note||'');fields.note.hidden=!b.admin_note;noteBtn.classList.toggle('has-note',!!b.admin_note);
   cancel.hidden=!['requested','waiting','holding','attention','checkin_pending','release_requested','in_session'].includes(b.status);
  };
  return card;
 }
+// A booking the admin made for a guest who phoned (no Gizmo account): the guest just comes, nobody is logged in.
+function arrivedMode(b){return !!b.admin_created&&!b.instant&&!(b.gizmo_user_id>0)}
 // Company bookings: admin bookings with the same start and name are shown as one block.
 const groupKey=b=>b.admin_created&&b.guest_name?b.starts_at+'|'+b.guest_name:null;
 function makeGroup(key){
@@ -131,6 +152,14 @@ function bookings(s){
  }
  for(const [k,cards] of members){const g=groups.get(k),b=cards[0].booking;setDeskText(g.querySelector('h3'),b.guest_name);setDeskText(g.querySelector('.time'),clubArrivalLabel(b.starts_at));setDeskText(g.querySelector('.group-pcs'),cards.length+' ПК · '+cards.map(c=>c.booking.host_id).join(' · '));reconcileDeskChildren(g.querySelector('.group-body'),cards)}
  if(!nodes.length){const empty=grid.querySelector('.empty')||document.createElement('div');empty.className='empty';setDeskText(empty,'Броней пока нет');nodes.push(empty)}
+ else{
+  // Two lists: guests who booked in the mini-app, and bookings the admin made (phone calls, companies).
+  const fromAdmin=n=>n.classList.contains('booking-group')||!!n.booking?.admin_created;
+  const head=(key,label,count)=>{const h=grid.querySelector(`.booking-section[data-key="${key}"]`)||Object.assign(document.createElement('h3'),{className:'booking-section'});h.dataset.key=key;setDeskText(h,label+' · '+count);return h};
+  const app=nodes.filter(n=>!fromAdmin(n)),admin=nodes.filter(fromAdmin);
+  const adminCount=rows.filter(b=>b.admin_created).length;
+  nodes.splice(0,nodes.length,...(app.length?[head('app','Из мини-аппа',app.length),...app]:[]),...(admin.length?[head('admin','От админа',adminCount),...admin]:[]));
+ }
  reconcileDeskChildren(grid,nodes);markSelected();
 }
 
