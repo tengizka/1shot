@@ -29,13 +29,13 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   const hm=t=>new Date(t).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'});
   assert.equal(await page.locator('.occupied-free').innerText(),'Освободится примерно в '+hm(freeAt));
   if(process.env.SHOTS)await page.screenshot({path:process.env.SHOTS+'/busy.png'});
-  // A fixed-time booking burned out when the player stayed longer: the busy PC offers only the queue booking.
+  // A fixed-time booking burned out when the player stayed longer: the busy PC offers no booking at all.
   assert.equal(await page.locator('.occupied-after').isVisible(),false,'no «Забронировать на …»');
-  await page.evaluate(()=>window.joinQueue=()=>{});await page.locator('#occupied-dialog .btn-main').click();await page.waitForTimeout(300);
+  await page.locator('#occupied-dialog .btn-main').click();await page.waitForTimeout(300);
   await page.locator('[data-hid="13"]').click();await page.waitForSelector('#occupied-dialog[open]');
-  assert.match(await page.locator('.occupied-queue').innerText(),/как освободится/i);
+  assert.equal(await page.locator('.occupied-queue').count(),0,'no queue: a busy PC is just busy');
   if(process.env.SHOTS){await page.waitForTimeout(900);await page.screenshot({path:process.env.SHOTS+'/busy-queue.png'})}
   assert.deepEqual(errors,[]);
-  console.log('Book-after PASS: busy PC shows when it frees and offers «Забронировать, как освободится»; «надолго» without a time.');
+  console.log('Book-after PASS: busy PC shows when it frees and has no queue; «надолго» without a time.');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});
