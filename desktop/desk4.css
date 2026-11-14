@@ -1,0 +1,165 @@
+/* 1SHOT Desk 4 · the calm control room.
+   A layer over desk3.css: same markup and logic, new look. Soft dark surfaces instead of 2px frames, rounded
+   corners, Onest for reading, ReSquare / Unbounded only for headings and big numbers, lime only for actions and
+   «ours», pink only for problems, hall zones in their own colours. The hall plan itself keeps its layout. */
+:root{
+ --bg:#0A0A0A;--surface:#121211;--surface-2:#191918;--surface-3:#232321;--line:#232321;
+ --ink:#F4F4EF;--ink-2:#A3A39B;--ink-3:#6F6F68;
+ --r-s:10px;--r-m:14px;--r-l:18px;
+ --read:'Onest','Unbounded',sans-serif;
+ --bar:44px;--nav:100px;
+}
+html,body{background:var(--bg);color:var(--ink);font:500 13px/1.45 var(--read)}
+#matrix-rain{display:none}
+
+/* Window bar: logo left, status as quiet pills */
+.window-bar{background:var(--bg);border-bottom:1px solid var(--line);padding-left:16px}
+.status-chips span{height:28px;padding:0 12px;border:0;border-radius:999px;background:var(--surface);font:600 11px var(--read);letter-spacing:0;color:var(--ink-2)}
+.status-chips .offline{background:#3A1426;color:#FFD6EA}
+#clock-chip{color:var(--ink);font:700 12px var(--read)}
+
+/* Sidebar: the 1SHOT logo on top, rounded tiles, lime for the open section */
+nav{background:#0F0F0E;border-right:0;padding:18px 10px 12px;gap:6px}
+.brand-logo{width:64px;margin:0 auto 18px}
+.tab,nav .exit{border:0;border-radius:var(--r-m);padding:11px 4px;gap:6px;color:var(--ink-2);font:600 10.5px var(--read);letter-spacing:0;text-transform:none}
+.tab:hover{color:var(--ink);background:var(--surface)}
+.tab.active,.tab.active:hover{background:var(--lime);color:#0A0A0A}
+.tab b{border-radius:999px;font:700 10px var(--read);top:5px;right:7px}
+.tab svg,nav .exit svg{stroke-linecap:round;stroke-linejoin:round}
+nav .exit:hover{background:#3A1426;color:#FF8CC6}
+.build-credit{font:500 9px var(--read);letter-spacing:0;color:var(--ink-3)}
+
+/* Pages */
+main>section{padding:22px 26px}
+h2{font:800 24px var(--display);letter-spacing:-.01em}
+h3{font:700 14px var(--display)}
+.page-head{margin-bottom:18px}
+.note,.dim{font:500 12px/1.5 var(--read);color:var(--ink-2)}
+.surface{background:var(--surface);border:0;border-radius:var(--r-l);padding:18px;gap:14px}
+label{font:600 12px var(--read);letter-spacing:0;text-transform:none;color:var(--ink-2)}
+label.check{font:600 13px var(--read);color:var(--ink)}
+
+/* Controls: rounded, readable, one lime primary */
+/* :where keeps these at element weight; the hall plan's PC buttons are left exactly as they were */
+button:where(:not(#desk-map *)){min-height:38px;padding:0 16px;border-radius:var(--r-s);border:0;background:var(--surface-3);color:var(--ink);font:700 12px var(--read);letter-spacing:0;text-transform:none}
+button:where(:not(#desk-map *)):hover:not(:disabled){background:#2E2E2B}
+button:disabled{opacity:.45}
+#add-booking,.btn-seat,#find-user>button,#reset-user>button,#manual-submit,#login-submit,.sound-settings .actions button,#update-check,#update-run,#stats-refresh,.note-form button,#desk-reg-open,#desk-reg-submit,.tbank-start button,.menu-primary{background:var(--lime);color:#0A0A0A;border:0}
+#add-booking:hover,.btn-seat:hover,#desk-reg-submit:hover:not(:disabled),.menu-primary:hover{background:#B8FF4D}
+.btn-cancel,.danger,.note-del,#tbank-close{background:transparent;color:#FF8CC6;border:0;box-shadow:inset 0 0 0 2px #4A1A31}
+.btn-cancel:hover,.danger:hover,.note-del:hover,#tbank-close:hover{background:#3A1426!important}
+input,select,textarea{min-height:42px;padding:0 14px;border-radius:var(--r-m);border:2px solid transparent;background:var(--surface-2);color:var(--ink);font:500 14px var(--read)}
+textarea{padding:10px 14px}
+input:focus,select:focus,textarea:focus{border-color:var(--lime)}
+input::placeholder,textarea::placeholder{color:var(--ink-3)}
+.chips button[aria-pressed="true"],.stat-chips button[aria-pressed="true"],.guest-tools .chips button[aria-pressed="true"]{background:var(--ink);color:#0A0A0A}
+.chips button,.guest-tools .chips button,.stat-chips button{min-height:36px;font:700 12px var(--read)}
+#desk-reg .chips button{min-height:46px;padding:0 18px;font:700 13px var(--read)}
+#desk-reg .chips[data-group="code"] button[aria-pressed="true"]{background:var(--lime)}
+
+/* Hall: the board loses its frame, the plan inside stays exactly as it was */
+.hall-board{background:transparent;border:0;padding:0;gap:14px}
+#hall-summary{font:600 13px var(--read);letter-spacing:0;text-transform:none;color:var(--ink-2)}
+.legend{font:500 12px var(--read);color:var(--ink-3);gap:16px}
+
+/* Bookings column */
+.booking-column{gap:12px}
+.section-heading h2{font:800 22px var(--display)}
+.section-heading h2 .dim{font:700 16px var(--read)}
+#add-booking{min-height:40px;border-radius:var(--r-m);padding:0 16px}
+#grid{gap:8px}
+#grid .card{background:var(--surface);border:0;border-radius:var(--r-l);padding:14px 14px 14px 18px;gap:8px;overflow:hidden}
+#grid .card::before{border-radius:0}
+#grid .card h2{font:800 18px var(--display)}
+#grid .card .tag{border-radius:6px;font:700 10px var(--read);letter-spacing:0;text-transform:none;padding:3px 8px}
+#grid .card .time{font:600 12px var(--read);color:var(--ink-2)}
+#grid .card .guest{font:600 14px var(--read)}
+.status-pill{font:700 11px var(--read);letter-spacing:0;text-transform:none}
+#grid .card .actions button{min-height:34px;font-size:12px}
+.icon-btn{min-height:34px;padding:0 10px}
+#grid .empty{border:0;border-radius:var(--r-l);background:var(--surface);color:var(--ink-3)}
+.guest-details summary{font:700 12px var(--read);letter-spacing:0;text-transform:none}
+
+/* Company bookings: one compact block — name, time, the PCs as chips, one row per PC */
+.booking-group{border:0;border-radius:var(--r-l);background:var(--surface);box-shadow:inset 0 0 0 2px rgba(163,255,16,.55);padding:14px;gap:10px}
+.group-head .tag{border-radius:6px;font:700 10px var(--read);letter-spacing:0;text-transform:none}
+.group-head h3{font:800 16px var(--display)}
+.group-head .time{font:600 12px var(--read);color:var(--ink-2)}
+.group-pcs{display:none}
+.group-body{display:flex;flex-direction:column;gap:4px}
+.group-body .card{display:grid!important;grid-template-columns:76px minmax(0,1fr) auto;align-items:center;background:var(--surface-2)!important;border-radius:var(--r-m)!important;padding:6px 6px 6px 12px!important;gap:10px!important;animation:none!important}
+.group-body .card::before{display:none}
+.group-body .card .card-top{flex:none;display:flex;align-items:center}
+.group-body .card h2{font:800 14px var(--display)!important}
+.group-body .card .tag,.group-body .card .time,.group-body .card .guest,.group-body .card .code-label,.group-body .card .code,.group-body .card .dim,.group-body .card .note,.group-body .card .guest-details,.group-body .card .icon-btn,.group-body .card .booking-id{display:none!important}
+.group-body .card .card-mid{flex:1;min-width:0}
+.group-body .card .status-pill{font:600 11px var(--read);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.group-body .card .actions{display:flex;flex-wrap:nowrap;gap:4px;margin:0}
+.group-body .card .note{display:none!important}
+.group-body .card .actions button{min-height:28px;padding:0 8px;font-size:11px}
+.group-body .card .btn-cancel{width:32px!important;padding:0!important;font-size:0!important}
+.group-body .card .btn-cancel::before{content:"×";font:700 16px var(--read)}
+.booking-group>.actions{justify-content:flex-end}
+
+/* Host menu next to a PC */
+.host-menu{border:0;border-radius:var(--r-l);background:#161615;box-shadow:0 20px 50px rgba(0,0,0,.6)}
+.menu-tile{border:0;border-radius:var(--r-m);background:var(--surface-3);font:700 12px var(--read);letter-spacing:0;text-transform:none}
+.menu-group span{border-radius:6px;font:700 11px var(--read)}
+.menu-slots button{border-radius:var(--r-s);font:700 13px var(--read)}
+.menu-slots button[aria-pressed="true"]{background:var(--lime);color:#0A0A0A}
+
+/* Tables and lists */
+.stat-table span.head,.guest-table span.head,.dossier-table span.first{font:600 11px var(--read);letter-spacing:0;text-transform:none}
+.guest-table,.sales-table{border:0;border-radius:var(--r-l);background:var(--surface)}
+.guest-table span{border-bottom-color:var(--line);font:500 13px var(--read)}
+.guest-table span.head{background:var(--surface)}
+.nick-link{font:700 13px var(--read)}
+
+/* Tiles and blocks across pages */
+.stat-tile,.dossier-tile,.tbank-numbers div{border:0;border-radius:var(--r-l);background:var(--surface)}
+.stat-tile small,.dossier-tile small,.tbank-numbers small,.info-row small{font:600 11px var(--read);letter-spacing:0;text-transform:none;color:var(--ink-2)}
+.stat-tile b,.dossier-tile b{font:800 22px var(--text)}
+.stat-tile.accent,.dossier-tile.accent{box-shadow:inset 0 0 0 2px var(--lime)}
+.stat-tabs{border-bottom:1px solid var(--line)}
+.stat-tabs button{background:transparent;border-radius:0;font:700 13px var(--read);letter-spacing:0;text-transform:none;padding:12px 16px}
+.stat-tabs button:hover{background:transparent;color:var(--ink)}
+.info-row{border:0;border-radius:var(--r-m);background:var(--surface-2)}
+.info-row b{font:700 14px var(--read)}
+
+/* ТБанк: the big lime plate on top of «Статистика» */
+.tbank{background:var(--lime);color:#0A0A0A;border:0;border-radius:24px;padding:22px 24px}
+.tbank h3,.tbank .note,.tbank .tbank-safe,.tbank summary{color:#0A0A0A}
+.tbank .note{opacity:.75}
+.tbank-numbers div{background:rgba(10,10,10,.08)}
+.tbank-numbers small{color:rgba(10,10,10,.7)}
+.tbank-numbers b,.tbank-numbers div+div b{font:800 40px var(--text);color:#0A0A0A}
+#tbank-start-open{background:rgba(10,10,10,.12);color:#0A0A0A}
+#tbank-close{background:#0A0A0A;color:var(--lime);box-shadow:none}
+#tbank-close:hover{background:#000!important}
+.tbank-start{border:0;border-radius:var(--r-m);background:rgba(10,10,10,.08)}
+.tbank-start input{background:#0A0A0A}
+.tbank-start button{background:#0A0A0A;color:var(--lime)}
+.tbank .stat-table span{border-bottom-color:rgba(10,10,10,.15);color:#0A0A0A}
+.tbank .stat-table span.first{color:rgba(10,10,10,.7)}
+.stats-club-head{border-top:0;padding-top:6px}
+
+/* Registration */
+.desk-reg{border:0!important;border-radius:var(--r-l)!important}
+#desk-reg input{min-height:52px;font:600 16px var(--read)}
+.registration-sub{font:700 14px var(--display);color:var(--ink-2)}
+
+/* Notes, rentals, settings */
+.note-item,.rental-card,.reset-request,.test-row{border:0!important;border-radius:var(--r-l);background:var(--surface)}
+.note-check{border-radius:8px}
+.settings-tabs{border-radius:var(--r-m);background:var(--surface);padding:4px}
+.settings-tabs button{border-radius:var(--r-s);font:700 12px var(--read);letter-spacing:0;text-transform:none}
+.settings-tabs button[aria-selected="true"]{background:var(--ink);color:#0A0A0A}
+.history-toggle{border:0;background:var(--surface);border-radius:999px;font:700 12px var(--read);letter-spacing:0;text-transform:none}
+.account-empty{border:0;border-radius:var(--r-l);background:var(--surface)}
+.account-option{border:0;border-radius:var(--r-m);background:var(--surface-2)}
+.account-option strong{font:700 14px var(--read)}
+.dossier-live{border-radius:var(--r-m);font:700 13px var(--read)}
+.dossier-notes p{border-left:0;border-radius:var(--r-m);background:var(--surface-2)}
+#desk-flash{border-radius:var(--r-m);font:700 13px var(--read)}
+.desk-reg-label{font:600 12px var(--read)!important;letter-spacing:0!important;text-transform:none!important;color:var(--ink-2)!important}
+#desk-flash{text-transform:none;letter-spacing:0}
