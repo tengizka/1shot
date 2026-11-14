@@ -32,7 +32,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
    document.addEventListener('DOMContentLoaded',()=>dispatchEvent(new Event('pywebviewready')));
   });
   await desk.route('**/*',r=>{const u=new URL(r.request().url()),file='desktop/'+(u.pathname==='/'?'index.html':u.pathname.slice(1));if(u.host==='desk.test'&&fs.existsSync(file))return r.fulfill({contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.woff2')?'font/woff2':'text/html',body:fs.readFileSync(file)});return r.abort()});
-  await desk.goto('https://desk.test');await desk.waitForSelector('#desk-splash',{state:'detached'});await desk.locator('[data-panel="accounts"]').click();await desk.locator('#password-requests button').first().click();
+  await desk.goto('https://desk.test');await desk.waitForSelector('#desk-splash',{state:'detached'});await desk.locator('.group-tab[data-group="guests"]').click();await desk.locator('section:not([hidden]) .subnav button[data-page="accounts"]').click();await desk.locator('#password-requests button').first().click();
   assert.equal(await desk.locator('#new-password').isVisible(),false);assert.equal(await desk.locator('#new-password').isDisabled(),true);await desk.locator('#identity-checked').check();await desk.locator('#reset-user button').click();assert.equal(await desk.evaluate(()=>authorizations.length),0);
   await desk.locator('#privileged-checked').check();await desk.locator('#reset-user button').click();assert.deepEqual(await desk.evaluate(()=>authorizations[0]),['password_request','request-a',7,'operator',true,true]);
   await desk.evaluate(async()=>{grants[0].status='attention';await refresh()});await desk.getByRole('button',{name:'Проверить доступ владельца'}).click();

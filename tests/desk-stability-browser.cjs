@@ -27,7 +27,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   assert.equal(await page.evaluate(()=>getSelection().toString()),'ПК 11');assert.match(await first.getAttribute('class'),/attention/);
   await first.getByRole('button',{name:'Копировать телефон'}).click();await first.getByRole('button',{name:'Копировать номер брони'}).click();assert.deepEqual(await page.evaluate(()=>copied),['+79990000001','a']);
   await page.evaluate(()=>{window.failCopy=true;document.execCommand=()=>false});await first.getByRole('button',{name:'Копировать номер брони'}).click();assert.match(await first.innerText(),/Ctrl\+C/);
-  await page.locator('[data-panel="accounts"]').click();await page.locator('#account-search').fill('Иванова');await page.waitForSelector('#account-options button');
+  await page.locator('.group-tab[data-group="guests"]').click();await page.locator('section:not([hidden]) .subnav button[data-page="accounts"]').click();await page.locator('#account-search').fill('Иванова');await page.waitForSelector('#account-options button');
   await page.evaluate(()=>{const input=document.querySelector('#account-search');input.focus();input.setSelectionRange(2,5);window.option=document.querySelector('#account-options button')});
   await page.evaluate(async()=>{state.rows[1].status='waiting';state.password_requests.push({id:'reset-b',gizmo_user_id:8,telegram_id:101});await refresh()});
   assert.deepEqual(await page.evaluate(()=>{const input=document.querySelector('#account-search');return [document.activeElement===input,input.value,input.selectionStart,input.selectionEnd,option===document.querySelector('#account-options button')]}),[true,'Иванова',2,5,true]);
@@ -37,7 +37,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   await page.waitForFunction(()=>document.querySelector('[data-request-id="reset-a"]').textContent.includes('Тестовая ошибка'));
   await page.evaluate(async()=>{state.rows=state.rows.filter(b=>b.id!=='b');state.password_requests=state.password_requests.filter(r=>r.id!=='reset-b');await refresh()});
   assert.equal(await page.locator('[data-booking-id="b"]').count(),0);assert.equal(await page.locator('[data-request-id="reset-b"]').count(),0);
-  await page.locator('[data-panel="hall"]').click();await first.getByRole('button',{name:'Отменить бронь',exact:true}).click();await first.getByRole('button',{name:'Отменить бронь',exact:true}).click();assert.deepEqual(await page.evaluate(()=>calls.filter(c=>c[0]==='cancel')),[['cancel','a']]);
+  await page.locator('.group-tab[data-group="hall"]').click();await page.locator('section:not([hidden]) .subnav button[data-page="hall"]').click();await first.getByRole('button',{name:'Отменить бронь',exact:true}).click();await first.getByRole('button',{name:'Отменить бронь',exact:true}).click();assert.deepEqual(await page.evaluate(()=>calls.filter(c=>c[0]==='cancel')),[['cancel','a']]);
   assert.equal(await first.locator('h2').evaluate(e=>getComputedStyle(e).userSelect),'text');
   assert.deepEqual(errors,[]);console.log('Desk stability PASS: stable cards/hosts, no unchanged-card mutations, details/selection/caret/search preserved, keyed request queue, copy success/failure, cancellation identity.');
  }finally{await browser.close()}

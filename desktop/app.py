@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from .engine import Controller,Store
 from .accounts import Accounts
+from .recent import RecentPayers
 from .registration_approval import RegistrationApproval
 from .guest_passwords import GuestPasswords
 from .food import Food
@@ -60,6 +61,7 @@ class App:
         self.club_stats=ClubStats(self.gizmo,self.cloud,self.store)
         from .tbank import TBankShift
         self.tbank=TBankShift(self.gizmo,self.cloud,self.store)
+        self.recent=RecentPayers(self.gizmo,self.accounts.directory)
         self.registration=RegistrationApproval(self.cloud,self.gizmo,self.store,self.controller.guard)
         self.guest_passwords=GuestPasswords(self.cloud,self.gizmo,self.store,self.controller.guard)
         self.food=Food(self.cloud,self.gizmo,self.store,lambda:{r['host_id']:r['gizmo_host_id'] for r in self.host_rows},rentals=types.SimpleNamespace(add=lambda *a:self._locked(lambda:self.rentals.add(*a))))
@@ -258,10 +260,18 @@ class App:
     def club_stats_state(self):
         """«Статистика»: the last collected club statistics (kept on this PC) and whether a new count is running."""
         return self.club_stats.snapshot()
+    def recent_payers(self):
+        """«Недавно пополнялись»: up to 3 guests who paid in Gizmo lately and are not playing yet."""
+        try:return {'users':self.recent.list()}
+        except Exception:return {'users':[]}
     def tbank_status(self,fresh=False):
         """«ТБанк за смену»: read-only count from Gizmo's transaction log since our own shift started."""
         try:return self.tbank.status(fresh is True)
         except Exception:return {'error':'Счётчик ТБанка недоступен'}
+    def set_tbank_start(self,shift_id,start):
+        """«Считать с»: move our counter's start to a chosen date and time (our counter only)."""
+        try:return self.tbank.set_start(shift_id,start)
+        except Exception:return {'error':'Не удалось изменить начало'}
     def close_tbank_shift(self,shift_id,confirmed=False):
         """Our T-Bank counter only: never closes the shift in Gizmo."""
         try:return self.tbank.close(shift_id,confirmed)
@@ -524,6 +534,8 @@ class App:
         # SMM dashboard: hourly per-code totals from Gizmo (numbers only, no guest data).
         self.smm_error=''
         threading.Thread(target=self.club_stats.loop,args=(self.stop,),daemon=True).start()
+        from .tbank import feed_loop
+        threading.Thread(target=feed_loop,args=(self.stop,self.gizmo,self.cloud),kwargs={'online':lambda:self.online},daemon=True).start()
         threading.Thread(target=smm_stats.loop,args=(self.stop,self.cloud,self.gizmo),kwargs={'online':lambda:self.online,'report':lambda e:setattr(self,'smm_error',e)},daemon=True).start()
 
 def main():

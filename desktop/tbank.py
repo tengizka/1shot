@@ -90,6 +90,25 @@ class TBankShift:
             self.cache, self.cache_at = result, time.time()
             return {**result, 'history': history[:30]}
 
+    def set_start(self, shift_id, start):
+        """«Считать с»: when nobody pressed «Закрыть смену», the admin finds the first T-Bank payment in Gizmo and
+        sets the start to its date and time; the counter recounts from there. Our counter only, Gizmo is not touched."""
+        at = _date(start)
+        now = datetime.now(MSK)
+        if not at:
+            return {'error': 'Укажите дату и время'}
+        if at > now:
+            return {'error': 'Время ещё не наступило'}
+        if now - at > timedelta(days=7):
+            return {'error': 'Можно считать максимум за 7 дней'}
+        with self.lock:
+            st = self.state()
+            if shift_id != st['id']:
+                return {'error': 'Смена изменилась. Обновите страницу'}
+            self.store.set('tbank-shift', {'id': st['id'], 'start': at.isoformat(), 'manual': True})
+            self.cache = None
+        return {'ok': True}
+
     def close(self, shift_id, confirmed=False):
         """Our counter only: saves the totals and starts a new count. Nothing is sent to Gizmo."""
         if confirmed is not True:
@@ -114,3 +133,54 @@ class TBankShift:
         except Exception:
             pass  # The history lives on this PC; the server copy is only for the owner's reports.
         return {'ok': True, 'closed': record}
+
+
+def kind(row):
+    """How the money came: tbank / cash / card / deposit (paid from money already in) / points / other."""
+    if is_tbank(row):
+        return 'tbank'
+    m = str(row.get('paymentMethodName') or '').casefold()
+    for k, words in (('deposit', ('депозит', 'deposit')), ('points', ('балл', 'бонус', 'point', 'bonus')),
+                     ('cash', ('нал', 'cash')), ('card', ('карт', 'card', 'сбп', 'qr', 'терминал'))):
+        if any(w in m for w in words):
+            return k
+    return 'other'
+
+
+def feed(gizmo, now=None, hours=26):
+    """The last day of money and play for the shift reports in the bot: amounts with how they were paid, and session
+    starts by Gizmo account number. No names, nicknames, phones or staff names leave the club."""
+    now = now or datetime.now(MSK)
+    start = now - timedelta(hours=hours)
+    span = {'DateFrom': (start - timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%S'), 'DateTo': (now + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%S')}
+    money = []
+    report = gizmo.request('GET', 'reports/transactionslog', params=span, timeout=(3, 60))
+    for r in (report.get('transactions') if isinstance(report, dict) else report) or []:
+        at = _date(r.get('transactionDate') or r.get('invoiceDate')) if isinstance(r, dict) else None
+        value = r.get('total', r.get('value')) if at else None
+        if at and at >= start and isinstance(value, (int, float)) and not isinstance(value, bool):
+            title = str(r.get('title') or '').casefold()
+            money.append({'at': at.isoformat(), 'amount': round(float(value), 2), 'kind': kind(r),
+                          'topup': any(w in title for w in ('депозит', 'пополн', 'deposit'))})
+    plays = []
+    report = gizmo.request('GET', 'reports/sessionslog', params=span, timeout=(3, 60))
+    for s in (report.get('sessions') if isinstance(report, dict) else report) or []:
+        at = _date(s.get('startTime')) if isinstance(s, dict) else None
+        if at and at >= start:
+            plays.append({'at': at.isoformat(), 'user': s.get('userId') if not s.get('userIsGuest') else None,
+                          'minutes': round(float(s.get('totalMinutes') or 0))})
+    return {'at': now.isoformat(), 'from': start.isoformat(), 'money': money[:3000], 'sessions': plays[:3000]}
+
+
+def feed_loop(stop, gizmo, cloud, online=lambda: True, every=300):
+    """Every 5 minutes: the shift feed to the server (club_desk_reports, kind «shift_feed»). Read-only in Gizmo."""
+    if stop.wait(20):
+        return
+    while True:
+        if online():
+            try:
+                cloud.desk('report', kind='shift_feed', data=feed(gizmo))
+            except Exception:
+                pass  # The next round tries again; the bot says when the feed is stale.
+        if stop.wait(every):
+            return

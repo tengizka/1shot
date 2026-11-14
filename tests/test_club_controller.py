@@ -44,6 +44,10 @@ class TestClubController(unittest.TestCase):
   self.now+=4000;self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'expired');self.assertEqual(self.gizmo.locks,[])
  def test_ps5_never_logs_in(self):
   self.cloud.b.update(host_id='1',status='checkin_pending');self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'attention');self.assertEqual(self.gizmo.logins,[])
+ def test_ps5_direct_login_from_desk(self):
+  self.gizmo.h.update(id=60,number=1);self.cloud.b.update(host_id='1',protocol=2,instant=True)
+  self.ctrl.tick();self.assertEqual(self.gizmo.logins,[(7,60)]);self.assertEqual(self.gizmo.locks,[])
+  self.gizmo.active=[{'hostId':60,'userId':7}];self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'in_session')
  def test_future_does_not_lock(self):
   self.cloud.b.update(starts_at=iso(NOW+7201),hold_until=iso(NOW+9000));self.ctrl.tick();self.assertEqual(self.gizmo.locks,[]);self.assertEqual(self.cloud.b['status'],'requested')
  def test_locked_two_hours_ahead(self):
