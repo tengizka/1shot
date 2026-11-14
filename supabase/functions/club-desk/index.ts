@@ -102,6 +102,14 @@ Deno.serve(async req=>{
    const {data,error}=await client.rpc('club_admin_booking',{p_worker:b.worker_id,p_mode:b.mode,p_host:b.host_id,p_start:b.starts_at||null,p_guest:b.guest_name||'',p_request:b.request_id,p_uid:b.gizmo_user_id||null,p_booking:b.booking_id||null});if(error)throw error;
    return json({ok:true,booking_id:data});
   }
+  if(b.action==='arrived'){
+   const {data,error}=await client.rpc('club_admin_arrived',{p_worker:b.worker_id,p_id:b.id});if(error)throw error;
+   return data?json({ok:true}):json({error:'Бронь уже изменилась'},409);
+  }
+  if(b.action==='booking_note'){
+   const {data,error}=await client.rpc('club_admin_booking_note',{p_worker:b.worker_id,p_id:b.id,p_note:String(b.note??'').slice(0,300)});if(error)throw error;
+   return data?json({ok:true}):json({error:'Бронь уже завершена'},409);
+  }
   if(b.action==='cancel'){
    const {data,error}=await client.rpc('club_admin_cancel',{p_worker:b.worker_id,p_id:b.id});if(error)throw error;
    return data?json({ok:true}):json({error:'Бронь нельзя отменить в текущем состоянии. Сессии не прерываем'},409);
