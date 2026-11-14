@@ -171,6 +171,58 @@ async function today(){
    `<i>Гостей без промокода сервер не видит, они только в Gizmo. Тестовые аккаунты не считаются.</i>`;
  }catch{return '\n\n🆕 Сегодня: не получилось собрать.'}
 }
+// Shift reports to the owner at 09:00 (night shift 21→9) and 21:00 (day shift 9→21), Moscow time. pg_cron calls
+// GET ?shift=1; each shift is sent once (its key is kept in club_desk_reports), so a repeated call sends nothing.
+// Money and play come from Desk's shift feed (Gizmo is reachable only in the club); bookings, promo guests and the bot
+// from the database. Test accounts, testers and the admins' own bookings stay out.
+const rub=(v:number)=>Math.round(v).toLocaleString('ru-RU')+' ₽';
+function shiftWindow(now=new Date()){
+ const msk=new Date(now.getTime()+3*3600e3);let h=msk.getUTCHours()>=21?21:msk.getUTCHours()>=9?9:-3;
+ const end=new Date(Date.UTC(msk.getUTCFullYear(),msk.getUTCMonth(),msk.getUTCDate(),h)-3*3600e3);
+ return {start:new Date(end.getTime()-12*3600e3),end,night:h===9};
+}
+const mskTime=(d:Date,withDay=false)=>d.toLocaleString('ru-RU',{timeZone:'Europe/Moscow',...(withDay?{day:'2-digit',month:'2-digit'}:{}),hour:'2-digit',minute:'2-digit'});
+async function shiftReport(force=false){
+ const w=shiftWindow();const key=w.end.toISOString();
+ const [sent]=await db('club_desk_reports?kind=eq.shift_report_sent&select=data');
+ if(!force&&sent?.data?.key===key)return {ok:true,skipped:'already_sent',key};
+ const iso=(d:Date)=>d.toISOString(),inWin=(t:string)=>{const d=new Date(t);return d>=w.start&&d<w.end};
+ const [tests,testers,admins]=await Promise.all([db('club_test_removed?select=gizmo_user_id'),db('club_promo_testers?select=telegram_id'),db('smm_bot_admins?select=telegram_id')]);
+ const testIds=new Set(tests.map((r:{gizmo_user_id:number})=>r.gizmo_user_id)),testerIds=new Set(testers.map((r:{telegram_id:number})=>r.telegram_id)),adminIds=new Set(admins.map((r:{telegram_id:number})=>r.telegram_id));
+ const span=`created_at=gte.${iso(w.start)}&created_at=lt.${iso(w.end)}`;
+ const regs=(await db(`club_promo_redemptions?${span}&status=eq.done&select=gizmo_user_id,code,reward,telegram_id`) as {gizmo_user_id:number,code:string,reward:string|null,telegram_id:number|null}[])
+  .filter(r=>!testIds.has(r.gizmo_user_id)&&!(r.telegram_id&&testerIds.has(r.telegram_id)));
+ const books=(await db(`club_bookings?${span}&admin_created=is.false&select=status,telegram_id`) as {status:string,telegram_id:number}[])
+  .filter(b=>!adminIds.has(b.telegram_id)&&!testerIds.has(b.telegram_id));
+ const bot=(await db(`club_bot_users?first_seen=gte.${iso(w.start)}&first_seen=lt.${iso(w.end)}&select=telegram_id`)).length;
+ const [fr]=await db('club_desk_reports?kind=eq.shift_feed&select=data,updated_at');
+ const feed=fr?.data as {at:string,from:string,money:{at:string,amount:number,kind:string,topup:boolean}[],sessions:{at:string,user:number|null,minutes:number}[]}|undefined;
+ const title=`${w.night?'🌙 <b>Ночная смена</b>':'☀️ <b>Дневная смена</b>'}\n<i>${mskTime(w.start,true)} → ${mskTime(w.end,true)} МСК</i>\n\n`;
+ let money='',play='';
+ if(feed&&new Date(feed.at).getTime()>w.end.getTime()-20*60e3){
+  const m=feed.money.filter(x=>inWin(x.at)),sum=(k:string)=>m.filter(x=>x.kind===k).reduce((a,x)=>a+x.amount,0),cnt=(k:string)=>m.filter(x=>x.kind===k).length;
+  const live=m.filter(x=>!['deposit','points'].includes(x.kind));const total=live.reduce((a,x)=>a+x.amount,0);
+  const topups=live.filter(x=>x.topup).reduce((a,x)=>a+x.amount,0);
+  money=`💳 <b>ТБанк:</b> ${rub(sum('tbank'))} · ${cnt('tbank')} опер.\n`+
+   `💵 Наличные: ${rub(sum('cash'))}`+(sum('card')?` · 🏧 карта: ${rub(sum('card'))}`:'')+(sum('other')?` · другое: ${rub(sum('other'))}`:'')+`\n`+
+   `💰 <b>Всего пришло:</b> ${rub(total)}`+(topups?` (из них пополнения ${rub(topups)})`:'')+`\n`+
+   `🔄 Потрачено с депозита: ${rub(sum('deposit'))}\n\n`;
+  const s=feed.sessions.filter(x=>inWin(x.at)),guests=new Set(s.filter(x=>x.user).map(x=>x.user)).size,hours=s.reduce((a,x)=>a+x.minutes,0)/60;
+  play=`🎮 <b>Гостей за ПК:</b> ${guests} · сессий ${s.length} · ${Math.round(hours)}h\n`;
+ }else{
+  money=`⚠️ <b>Деньги и сессии:</b> Desk не присылал данные`+(feed?` с ${mskTime(new Date(feed.at),true)}`:'')+`. Проверь, что Desk запущен и обновлён.\n\n`;
+ }
+ const codes:{[k:string]:number}={};regs.forEach(r=>codes[r.code]=(codes[r.code]||0)+1);
+ const came=books.filter(b=>['in_session','completed'].includes(b.status)).length,off=books.filter(b=>['cancelled','expired'].includes(b.status)).length;
+ const text=title+money+play+
+  `🧾 Новые гости с промокодом: ${regs.length}`+(regs.length?` (${Object.entries(codes).map(([c,n])=>c+' '+n).join(', ')}) · час выдан ${regs.filter(r=>r.reward==='granted').length} из ${regs.length}`:'')+`\n`+
+  `📱 Брони из приложения: ${books.length}`+(books.length?` · пришли ${came}, отменили ${off}`:'')+`\n`+
+  `💬 Новые в боте: ${bot}`;
+ // The mark goes first: a second call that starts meanwhile finds it and sends nothing.
+ if(!force)await rest('club_desk_reports',{method:'POST',headers:{prefer:'resolution=merge-duplicates'},body:JSON.stringify({kind:'shift_report_sent',data:{key},updated_at:new Date().toISOString()})});
+ let delivered=0;for(const a of admins){const r=await tg('sendMessage',{chat_id:a.telegram_id,text,parse_mode:'HTML'});if(r?.ok)delivered++}
+ return {ok:true,key,delivered};
+}
 // /smmnew: the next queued post (tg_photo set, not sent yet) as it will look in the channel: picture, caption with our
 // custom emoji and the mini-app button. Below it «Опубликовать в канал» posts the same thing to CHANNEL (the bot must be
 // a channel admin). Once a post has been sent here it leaves the queue; the /smmnew menu entry shows only while the
@@ -185,7 +237,7 @@ const queue=async()=>(await db('smm_posts?tg_photo=not.is.null&sent_at=is.null&o
 async function smmCommands(){
  const pending=(await queue()).length>0;
  for(const a of await db('smm_bot_admins?select=telegram_id')){
-  const commands=[{command:'start',description:'Открыть 1SHOT'},{command:'app',description:'Приложение для Android'},{command:'smm',description:'Готовые посты'},{command:'stats',description:'Статистика'}];
+  const commands=[{command:'start',description:'Открыть 1SHOT'},{command:'app',description:'Приложение для Android'},{command:'smm',description:'Готовые посты'},{command:'stats',description:'Статистика'},{command:'shift',description:'Отчёт за прошлую смену'}];
   if(pending)commands.push({command:'smmnew',description:'Новый пост для канала'});
   await tg('setMyCommands',{commands,scope:{type:'chat',chat_id:a.telegram_id}});
  }
@@ -248,6 +300,7 @@ Deno.serve(async req=>{
    short:await tg('setMyShortDescription',{short_description:'Компьютерный клуб 1SHOT · Мытищи · 24/7'}),
   });
  }
+ if(req.method==='GET'&&url.searchParams.get('shift')==='1')return ok(await shiftReport());
  if(req.method==='GET'&&url.searchParams.get('smmcmd')==='1')return ok({pending:await smmCommands()});
  if(req.method==='GET'&&url.searchParams.get('emojis')==='1')return ok(await emojis());
  // Starts the approved post (see broadcast()); without an approved, unstarted row it does nothing.
@@ -293,6 +346,7 @@ Deno.serve(async req=>{
   const text=String(msg.text||'').trim();
   await seen(msg.chat.id);
   if(/^\/stats(@\w+)?$/i.test(text)&&await isSmm(Number(msg.from?.id))){await stats(msg.chat.id);return ok({ok:true})}
+  if(/^\/shift(@\w+)?$/i.test(text)&&await isSmm(Number(msg.from?.id))){await shiftReport(true);return ok({ok:true})}
   if(text==='/broadcast'&&await isSmm(Number(msg.from?.id))){await previewPost(msg.chat.id);return ok({ok:true})}
   if(/^\/smmnew(@\w+)?$/i.test(text)&&await isSmm(Number(msg.from?.id))){await smmNew(msg.chat.id);return ok({ok:true})}
   if(/^\/smm(@\w+)?$/i.test(text)&&await isSmm(Number(msg.from?.id))){await smmMenu(msg.chat.id);return ok({ok:true})}
