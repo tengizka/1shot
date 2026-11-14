@@ -56,6 +56,8 @@ class App:
         self.controller.stopping=self.stop.is_set
         self.bridge.guard=self.controller.guard
         self.accounts=Accounts(self.gizmo,self.cloud,self.store,self.controller.guard)
+        from .club_stats import ClubStats
+        self.club_stats=ClubStats(self.gizmo,self.cloud,self.store)
         self.registration=RegistrationApproval(self.cloud,self.gizmo,self.store,self.controller.guard)
         self.guest_passwords=GuestPasswords(self.cloud,self.gizmo,self.store,self.controller.guard)
         self.food=Food(self.cloud,self.gizmo,self.store,lambda:{r['host_id']:r['gizmo_host_id'] for r in self.host_rows},rentals=types.SimpleNamespace(add=lambda *a:self._locked(lambda:self.rentals.add(*a))))
@@ -251,6 +253,11 @@ class App:
     def select_account(self,id):
         try:return {'user':self.accounts.directory.get(int(id),fresh=True)}
         except Exception:return {'error':'Аккаунт недоступен. Повторите поиск'}
+    def club_stats_state(self):
+        """«Статистика»: the last collected club statistics (kept on this PC) and whether a new count is running."""
+        return self.club_stats.snapshot()
+    def refresh_club_stats(self):
+        return self.club_stats.refresh()
     def notes(self):
         return {'notes':self.store.get('desk-notes',[])}
     def save_note(self,id,text,done=None):
@@ -506,6 +513,7 @@ class App:
         threading.Thread(target=self.work,daemon=True).start();threading.Thread(target=self.sync_loop,daemon=True).start();threading.Thread(target=self.food_loop,daemon=True).start()
         # SMM dashboard: hourly per-code totals from Gizmo (numbers only, no guest data).
         self.smm_error=''
+        threading.Thread(target=self.club_stats.loop,args=(self.stop,),daemon=True).start()
         threading.Thread(target=smm_stats.loop,args=(self.stop,self.cloud,self.gizmo),kwargs={'online':lambda:self.online,'report':lambda e:setattr(self,'smm_error',e)},daemon=True).start()
 
 def main():
