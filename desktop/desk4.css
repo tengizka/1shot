@@ -40,7 +40,7 @@ label{font:600 12px var(--read);letter-spacing:0;text-transform:none;color:var(-
 label.check{font:600 13px var(--read);color:var(--ink)}
 
 /* Controls: rounded, readable, one lime primary */
-/* :where keeps these at element weight; the hall plan's PC buttons are left exactly as they were */
+/* :where keeps these at element weight; the hall plan's PC buttons keep their own sizes and colours */
 button:where(:not(#desk-map *)){min-height:38px;padding:0 16px;border-radius:var(--r-s);border:0;background:var(--surface-3);color:var(--ink);font:700 12px var(--read);letter-spacing:0;text-transform:none}
 button:where(:not(#desk-map *)):hover:not(:disabled){background:#2E2E2B}
 button:disabled{opacity:.45}
@@ -163,3 +163,25 @@ input::placeholder,textarea::placeholder{color:var(--ink-3)}
 #desk-flash{border-radius:var(--r-m);font:700 13px var(--read)}
 .desk-reg-label{font:600 12px var(--read)!important;letter-spacing:0!important;text-transform:none!important;color:var(--ink-2)!important}
 #desk-flash{text-transform:none;letter-spacing:0}
+
+/* Hall plan: same layout, Desk 4 shapes — rounded zone frames and PC tiles */
+.plan-zone{border-radius:16px;border-color:#2A2A27}
+.plan-zone span{font:700 8px var(--read);letter-spacing:.06em;left:12px;top:8px}
+.desk-pc{border-radius:8px}
+.desk-ps5{border-radius:16px}
+.miniapp-booking{border-radius:50%;left:-3px;top:-3px}
+.booking-lock{border-radius:5px}
+.queue-mark{border-radius:5px}
+
+/* Desk 4 menu: four sections; the pages of a section are tabs on top of the page */
+nav .tab.grouped-tab{display:none!important}
+nav .settings-tab{margin-top:auto}
+nav .exit{margin-top:0}
+.group-tab{padding:14px 4px}
+.group-tab svg{width:24px;height:24px}
+.subnav{display:flex;gap:4px;padding:4px;margin:0 0 18px;border-radius:var(--r-m);background:var(--surface);align-self:flex-start;width:max-content;max-width:100%}
+.subnav button{min-height:36px;padding:0 18px;border-radius:var(--r-s);background:transparent;color:var(--ink-2);font:700 13px var(--read)}
+.subnav button:hover:not(:disabled){background:var(--surface-2);color:var(--ink)}
+.subnav button[aria-selected="true"],.subnav button[aria-selected="true"]:hover{background:var(--ink);color:#0A0A0A}
+#panel-hall{grid-template-rows:auto minmax(0,1fr)}
+#panel-hall>.subnav{grid-column:1/-1;margin-bottom:0}

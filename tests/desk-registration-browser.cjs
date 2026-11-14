@@ -15,7 +15,7 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
    document.addEventListener('DOMContentLoaded',()=>dispatchEvent(new Event('pywebviewready')));
   });
   await page.route('**/*',r=>{const url=new URL(r.request().url());const file='desktop/'+(url.pathname==='/'?'index.html':url.pathname.slice(1));if(url.host==='desk.test'&&fs.existsSync(file))return r.fulfill({contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.woff2')?'font/woff2':'text/html',body:fs.readFileSync(file)});return r.abort()});
-  await page.goto('https://desk.test');await page.waitForSelector('#desk-splash',{state:'detached'});await page.locator('[data-panel="registrations"]').click();
+  await page.goto('https://desk.test');await page.waitForSelector('#desk-splash',{state:'detached'});await page.locator('.group-tab[data-group="guests"]').click();await page.locator('section:not([hidden]) .subnav button[data-page="registrations"]').click();
 
   // Newest application first, dated, searchable by phone digits written the Russian way.
   const titles=()=>page.locator('.registration-list .card h3').allTextContents();
