@@ -241,3 +241,19 @@ button:where(:not(#desk-map *)):active:not(:disabled){transform:scale(.97)}
 .recent-payers>small{font:600 11px var(--read);color:#8F8F86;letter-spacing:.02em;margin:2px 0 2px 2px}
 .recent-payer{border-color:rgba(163,255,16,.25)!important}
 .recent-payer strong{color:#A3FF10}
+#host-menu .menu-hint{margin:0 0 10px;padding:10px 12px;border-radius:12px;background:rgba(255,138,31,.1);color:#FFC48F;font:500 12px/1.4 var(--read)}
+
+/* Bookings: two lists (mini-app / admin), notes on a booking */
+#grid .booking-section{grid-column:1/-1;margin:8px 2px 0;font:700 11px var(--read);letter-spacing:.06em;text-transform:uppercase;color:#8F8F86}
+#grid .booking-section:first-child{margin-top:0}
+#grid .booking-section[data-key="app"]{color:#A3FF10}
+#grid .booking-note{margin:2px 0 0;padding:8px 10px;border-radius:10px;background:#1B1B1A;color:#E6E6DF;font:500 12px/1.4 var(--read);white-space:pre-wrap;overflow-wrap:anywhere}
+#grid .booking-note::before{content:"Заметка · ";color:#8F8F86}
+#grid .booking-note-edit{display:flex;gap:6px;align-items:flex-end}
+#grid .booking-note-edit[hidden]{display:none}
+#grid .booking-note-edit textarea{flex:1;min-width:0;resize:none;padding:8px 10px;border-radius:10px;border:1px solid #2A2A27;background:#121211;color:#F4F4EF;font:500 12px/1.4 var(--read)}
+#grid .booking-note-edit textarea:focus{outline:none;border-color:#A3FF10}
+#grid .booking-note-edit button{height:34px;padding:0 12px;border-radius:10px;font:700 12px var(--read)}
+#grid .btn-note{background:#1E1E1C;color:#F4F4EF;border:0}
+#grid .btn-note.has-note{color:#A3FF10}
+#grid .booking-note-edit .btn-note-save{background:#A3FF10;color:#0A0A0A;border:0}

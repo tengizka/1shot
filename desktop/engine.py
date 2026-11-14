@@ -153,10 +153,14 @@ class Controller:
         if self.settled_in_club(b,record,now):return
         if b['status']=='attention':return  # Anything not settled above still needs a person.
         if b['status']=='release_requested':
-            if not b.get('for_friend'):raise UnsafeOperation('Разблокировка без входа разрешена только для друга')
+            arrived=b.get('admin_created') and not b.get('gizmo_user_id')
+            if not b.get('for_friend') and not arrived:raise UnsafeOperation('Разблокировка без входа разрешена только для друга')
+            if arrived and not record:
+                # «Гость пришёл» before our lock was set: nothing to unlock, the booking simply ends.
+                self.transition(b,'completed','Гость пришёл');return
             h=self.fresh_host(b)
             if not record or record.get('phase')!='released':self.release(b,record,h)
-            self.transition(b,'completed','ПК разблокирован. Друг входит в свой аккаунт с компьютера')
+            self.transition(b,'completed','Гость пришёл, ПК разблокирован' if arrived else 'ПК разблокирован. Друг входит в свой аккаунт с компьютера')
             return
         due=now>=timestamp(b['starts_at'])
         expired=now>=timestamp(b['hold_until'])

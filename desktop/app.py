@@ -319,6 +319,20 @@ class App:
             failed=[{'host':h,'error':e or (r or {}).get('error') or 'нет ответа'} for h,r,e in results if e or not (r or {}).get('ok')]
             return {'ok':not failed,'created':len(hosts)-len(failed),'failed':failed}
         except Exception as error:return {'error':str(error)}
+    def guest_arrived(self,id):
+        """«Гость пришёл» on an admin booking (made by phone): the booking ends and Desk unlocks the PC."""
+        try:
+            with self.operations:
+                self.cloud.snapshot(self.store.get('event_cursor',0))
+                return self.now(self.cloud.desk('arrived',id=str(id)))
+        except Exception as error:return {'error':str(error)}
+    def booking_note(self,id,note):
+        """A note on a booking: who called, what they asked for. Editable until the booking ends."""
+        try:
+            if not isinstance(note,str) or len(note)>300:raise ValueError('Заметка до 300 символов')
+            with self.operations:
+                return self.cloud.desk('booking_note',id=str(id),note=note)
+        except Exception as error:return {'error':str(error)}
     def cancel_bookings(self,ids):
         """«Отменить всех»: every booking of the group in one go."""
         try:

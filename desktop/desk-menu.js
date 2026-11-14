@@ -37,11 +37,13 @@
   const rows=[['Ник',info.username],['Имя',[info.first_name,info.last_name].filter(Boolean).join(' ')],['Телефон',info.phone],['Баланс',Number.isFinite(info.balance)?info.balance.toLocaleString('ru-RU',{maximumFractionDigits:2})+' ₽':''],['Осталось',duration(info.available_time)],['В игре',duration(info.span)],['Группа',info.group],['Gizmo ID',info.user_id]].filter(r=>r[1]!==''&&r[1]!=null);
   return `<div class="menu-info">${rows.map(([k,v])=>`<button type="button" class="info-row" data-copy="${esc(v)}"><small>${esc(k)}</small><b>${esc(v)}</b></button>`).join('')}</div>`;
  }
+ // A booking ahead can go on a busy PC too: Desk locks it once the guest playing now leaves.
+ const bookable=id=>id!=='1'&&['free','busy'].includes(statusOf(id));
  function render(){
   if(!host)return;const st=statusOf(host),booking=activeBooking(host);let html='';
   if(view==='main'){
    html=header();
-   if(st==='busy')html+=infoRows()+`<div class="menu-tiles">${tile('rent','Аренда')}${info&&info.user_id?tile('logout','Выйти','danger'):''}</div>`;
+   if(st==='busy')html+=infoRows()+`<div class="menu-tiles">${tile('book','Бронь')}${tile('rent','Аренда')}${info&&info.user_id?tile('logout','Выйти','danger'):''}</div>`;
    else if(host==='1'){if(st==='free')html+=`<div class="menu-tiles">${tile('login','Вход')}</div>`}
    else{
     const tiles=[];
@@ -52,18 +54,19 @@
    }
   }else if(view==='multi'){
    // Several PCs picked: block / unblock them together or book them for one guest.
-   const free=group.filter(id=>statusOf(id)==='free'&&id!=='1'),locked=group.filter(id=>statusOf(id)==='reserved'&&!activeBooking(id));
+   const free=group.filter(id=>bookable(id)),locked=group.filter(id=>statusOf(id)==='reserved'&&!activeBooking(id));
    html=header('Выбрано · '+group.length+' ПК')+`<p class="menu-group">${group.map(id=>`<span>${esc(id)}</span>`).join('')}</p>`;
-   const tiles=[];if(free.length)tiles.push(tile('book','Бронь'),tile('lock','Блок'));if(locked.length)tiles.push(tile('unlock','Разблок'));
+   const tiles=[];if(free.length)tiles.push(tile('book','Бронь'));if(group.some(id=>statusOf(id)==='free'&&id!=='1'))tiles.push(tile('lock','Блок'));if(locked.length)tiles.push(tile('unlock','Разблок'));
    html+=tiles.length?`<div class="menu-tiles">${tiles.join('')}</div>`:'<p class="menu-loading">Среди выбранных нет свободных ПК</p>';
   }else if(view==='login'){
    html=header('Вход · '+hostName(host),true)+`<input id="menu-login-search" placeholder="Ник, телефон или имя" autocomplete="off" maxlength="80"><div id="menu-login-options" class="account-options menu-options"></div>`;
   }else if(view==='book'||view==='group'){
-   const isGroup=view==='group',free=isGroup?group.filter(id=>statusOf(id)==='free'&&id!=='1'):[host];
+   const isGroup=view==='group',free=isGroup?group.filter(id=>bookable(id)):[host];
    const times=slotTimes();if(!times.some(t=>t===slot))slot=times[0];let day='';
    const cells=times.map(t=>{const d=new Date(t+3*3600000),label=d.toISOString().slice(11,16),key=d.toISOString().slice(0,10);let head='';if(key!==day){head=`<span class="slot-day">${day?'Завтра':'Сегодня'}</span>`;day=key}return head+`<button type="button" data-at="${t}" aria-pressed="${t===slot}">${label}</button>`}).join('');
    html=header(isGroup?'Бронь · '+free.length+' ПК':'Бронь · '+hostName(host),true)
-    +(isGroup?`<p class="menu-group">${free.map(id=>`<span>${esc(id)}</span>`).join('')}${free.length<group.length?`<small>занятые ПК пропущены</small>`:''}</p>`:'')
+    +(isGroup?`<p class="menu-group">${free.map(id=>`<span>${esc(id)}</span>`).join('')}${free.length<group.length?`<small>ПК с бронью или в ремонте пропущены</small>`:''}</p>`:'')
+    +(free.some(id=>statusOf(id)==='busy')?`<p class="menu-hint">Сейчас за ПК играют. Desk заблокирует его, когда гость выйдет</p>`:'')
     +`<div class="menu-slots">${cells}</div><input id="menu-book-name" maxlength="60" placeholder="На кого бронь" autocomplete="off" enterkeyhint="done"><button type="button" class="menu-primary" data-action="book-go" ${free.length?'':'disabled'}>Забронировать${isGroup?' '+free.length+' ПК':''} · <span id="menu-book-at"></span></button>`;
   }else if(view==='rent'){
    const items=current?.rental_items||{};
@@ -128,7 +131,7 @@
   if(action==='book-go'){
    const at=bookStart();if(!at)return;working=true;t.disabled=true;if(!requestId){requestId=crypto.randomUUID();groupReq={}}
    const iso=new Date(at.getTime()+3*3600000).toISOString().slice(0,16)+':00+03:00',name=$('menu-book-name').value.trim();
-   const targets=view==='group'?group.filter(id=>statusOf(id)==='free'&&id!=='1'):[host];
+   const targets=view==='group'?group.filter(id=>bookable(id)):[host];
    // Several PCs go to Desk in one call (sent side by side); each PC keeps its own request id, so a retry never doubles.
    let failed=[];
    if(targets.length>1){targets.forEach(id=>groupReq[id] ||= crypto.randomUUID());const r=await invoke('create_group_booking',targets,iso,name||'Гость',groupReq);failed=r?.failed?.map(f=>hostName(f.host)+': '+f.error)||(r?.ok?[]:[r?.error||'нет ответа'])}

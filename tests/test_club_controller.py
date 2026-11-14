@@ -48,6 +48,12 @@ class TestClubController(unittest.TestCase):
   self.gizmo.h.update(id=60,number=1);self.cloud.b.update(host_id='1',protocol=2,instant=True)
   self.ctrl.tick();self.assertEqual(self.gizmo.logins,[(7,60)]);self.assertEqual(self.gizmo.locks,[])
   self.gizmo.active=[{'hostId':60,'userId':7}];self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'in_session')
+ def test_admin_booking_guest_arrived_unlocks(self):
+  self.cloud.b.update(admin_created=True,gizmo_user_id=None);self.ctrl.tick();self.assertEqual(self.cloud.b['status'],'holding');self.assertEqual(self.gizmo.locks,[True])
+  self.cloud.b['status']='release_requested';self.ctrl.tick();self.assertEqual(self.gizmo.locks,[True,False]);self.assertEqual(self.cloud.b['status'],'completed')
+ def test_admin_booking_arrived_before_lock_just_ends(self):
+  self.cloud.b.update(admin_created=True,gizmo_user_id=None,status='release_requested',starts_at=iso(NOW+9000),hold_until=iso(NOW+9900))
+  self.ctrl.tick();self.assertEqual(self.gizmo.locks,[]);self.assertEqual(self.cloud.b['status'],'completed')
  def test_future_does_not_lock(self):
   self.cloud.b.update(starts_at=iso(NOW+7201),hold_until=iso(NOW+9000));self.ctrl.tick();self.assertEqual(self.gizmo.locks,[]);self.assertEqual(self.cloud.b['status'],'requested')
  def test_locked_two_hours_ahead(self):
