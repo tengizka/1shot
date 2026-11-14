@@ -512,3 +512,17 @@ nav .exit span{white-space:normal}
 .stat-top li{display:list-item}.stat-top li span{display:inline-block;max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
 .stat-top li b{float:right;color:var(--lime)}
 @media (max-width:1100px){.stat-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}.stat-two,.stat-three{grid-template-columns:1fr}}
+
+/* ТБанк за смену: the admin's counter on top of «Статистика» */
+.tbank{border-color:var(--lime)}
+.tbank-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+#tbank-close{border-color:var(--pink);color:var(--pink);background:transparent}
+.tbank-numbers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.tbank-numbers div{display:flex;flex-direction:column;gap:4px;padding:14px;border:2px solid var(--rule)}
+.tbank-numbers small{font:700 7.5px var(--text);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.tbank-numbers b{font:700 30px var(--text);color:var(--lime)}
+.tbank-numbers div+div b{color:#fff}
+.tbank-safe{color:#e6e6e6}
+.tbank-ops summary{cursor:pointer;color:var(--muted);font:700 9px var(--text);letter-spacing:.08em;text-transform:uppercase}
+.tbank-ops[open] summary{margin-bottom:8px}
+.stats-club-head{margin-top:14px;padding-top:18px;border-top:2px solid var(--rule)}

@@ -58,6 +58,8 @@ class App:
         self.accounts=Accounts(self.gizmo,self.cloud,self.store,self.controller.guard)
         from .club_stats import ClubStats
         self.club_stats=ClubStats(self.gizmo,self.cloud,self.store)
+        from .tbank import TBankShift
+        self.tbank=TBankShift(self.gizmo,self.cloud,self.store)
         self.registration=RegistrationApproval(self.cloud,self.gizmo,self.store,self.controller.guard)
         self.guest_passwords=GuestPasswords(self.cloud,self.gizmo,self.store,self.controller.guard)
         self.food=Food(self.cloud,self.gizmo,self.store,lambda:{r['host_id']:r['gizmo_host_id'] for r in self.host_rows},rentals=types.SimpleNamespace(add=lambda *a:self._locked(lambda:self.rentals.add(*a))))
@@ -256,6 +258,14 @@ class App:
     def club_stats_state(self):
         """«Статистика»: the last collected club statistics (kept on this PC) and whether a new count is running."""
         return self.club_stats.snapshot()
+    def tbank_status(self,fresh=False):
+        """«ТБанк за смену»: read-only count from Gizmo's transaction log since our own shift started."""
+        try:return self.tbank.status(fresh is True)
+        except Exception:return {'error':'Счётчик ТБанка недоступен'}
+    def close_tbank_shift(self,shift_id,confirmed=False):
+        """Our T-Bank counter only: never closes the shift in Gizmo."""
+        try:return self.tbank.close(shift_id,confirmed)
+        except Exception:return {'error':'Не удалось закрыть смену счётчика'}
     def refresh_club_stats(self):
         return self.club_stats.refresh()
     def notes(self):

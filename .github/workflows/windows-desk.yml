@@ -60,7 +60,7 @@ jobs:
       - name: Test account safety and shutdown
         run: python -m unittest discover -s tests -p test_desk_accounts.py
       - name: Test one-shot notifications, sounds and rentals
-        run: python -m unittest tests.test_notifications tests.test_rentals tests.test_club_stats
+        run: python -m unittest tests.test_notifications tests.test_rentals tests.test_club_stats tests.test_tbank
       - name: Test economical polling and cache safety
         run: python -m unittest discover -s tests -p test_economy.py
       - name: Test staff directory and password boundaries

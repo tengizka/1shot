@@ -5,7 +5,17 @@
  tab.onclick=()=>{panel('stats');load()};
  document.querySelector('nav').insertBefore(tab,document.querySelector('nav [data-panel="notes"]')||document.querySelector('nav [data-panel="sound"]'));
  const section=document.createElement('section');section.id='panel-stats';section.hidden=true;
- section.innerHTML=`<div class="page-head"><div><h2>Статистика</h2><p class="note" id="stats-at"></p></div><button type="button" id="stats-refresh">Обновить</button></div>
+ section.innerHTML=`<div class="page-head"><h2>Статистика</h2></div>
+  <section class="surface tbank" id="tbank">
+   <div class="tbank-head"><div><h3>ТБанк за смену</h3><p class="note" id="tbank-since"></p></div>
+    <button type="button" id="tbank-close">Закрыть смену</button></div>
+   <div class="tbank-numbers"><div><small>Пришло через ТБанк</small><b id="tbank-sum">—</b></div><div><small>Операций</small><b id="tbank-count">—</b></div></div>
+   <p class="note tbank-safe">Кнопка только обнуляет этот счётчик в Desk. Смена в Gizmo не закрывается и вообще не трогается.</p>
+   <p class="note" id="tbank-message" role="status"></p>
+   <details class="tbank-ops"><summary>Операции этой смены</summary><div id="tbank-ops"></div></details>
+   <details class="tbank-ops"><summary>Прошлые смены</summary><div id="tbank-history"></div></details>
+  </section>
+  <div class="page-head stats-club-head"><div><h2>Статистика клуба</h2><p class="note" id="stats-at"></p></div><button type="button" id="stats-refresh">Обновить</button></div>
   <p class="note" id="stats-message" role="status"></p><div id="stats-body" class="stats-body"></div>`;
  document.querySelector('main').append(section);
  const body=section.querySelector('#stats-body'),msg=section.querySelector('#stats-message'),at=section.querySelector('#stats-at'),btn=section.querySelector('#stats-refresh');
@@ -74,4 +84,32 @@
   clearTimeout(timer);if(r.busy&&!section.hidden)timer=setTimeout(load,4000);
  }
  btn.onclick=async()=>{btn.disabled=true;await invoke('refresh_club_stats');load()};
+
+ // ТБанк: recounted from Gizmo's log every 30 s while the tab is open; «Закрыть смену» takes two taps.
+ const T=id=>section.querySelector('#'+id);
+ const when=v=>new Date(v).toLocaleString('ru-RU',{timeZone:'Europe/Moscow',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+ const clock=v=>new Date(v).toLocaleTimeString('ru-RU',{timeZone:'Europe/Moscow',hour:'2-digit',minute:'2-digit'});
+ let shiftId=null,tTimer=null;
+ function rowsInto(box,items,cells,empty){
+  box.replaceChildren();if(!items.length){box.append(el('p','note',empty));return}
+  const t=el('div','stat-table');t.style.setProperty('--cols',cells.length);
+  for(const it of items)cells.forEach((c,i)=>t.append(el('span',i?null:'first',c(it))));box.append(t);
+ }
+ async function tbank(fresh=false){
+  const r=await invoke('tbank_status',fresh);if(!r)return;
+  shiftId=r.id||null;
+  setDeskText(T('tbank-since'),r.start?'С '+when(r.start):'');
+  setDeskText(T('tbank-sum'),r.sum==null?'—':rub(r.sum));setDeskText(T('tbank-count'),r.count==null?'—':num(r.count));
+  setDeskText(T('tbank-message'),r.error||'');
+  rowsInto(T('tbank-ops'),r.operations||[],[o=>clock(o.at),o=>o.title||'—',o=>rub(o.amount),o=>o.operator||''],'Пока ни одной операции через ТБанк');
+  rowsInto(T('tbank-history'),r.history||[],[h=>when(h.start)+' → '+clock(h.end),h=>num(h.count)+' опер.',h=>rub(h.sum)],'Закрытых смен ещё нет');
+  clearTimeout(tTimer);if(!section.hidden)tTimer=setTimeout(()=>tbank(),30000);
+ }
+ T('tbank-close').onclick=e=>armTap(e.currentTarget,'Точно закрыть?',async()=>{
+  const b=T('tbank-close');b.disabled=true;setDeskText(T('tbank-message'),'Считаем итог…');
+  const r=await invoke('close_tbank_shift',shiftId,true);b.disabled=false;
+  if(r?.ok){const c=r.closed;window.deskFlash?.('Смена закрыта: '+rub(c.sum));setDeskText(T('tbank-message'),`Итог смены: ${rub(c.sum)}, ${num(c.count)} операций. Новый счёт пошёл с ${clock(c.end)}.`);tbank(true)}
+  else setDeskText(T('tbank-message'),r?.error||'Нет ответа от Desk');
+ });
+ tab.addEventListener('click',()=>tbank(true));
 })();
