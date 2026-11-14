@@ -185,3 +185,53 @@ nav .exit{margin-top:0}
 .subnav button[aria-selected="true"],.subnav button[aria-selected="true"]:hover{background:var(--ink);color:#0A0A0A}
 #panel-hall{grid-template-rows:auto minmax(0,1fr)}
 #panel-hall>.subnav{grid-column:1/-1;margin-bottom:0}
+
+/* Motion: pages glide in, cards and tiles rise one after another, buttons give under the finger.
+   Only when Windows allows animations; otherwise everything is simply shown (base states stay visible). */
+button:where(:not(#desk-map *)){transition:background-color .18s ease,color .18s ease,transform .12s ease,box-shadow .18s ease}
+button:where(:not(#desk-map *)):active:not(:disabled){transform:scale(.97)}
+.subnav button{transition:background-color .22s ease,color .22s ease}
+@media (prefers-reduced-motion:no-preference){
+ main>section:not([hidden]){animation:d4-page .34s cubic-bezier(.2,.8,.2,1)}
+ @keyframes d4-page{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+ .group-tab.active svg{animation:d4-pop .42s cubic-bezier(.3,1.6,.5,1)}
+ @keyframes d4-pop{0%{transform:scale(.7)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+ .stat-tile,.dossier-tile,.surface,.stat-block,.note-item,.rental-card,.account-option,.guest-table,.tbank,.booking-group{animation:d4-rise .45s cubic-bezier(.2,.8,.2,1) backwards}
+ :is(.stat-tiles,.dossier-tiles,.note-list,.rental-list,.account-options)>:nth-child(2){animation-delay:.04s}
+ :is(.stat-tiles,.dossier-tiles,.note-list,.rental-list,.account-options)>:nth-child(3){animation-delay:.08s}
+ :is(.stat-tiles,.dossier-tiles,.note-list,.rental-list,.account-options)>:nth-child(4){animation-delay:.12s}
+ :is(.stat-tiles,.dossier-tiles,.note-list,.rental-list,.account-options)>:nth-child(5){animation-delay:.16s}
+ :is(.stat-tiles,.dossier-tiles,.note-list,.rental-list,.account-options)>:nth-child(n+6){animation-delay:.2s}
+ @keyframes d4-rise{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+ .tbank-numbers b{animation:d4-num .6s cubic-bezier(.2,.8,.2,1) backwards}
+ @keyframes d4-num{from{opacity:0;transform:translateY(8px);letter-spacing:.06em}to{opacity:1;transform:none}}
+ .dossier-live{animation:d4-rise .45s backwards,d4-glow 2.4s ease-in-out .5s infinite}
+ @keyframes d4-glow{50%{box-shadow:0 0 0 6px rgba(163,255,16,.15)}}
+ #desk-flash.show{animation:d4-toast .32s cubic-bezier(.3,1.4,.5,1)}
+ @keyframes d4-toast{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+}
+
+/* ── Аркада 1SHOT (пасхалка в Настройках) */
+.arcade-egg{display:block;margin:48px auto 8px;width:34px;height:34px;padding:0;border:0;background:none;opacity:.12;cursor:default;transition:opacity .3s}
+.arcade-egg:hover{opacity:.3}.arcade-egg img{width:100%;height:100%;display:block}
+.arcade-egg.wink{animation:d4-wink .35s ease}
+@keyframes d4-wink{40%{transform:scale(1.25) rotate(-8deg);opacity:.6}}
+#arcade{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:rgba(5,5,5,.82);backdrop-filter:blur(6px)}
+#arcade[hidden]{display:none}
+.arcade-box{width:min(780px,94vw);background:#121211;border:1px solid #232321;border-radius:24px;padding:20px 24px 22px;color:#F4F4EF;font-family:Onest,sans-serif;animation:d4-arcade .35s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes d4-arcade{from{transform:scale(.92);opacity:0}}
+.arcade-box header{display:flex;align-items:baseline;gap:14px;margin-bottom:16px}
+.arcade-box header b{font:800 20px Unbounded,sans-serif;color:#A3FF10}
+.arcade-box header span{flex:1;font-size:12px;color:#8F8F86}
+.arcade-x{width:36px;height:36px;border-radius:12px;border:0;background:#1E1E1C;color:#F4F4EF;font-size:20px;cursor:pointer}
+.arcade-menu{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.arcade-menu[hidden],.arcade-stage[hidden]{display:none}
+.arcade-tile{display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px 8px;border-radius:18px;border:1px solid #232321;background:#191918;color:#F4F4EF;cursor:pointer;transition:transform .2s,border-color .2s}
+.arcade-tile:hover{transform:translateY(-4px);border-color:#A3FF10}
+.arcade-tile img{width:48px;height:46px}.arcade-tile b{font:700 13px Unbounded,sans-serif}.arcade-tile small{font-size:11px;color:#8F8F86}
+.arcade-hud{display:flex;align-items:center;gap:14px;margin-bottom:10px;font-size:13px;color:#A3A39B}
+.arcade-hud b{font:700 15px Unbounded,sans-serif;color:#F4F4EF;margin-right:auto}
+.arcade-score{color:#A3FF10;font-weight:700}
+.arcade-hud button{height:34px;padding:0 14px;border-radius:11px;border:0;background:#1E1E1C;color:#F4F4EF;font:600 13px Onest,sans-serif;cursor:pointer}
+.arcade-stage canvas{display:block;width:100%;aspect-ratio:720/420;border-radius:16px;background:#0E0E0D}
+.arcade-hint{margin:10px 0 0;font-size:12px;color:#8F8F86;text-align:center}
