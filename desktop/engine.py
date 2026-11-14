@@ -61,7 +61,7 @@ class Controller:
         hosts=self.gizmo.hosts()
         h=next((h for h in hosts if str(h.get('number'))==str(b['host_id']) and not h.get('isDeleted')),None)
         if not h: raise UnsafeOperation('Компьютер не найден в Gizmo')
-        if str(h['number'])=='1': raise UnsafeOperation('PS5 — только по телефону')
+        if str(h['number'])=='1' and not b.get('instant'): raise UnsafeOperation('PS5 — бронь только по телефону')
         return h
     def sessions(self,h):
         self.guard()
@@ -131,7 +131,8 @@ class Controller:
     def step(self,b):
         now=self.clock();key='booking:'+b['id'];record=self.store.get(key)
         if b['status'] in TERMINAL: return
-        if str(b['host_id'])=='1': return self.step_ps5(b,now)
+        # PS5: a direct login from Desk goes the normal way (Gizmo starts the session); bookings stay phone-only.
+        if str(b['host_id'])=='1' and not b.get('instant'): return self.step_ps5(b,now)
         # Verify an already-sent login before handling expiry: never replay the POST.
         if record and record.get('phase')=='login_sent':
             h=self.fresh_host(b);sessions=self.sessions(h)

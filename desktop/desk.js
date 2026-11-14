@@ -12,7 +12,7 @@ function panel(name){
  document.querySelectorAll('[data-panel]').forEach(e=>e.classList.toggle('active',e.dataset.panel===name));
 }
 document.querySelectorAll('[data-panel]').forEach(e=>e.onclick=()=>panel(e.dataset.panel));
-async function invoke(method,...args){try{const result=await window.pywebview.api[method](...args);if(!['booking_guest','find_account','search_accounts','select_account','account_profile','notes','club_stats_state','tbank_status','check_update','download_update'].includes(method))await refresh();return result}catch{$('error').textContent='Не удалось выполнить команду. Проверьте связь с агентом';return null}}
+async function invoke(method,...args){try{const result=await window.pywebview.api[method](...args);if(!['booking_guest','find_account','search_accounts','select_account','account_profile','notes','club_stats_state','tbank_status','recent_payers','check_update','download_update'].includes(method))await refresh();return result}catch{$('error').textContent='Не удалось выполнить команду. Проверьте связь с агентом';return null}}
 /* The list always shows every booking; a picked PC only highlights its own and owns the «+». */
 let picked=new Set();
 // Left click picks a PC, Ctrl+click or a drag frame picks several (company booking); right click opens actions.
@@ -135,11 +135,11 @@ function bookings(s){
 }
 
 /* Hall plan: the same schematic as the mini-app (360×416 units), scaled to fit the board. */
-const PLAN_SEATS={11:[140,40],12:[180,40],13:[220,40],14:[260,40],15:[300,40],21:[140,128],22:[180,128],23:[220,128],24:[260,128],25:[300,128],
- 402:[24,32],401:[64,32],304:[24,96],303:[64,96],302:[24,136],301:[64,136],
- 204:[24,208],205:[24,248],206:[24,288],207:[24,328],208:[24,368],201:[64,288],202:[64,328],203:[64,368],
- 104:[184,208],105:[184,248],106:[184,288],101:[256,208],102:[256,248],103:[256,288]};
-const PLAN_ZONES=[['Зона 400',8,8,104,56,''],['Зона 300',8,72,104,104,''],['VIP 1',120,8,232,80,'vip1'],['VIP 2',120,96,232,80,'vip2'],['Зона 200',8,184,104,224,''],['Зона 100',120,184,232,152,'']];
+const PLAN_SEATS={11:[140,44],12:[180,44],13:[220,44],14:[260,44],15:[300,44],21:[140,132],22:[180,132],23:[220,132],24:[260,132],25:[300,132],
+ 402:[24,32],401:[64,32],304:[24,104],303:[64,104],302:[24,144],301:[64,144],
+ 204:[24,216],205:[24,256],206:[24,296],207:[24,336],208:[24,376],201:[64,296],202:[64,336],203:[64,376],
+ 104:[184,216],105:[184,256],106:[184,296],101:[256,216],102:[256,256],103:[256,296]};
+const PLAN_ZONES=[['Зона 400',8,8,104,64,''],['Зона 300',8,80,104,104,''],['VIP 1',120,8,232,84,'vip1'],['VIP 2',120,100,232,84,'vip2'],['Зона 200',8,192,104,224,''],['Зона 100',120,192,232,152,'']];
 const planRoom=id=>{const n=Number(id);return n<20?'vip1':n<30?'vip2':'std'};
 function buildPlan(container,{picker=false,onPick,onMenu}={}){
  const layer=document.createElement('div');layer.className='plan-layer';
@@ -153,7 +153,7 @@ function buildPlan(container,{picker=false,onPick,onMenu}={}){
  }
  if(!picker){const ps5=document.createElement('button');ps5.type='button';ps5.className='desk-ps5 unknown';ps5.dataset.hostId='1';ps5.innerHTML='<svg viewBox="0 0 32 24" aria-hidden="true"><path d="M10 5h12c3 0 4 3 5 6l2 7c1 4-3 5-5 2l-3-3H11l-3 3c-2 3-6 2-5-2l2-7c1-3 2-6 5-6Z"/><path d="M9 9v6m-3-3h6"/></svg><span><strong>TV-зона PS5</strong><small class="pc-state"></small></span><i class="miniapp-booking" hidden aria-hidden="true"></i><i class="booking-lock" hidden>'+'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>'+'</i>';ps5.onclick=e=>onPick?.('1',ps5,e);ps5.oncontextmenu=e=>{e.preventDefault();(onMenu||onPick)?.('1',ps5,e)};layer.append(ps5);buttons.set('1',ps5)}
  container.replaceChildren(layer);
- const fit=()=>{const w=container.clientWidth,h=container.clientHeight;if(!w||!h)return;const s=Math.min(w/360,h/416);layer.style.transform=`translate(${Math.max(0,(w-360*s)/2)}px,${Math.max(0,(h-416*s)/2)}px) scale(${s})`};
+ const fit=()=>{const w=container.clientWidth,h=container.clientHeight;if(!w||!h)return;const s=Math.min(w/360,h/424);layer.style.transform=`translate(${Math.max(0,(w-360*s)/2)}px,${Math.max(0,(h-424*s)/2)}px) scale(${s})`};
  new ResizeObserver(fit).observe(container);fit();
  return buttons;
 }

@@ -42,7 +42,7 @@
   if(view==='main'){
    html=header();
    if(st==='busy')html+=infoRows()+`<div class="menu-tiles">${tile('rent','Аренда')}${info&&info.user_id?tile('logout','Выйти','danger'):''}</div>`;
-   else if(host==='1')html+='';
+   else if(host==='1'){if(st==='free')html+=`<div class="menu-tiles">${tile('login','Вход')}</div>`}
    else{
     const tiles=[];
     if(st==='free'){tiles.push(tile('login','Вход'),tile('book','Бронь'),tile('lock','Блок'))}
@@ -84,10 +84,29 @@
  function updateBookTime(){const at=bookStart();setDeskText($('menu-book-at'),at?clubArrivalLabel(at.toISOString()).replace(' МСК',''):'—');menu.querySelector('[data-action="book-go"]').disabled=!at}
  function setupLogin(){
   const input=$('menu-login-search'),box=$('menu-login-options');
-  window.accountPicker(input,box,user=>{box.replaceChildren();const btn=document.createElement('button');btn.type='button';btn.className='menu-primary';btn.textContent=user.requires_privileged_confirmation?'Служебный аккаунт · войти':'Войти · '+user.username;
+  const chosen=user=>{box.replaceChildren();const btn=document.createElement('button');btn.type='button';btn.className='menu-primary';btn.textContent=user.requires_privileged_confirmation?'Служебный аккаунт · войти':'Войти · '+user.username;
    const who=document.createElement('p');who.className='menu-who';who.textContent=[user.username,[user.firstName,user.lastName].filter(Boolean).join(' '),user.mobilePhone||user.phone].filter(Boolean).join(' · ');
    btn.onclick=async()=>{if(working)return;working=true;btn.disabled=true;requestId ||= crypto.randomUUID();const id=host;const r=await invoke('login_account',id,user.id,user.username,requestId,ownHold(id)?.id||null,true,!!user.requires_privileged_confirmation);working=false;btn.disabled=false;if(r?.ok){closeHostMenu();say('Вход на '+hostName(id)+' отправлен')}else say(r?.error||'Нет ответа от Desk')};
-   box.append(who,btn);btn.focus()},()=>{requestId=null});
+   box.append(who,btn);btn.focus()};
+  window.accountPicker(input,box,chosen,()=>{requestId=null;if(!input.value.trim())suggest()});
+  // «Недавно пополнялись»: the last 3 guests who paid in Gizmo and are not playing yet. One tap and they are picked.
+  async function suggest(){
+   const opened=host;const r=await invoke('recent_payers');
+   if(opened!==host||view!=='login'||input.value.trim()||!r?.users?.length)return;
+   const wrap=document.createElement('div');wrap.className='recent-payers';
+   const title=document.createElement('small');title.textContent='Недавно пополнялись';wrap.append(title);
+   for(const u of r.users){
+    const b=document.createElement('button');b.type='button';b.className='account-option recent-payer';
+    const nick=document.createElement('strong');nick.textContent=u.username||'Без ника';
+    const at=new Date(u.at);const mins=Math.max(0,Math.round((Date.now()-at)/60000));
+    const detail=document.createElement('span');detail.textContent=[[u.firstName,u.lastName].filter(Boolean).join(' '),Math.round(u.amount).toLocaleString('ru-RU')+' ₽',mins<1?'только что':mins<60?mins+' мин назад':Math.floor(mins/60)+' ч назад'].filter(Boolean).join(' · ');
+    b.append(nick,detail);
+    b.onclick=async()=>{box.textContent='Проверяем аккаунт…';const res=await invoke('select_account',u.user_id);if(res?.user)chosen(res.user);else box.textContent=res?.error||'Аккаунт недоступен'};
+    wrap.append(b);
+   }
+   box.replaceChildren(wrap);
+  }
+  suggest();
  }
  menu.addEventListener('click',async e=>{
   const t=e.target.closest('button,input');if(!t||working)return;

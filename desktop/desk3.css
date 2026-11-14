@@ -93,7 +93,7 @@ output{color:#fff}
 .lg.free{background:#fff}.lg.busy{background:#1c1c1c;border-color:#333}.lg.reserved{border:2px dashed #fff}.lg.unknown{border:2px dashed #3a3a3a}
 .lg.app{background:var(--lime)}
 .desk-plan{position:relative;flex:1;min-height:0;overflow:hidden}
-.plan-layer{position:absolute;left:0;top:0;width:360px;height:416px;transform-origin:0 0}
+.plan-layer{position:absolute;left:0;top:0;width:360px;height:424px;transform-origin:0 0}
 .plan-zone{position:absolute;border:2px solid var(--rule);pointer-events:none}
 .plan-zone span{position:absolute;left:7px;top:5px;font:700 6.5px var(--text);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .plan-zone.vip1{border-color:var(--orange)}.plan-zone.vip1 span{color:var(--orange)}
@@ -114,7 +114,7 @@ output{color:#fff}
 @keyframes attn{to{outline-offset:4px}}
 .desk-pc:disabled{cursor:default;opacity:.5}
 .miniapp-booking{position:absolute;left:-1.5px;top:-1.5px;width:7px;height:7px;background:var(--lime)}
-.desk-ps5{position:absolute;left:120px;top:344px;width:232px;height:64px;min-height:0;padding:0 12px;display:flex;align-items:center;gap:10px;background:#000;border:2px solid var(--rule);color:#fff;text-align:left;letter-spacing:0;text-transform:none}
+.desk-ps5{position:absolute;left:120px;top:352px;width:232px;height:64px;min-height:0;padding:0 12px;display:flex;align-items:center;gap:10px;background:#000;border:2px solid var(--rule);color:#fff;text-align:left;letter-spacing:0;text-transform:none}
 .desk-ps5 svg{width:22px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7}
 .desk-ps5 strong{display:block;font:700 9px var(--display);letter-spacing:.06em;text-transform:uppercase}
 .desk-ps5 small{display:block;margin-top:3px;font:700 5.5px var(--text);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}

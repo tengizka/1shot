@@ -235,3 +235,9 @@ button:where(:not(#desk-map *)):active:not(:disabled){transform:scale(.97)}
 .arcade-hud button{height:34px;padding:0 14px;border-radius:11px;border:0;background:#1E1E1C;color:#F4F4EF;font:600 13px Onest,sans-serif;cursor:pointer}
 .arcade-stage canvas{display:block;width:100%;aspect-ratio:720/420;border-radius:16px;background:#0E0E0D}
 .arcade-hint{margin:10px 0 0;font-size:12px;color:#8F8F86;text-align:center}
+
+/* «Недавно пополнялись» in the login window */
+.recent-payers{display:flex;flex-direction:column;gap:6px}
+.recent-payers>small{font:600 11px var(--read);color:#8F8F86;letter-spacing:.02em;margin:2px 0 2px 2px}
+.recent-payer{border-color:rgba(163,255,16,.25)!important}
+.recent-payer strong{color:#A3FF10}
