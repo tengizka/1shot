@@ -22,10 +22,10 @@
   const max=Math.max(1,...rows.map(r=>r.active));const chart=el('div','stat-columns');
   for(const r of rows){const c=el('div','stat-col');c.title=`${r.label}: ${r.active} гостей, ${r.visits} визитов, ${num(r.hours)}h`;
    const bar=el('i');bar.style.height=Math.max(2,Math.round(100*r.active/max))+'%';c.append(el('b',null,r.active||''),bar,el('small',null,r.label));chart.append(c)}
-  const table=el('div','stat-table');table.style.setProperty('--cols',8);
-  ['Месяц','Новые','Вернулись','Активные','Постоянные','Визиты','Часы','Выручка'].forEach(h=>table.append(el('span','head',h)));
-  for(const r of [...rows].reverse())[r.label,r.new,r.new?`${r.came_back} · ${Math.round(100*r.came_back/r.new)}%`:'—',r.active,r.regular,r.visits,num(r.hours)+'h',rub(r.revenue)].forEach((v,i)=>table.append(el('span',i?null:'first',String(v))));
-  b.append(chart,table,el('p','note','Постоянные — 4 и больше дней за месяц. Выручка — сумма продаж из журнала Gizmo.'));return b;
+  const table=el('div','stat-table');table.style.setProperty('--cols',9);
+  ['Месяц','Новые','Вернулись','Активные','Постоянные','Визиты','Часы','Выручка','С депозита'].forEach(h=>table.append(el('span','head',h)));
+  for(const r of [...rows].reverse())[r.label,r.new,r.new?`${r.came_back} · ${Math.round(100*r.came_back/r.new)}%`:'—',r.active,r.regular,r.visits,num(r.hours)+'h',rub(r.revenue),rub(r.from_deposit)].forEach((v,i)=>table.append(el('span',i?null:'first',String(v))));
+  b.append(chart,table,el('p','note','Постоянные — 4 и больше дней за месяц. Выручка — живые деньги: наличные, карта, СБП, вместе с пополнениями депозита. «С депозита» — покупки за счёт уже внесённых денег, в выручку они не входят, иначе деньги посчитались бы дважды. Баллы и бонусы — не деньги.'));return b;
  }
  function heat(grid){
   const b=block('Когда приходят','Сколько визитов началось в этот час, за год. Чем ярче, тем больше.');

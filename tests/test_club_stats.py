@@ -50,5 +50,25 @@ class ClubStatsTests(unittest.TestCase):
         self.assertNotIn('new_back', str(public(r)))
 
 
+class RevenueTests(ClubStatsTests):
+    def test_deposit_purchases_are_not_counted_twice(self):
+        raw = self.raw()
+        raw['sales'] = [
+            {'transactionDate': '2026-10-05T18:00:00+03:00', 'title': 'Пополнение депозита', 'total': 500, 'paymentMethodName': 'Наличные'},
+            {'transactionDate': '2026-10-05T18:10:00+03:00', 'title': 'Red Bull', 'total': 150, 'paymentMethodName': 'Депозит'},
+            {'transactionDate': '2026-10-05T18:20:00+03:00', 'title': 'Чипсы', 'total': 100, 'paymentMethodName': 'Карта'},
+            {'transactionDate': '2026-10-05T18:30:00+03:00', 'title': 'Вода', 'total': 50, 'paymentMethodName': 'Баллы'},
+            {'transactionDate': '2026-10-06T12:00:00+03:00', 'title': 'Чипсы', 'total': -100, 'paymentMethodName': 'Карта'}]
+        oct_ = next(m for m in compute(raw)['months'] if m['month'] == '2026-10')
+        self.assertEqual(oct_['revenue'], 500)      # 500 cash top-up + 100 card − 100 card refund; deposit and points are not new money
+        self.assertEqual(oct_['topups'], 500)
+        self.assertEqual(oct_['from_deposit'], 150)
+
+    def test_server_copy_has_guests_by_id_only(self):
+        pub = public(compute(self.raw()))
+        self.assertEqual({g['id'] for g in pub['guests']}, {1, 2, 3})
+        self.assertNotIn('username', str(pub['guests']))
+
+
 if __name__ == '__main__':
     unittest.main()

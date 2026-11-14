@@ -171,8 +171,11 @@ def compute(raw):
     sleeping = sum(1 for d in last_visit.values() if 30 < (today - d).days <= 180)
     never = sum(1 for uid in users if uid not in last_visit)
 
-    # Money: sales by product title and month; spending per guest for the «average guest» numbers.
-    revenue, products, product_money = Counter(), Counter(), Counter()
+    # Money. Revenue is real money only (cash, card, СБП…), deposit top-ups included. A purchase paid from the deposit
+    # is not new money (it was counted when the deposit was topped up), so it goes to «с депозита», not to revenue;
+    # points and bonuses are not money at all. Refunds come as negative lines and subtract themselves.
+    revenue, topups, from_deposit = Counter(), Counter(), Counter()
+    products, product_money = Counter(), Counter()
     for t in raw['sales']:
         if not isinstance(t, dict):
             continue
@@ -180,8 +183,15 @@ def compute(raw):
         value = t.get('total', t.get('value'))
         if not d or not isinstance(value, (int, float)) or isinstance(value, bool):
             continue
-        revenue[month_key(d)] += float(value)
+        method = str(t.get('paymentMethodName') or '').casefold()
         title = str(t.get('title') or '').strip()
+        key = month_key(d)
+        if any(w in method for w in ('депозит', 'deposit')):
+            from_deposit[key] += float(value)
+        elif not any(w in method for w in ('балл', 'point', 'бонус', 'bonus')):
+            revenue[key] += float(value)
+            if any(w in title.casefold() for w in ('депозит', 'пополн', 'deposit')):
+                topups[key] += float(value)
         # Deposit top-ups are money in, not something guests buy.
         if title and value > 0 and not any(w in title.casefold() for w in ('депозит', 'пополн', 'deposit')):
             products[title] += 1
@@ -190,6 +200,8 @@ def compute(raw):
     paying = [v for v, _ in spend if v > 0]
     for r in rows:
         r['revenue'] = round(revenue[r['month']])
+        r['topups'] = round(topups[r['month']])
+        r['from_deposit'] = round(from_deposit[r['month']])
 
     weekday_visits = Counter()
     hour_visits = Counter()
@@ -245,8 +257,16 @@ def compute(raw):
         'top_spend': [{'nick': nick(uid), 'spent': round(v)} for v, uid in reversed(spend[-10:]) if v > 0],
         'longest': {'nick': nick(longest[1]), 'hours': round(longest[0], 1), 'date': longest[2].strftime('%d.%m.%Y')} if longest[1] else None,
     }
+    # Every guest who played, by Gizmo account number only (no names or phones: the server is outside Russia).
+    spent_by = {uid: v for v, uid in spend}
+    guests = [{'id': uid, 'created': created[uid].strftime('%Y-%m-%d') if created.get(uid) else None,
+               'first': min(days).isoformat(), 'last': max(days).isoformat(), 'visits': len(days),
+               'hours': round(hours_by_user[uid], 1), 'spent': round(spent_by.get(uid, 0))}
+              for uid, days in visits.items() if days]
+    guests.sort(key=lambda g: -g['hours'])
+    guests = guests[:3000]  # the server keeps a report up to 500 KB
     return {
-        'at': now.isoformat(), 'months': rows, 'summary': summary, 'facts': facts,
+        'at': now.isoformat(), 'months': rows, 'guests': guests, 'summary': summary, 'facts': facts,
         'heat': [[heat[(wd, h)] for h in range(24)] for wd in range(7)],
         'zones': [{'zone': z, 'hours': round(v)} for z, v in zone_hours.most_common()],
         'pcs': [{'pc': p, 'hours': round(v)} for p, v in pc_hours.most_common()],
@@ -256,7 +276,8 @@ def compute(raw):
 
 
 def public(result):
-    """What may leave the club: numbers only. Product titles are the club's own menu, not personal data."""
+    """What goes to the server: everything except nicknames (since 3.16 a nickname is the guest's phone number).
+    Guests are listed by Gizmo account number; product titles are the club's own menu."""
     return {k: v for k, v in result.items() if k != 'local'}
 
 
