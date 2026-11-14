@@ -185,8 +185,8 @@ python -m unittest discover -s tests -p "test_*.py"
 node --test tests/*.test.cjs
 deno test --allow-read --allow-env tests/club-schema.test.ts
 ```
-`tests/browser.cjs` — обычный UI, `tests/club-browser.cjs` — opt-in UI;
-оба используют тестовые ответы API, не выполняют реальные блокировки.
+Браузерные проверки мини-аппа и Desk — `tests/*-browser.cjs` (список в `.github/workflows/windows-desk.yml`);
+все используют тестовые ответы API и не выполняют реальные блокировки.
 
 ## Обновление после ошибки Python.Runtime.Loader.Initialize
 
