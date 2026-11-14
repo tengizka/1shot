@@ -71,5 +71,24 @@ class TBankTests(unittest.TestCase):
         self.assertFalse(any('shift' in p for _, p in self.gizmo.calls))
 
 
+class FeedTests(unittest.TestCase):
+    def test_feed_has_amounts_and_sessions_without_names(self):
+        from desktop.tbank import feed
+        now = datetime.now(MSK)
+        class G:
+            calls = []
+            def request(self, method, path, **kw):
+                self.calls.append(method)
+                if path == 'reports/transactionslog':
+                    return {'transactions': [op(10, 500), op(20, 300, 'Наличные'), op(30, 150, 'Депозит', 'Red Bull'), op(3000, 999)]}
+                return {'sessions': [{'startTime': (now - timedelta(hours=1)).isoformat(), 'userId': 7, 'totalMinutes': 90, 'userName': 'secret'}]}
+        g = G()
+        f = feed(g, now)
+        self.assertEqual([(m['kind'], m['amount'], m['topup']) for m in f['money']], [('tbank', 500, True), ('cash', 300, True), ('deposit', 150, False)])
+        self.assertEqual(f['sessions'], [{'at': f['sessions'][0]['at'], 'user': 7, 'minutes': 90}])
+        self.assertNotIn('Иван', str(f)); self.assertNotIn('secret', str(f))
+        self.assertEqual(set(g.calls), {'GET'})
+
+
 if __name__ == '__main__':
     unittest.main()

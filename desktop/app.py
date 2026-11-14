@@ -524,6 +524,8 @@ class App:
         # SMM dashboard: hourly per-code totals from Gizmo (numbers only, no guest data).
         self.smm_error=''
         threading.Thread(target=self.club_stats.loop,args=(self.stop,),daemon=True).start()
+        from .tbank import feed_loop
+        threading.Thread(target=feed_loop,args=(self.stop,self.gizmo,self.cloud),kwargs={'online':lambda:self.online},daemon=True).start()
         threading.Thread(target=smm_stats.loop,args=(self.stop,self.cloud,self.gizmo),kwargs={'online':lambda:self.online,'report':lambda e:setattr(self,'smm_error',e)},daemon=True).start()
 
 def main():
