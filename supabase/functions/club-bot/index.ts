@@ -143,8 +143,33 @@ async function stats(chat:number){
   `🤳 <b>Android-приложение:</b> ${s.android}\n\n`+
   `🎮 <b>Брони:</b> сегодня ${s.bookings_today} · за 7 дней ${s.bookings_week}\n`+
   `✅ Пришли по брони за 7 дней: ${s.came_week}\n`+
-  `👤 Бронировали за 7 дней: ${s.bookers_week} чел.`;
+  `👤 Бронировали за 7 дней: ${s.bookers_week} чел.`+
+  await today();
  await tg('sendMessage',{chat_id:chat,text,parse_mode:'HTML'});
+}
+// «Сегодня» in /stats: new guests at the reception (by promo code, free hour given or not), mini-app bookings and how
+// they ended, new people in the bot. Test accounts (club_test_removed, testers) and the admins' own bookings stay out.
+async function today(){
+ try{
+  const msk=new Date(Date.now()+3*3600e3);const start=new Date(Date.UTC(msk.getUTCFullYear(),msk.getUTCMonth(),msk.getUTCDate())-3*3600e3).toISOString();
+  const ids=(rows:{[k:string]:number}[],k:string)=>new Set(rows.map(r=>Number(r[k])));
+  const [tests,testers,admins]=await Promise.all([db('club_test_removed?select=gizmo_user_id'),db('club_promo_testers?select=telegram_id'),db('smm_bot_admins?select=telegram_id')]);
+  const testIds=ids(tests,'gizmo_user_id'),testerIds=ids(testers,'telegram_id'),adminIds=ids(admins,'telegram_id');
+  const regs=(await db(`club_promo_redemptions?created_at=gte.${start}&status=eq.done&select=gizmo_user_id,code,reward,telegram_id`) as {gizmo_user_id:number,code:string,reward:string|null,telegram_id:number|null}[])
+   .filter(r=>!testIds.has(Number(r.gizmo_user_id))&&!(r.telegram_id&&testerIds.has(Number(r.telegram_id))));
+  const books=(await db(`club_bookings?created_at=gte.${start}&admin_created=is.false&select=status,telegram_id`) as {status:string,telegram_id:number}[])
+   .filter(b=>!adminIds.has(Number(b.telegram_id))&&!testerIds.has(Number(b.telegram_id)));
+  const bot=(await db(`club_bot_users?first_seen=gte.${start}&select=telegram_id`)).length;
+  const codes:{[k:string]:number}={};regs.forEach(r=>codes[r.code]=(codes[r.code]||0)+1);
+  const hours=regs.filter(r=>r.reward==='granted').length;
+  const came=books.filter(b=>['in_session','completed'].includes(b.status)).length,
+   off=books.filter(b=>['cancelled','expired'].includes(b.status)).length,wait=books.length-came-off;
+  return `\n\n🆕 <b>Сегодня</b>\n`+
+   `🧾 Новые гости с промокодом: ${regs.length}`+(regs.length?` (${Object.entries(codes).map(([c,n])=>c+' '+n).join(', ')}) · час выдан ${hours} из ${regs.length}`:'')+`\n`+
+   `🎮 Брони из приложения: ${books.length}`+(books.length?` · пришли ${came}, ждём ${wait}, отменили ${off}`:'')+`\n`+
+   `💬 Новые в боте: ${bot}\n`+
+   `<i>Гостей без промокода сервер не видит, они только в Gizmo. Тестовые аккаунты не считаются.</i>`;
+ }catch{return '\n\n🆕 Сегодня: не получилось собрать.'}
 }
 // /smmnew: the next queued post (tg_photo set, not sent yet) as it will look in the channel: picture, caption with our
 // custom emoji and the mini-app button. Below it «Опубликовать в канал» posts the same thing to CHANNEL (the bot must be
