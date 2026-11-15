@@ -352,8 +352,8 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
   <form id="form-login" class="auth-form wizard" onsubmit="authNext(event)" novalidate>
     <div class="wiz-top"><button type="button" class="wiz-back" aria-label="Назад" onclick="authBack()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button><div class="wiz-progress" aria-hidden="true"></div><span class="wiz-count"></span></div>
     <div class="step" data-title="Вход">
-      <label class="step-label" for="l-user">Твой номер<br>или никнейм</label>
-      <input type="text" id="l-user" placeholder="Номер или ник" autocomplete="username" inputmode="text" enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+      <label class="step-label" for="l-user">Номер<br>телефона</label>
+      <input type="text" id="l-user" placeholder="+7 999 123-45-67" autocomplete="username" inputmode="tel" enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false" required>
     </div>
     <div class="step" data-title="Вход">
       <label class="step-label" for="l-pass">Пароль</label>
@@ -382,7 +382,7 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
     <div class="wiz-top"><button type="button" class="wiz-back" aria-label="Назад" onclick="hideOfflineReg()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button></div>
     <span class="smm-tag">Регистрация</span>
     <h1 class="auth-title">Приходи<br>в клуб</h1>
-    <p class="auth-lead">Аккаунт создаёт администратор на ресепшене: Мытищи, ул.&nbsp;Мира,&nbsp;37, круглосуточно. Возьми документ с датой рождения. Потом входи здесь по нику или номеру и паролю.</p>
+    <p class="auth-lead">Аккаунт создаёт администратор на ресепшене: Мытищи, ул.&nbsp;Мира,&nbsp;37, круглосуточно. Возьми документ с датой рождения. Потом входи здесь по номеру телефона и паролю.</p>
     <div class="offline-word" id="offline-word" hidden><small>Назови администратору слово</small><b></b><span>Первый час STANDART — бесплатно</span></div>
     <button type="button" class="btn-main" onclick="hideOfflineReg()">Понятно</button>
   </section>
@@ -795,8 +795,8 @@ async function doRegister(e) {
 
 async function pollAuth(requestId, formId) {
   const MSGS = {
-    invalid_credentials: 'Неверный номер телефона, никнейм или пароль',
-    username_taken:      'Этот никнейм уже занят — попробуй другой',
+    invalid_credentials: 'Неверный номер телефона или пароль',
+    username_taken:      'Аккаунт с этим номером уже есть — войди по номеру',
     failed:              'Техническая ошибка, попробуй позже',
   };
 
@@ -1179,7 +1179,7 @@ function doLogout() {
     document.getElementById('live-dot').style.display = 'none';
   };
 
-  uiConfirm('Выйти из аккаунта? Чтобы вернуться, понадобятся номер или ник и пароль.', {ok:'Выйти', danger:true}).then(ok => { if (ok) confirm(); });
+  uiConfirm('Выйти из аккаунта? Чтобы вернуться, понадобятся номер телефона и пароль.', {ok:'Выйти', danger:true}).then(ok => { if (ok) confirm(); });
 }
 
 // ═══════════════════════════════════════════════

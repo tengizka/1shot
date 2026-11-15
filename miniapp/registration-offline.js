@@ -21,7 +21,9 @@
   form.dataset.pdLocked='1';
   for(const name of PD){const input=form.elements[name];if(input){input.disabled=true;input.value='';const label=input.closest('label');if(label)label.hidden=true}}
   const bday=$('account-birthday');if(bday){const label=bday.closest('label');if(label)label.hidden=true}
-  const note=document.createElement('p');note.className='club-note';note.textContent='Имя, телефон и почту меняет администратор в клубе.';form.insertBefore(note,form.querySelector('button'));
+  const note=document.createElement('p');note.className='club-note';note.textContent='Имя, телефон и почту меняет администратор в клубе. Ник для входа — твой номер телефона.';form.insertBefore(note,form.querySelector('button'));
+  // Nothing left to edit by the guest: no empty «Сохранить» button.
+  const save=form.querySelector('button');if(save&&![...form.elements].some(e=>e.name&&!e.disabled)){save.hidden=true;save.style.display='none'}
  }
  lock();new MutationObserver(lock).observe(document.body,{childList:true,subtree:true});
 })();

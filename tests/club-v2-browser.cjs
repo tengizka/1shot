@@ -40,8 +40,9 @@ const {chromium}=require('playwright-core'),binary=require('@sparticuz/chromium'
   await page.waitForSelector('#oneshot-overlay',{state:'hidden'});await page.locator('#nav-profile').click();await page.waitForSelector('.prof-ava img');
   assert.equal(await page.locator('#prof-name').textContent(),'Андрей');assert.match(await page.locator('#prof-balance').textContent(),/321/);assert.equal(await page.locator('#account-birthday').inputValue(),'2000-01-02');assert.equal(await page.locator('#account-birthday').getAttribute('readonly'),'');assert.equal(await page.locator('.profile-booking').count(),0);assert.equal(await page.locator('#ov-profile #club-my-bookings').count(),0);
   await page.locator('#account-toggle').click();
-  await page.locator('#edit-account [name=username]').fill('new_guest');await page.locator('#edit-account .btn-main').click();await page.locator('#ui-confirm .ok').click();await page.waitForFunction(()=>document.querySelector('#account-result').textContent.includes('Запрос отправлен'));
-  const edit=requests.find(b=>b.kind==='profile_edit');assert.equal(edit.payload.username,'new_guest');assert.ok(!('birthDate' in edit.payload));
+  assert.equal(await page.locator('#edit-account [name=username]').count(),0,'the nickname is the phone, not editable');
+  assert.equal(await page.locator('#edit-account input:not([disabled]):visible').count(),0,'the guest edits nothing here');assert.equal(await page.locator('#edit-account .btn-main').isVisible(),false,'no empty save button');
+  assert.match(await page.locator('#edit-account .club-note').textContent(),/Ник для входа — твой номер телефона/);
   await page.locator('#request-password').click();await page.locator('#ui-confirm .ok').click();assert.ok(requests.some(b=>b.kind==='password_request'));
   rows.push({id:'scheduled-own',ends_at:new Date(Date.now()+1800000).toISOString(),host_id:'21',status:'holding',mode:'scheduled',protocol:2,starts_at:new Date().toISOString(),hold_until:new Date(Date.now()+1800000).toISOString()});
   for(const status of ['done','rejected']){
