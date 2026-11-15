@@ -60,10 +60,14 @@ async function emojis(){
  if(r?.ok)emap=out;return out;
 }
 const esc=(t:string)=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+// Only plain text is touched: tags and emoji that are already custom (<tg-emoji>…</tg-emoji>) are left as they are.
 async function withEmoji(html:string){
- let s=html;
- for(const [e,id] of await emojis())s=s.replace(new RegExp(esc(e)+'\uFE0F?','gu'),m=>`<tg-emoji emoji-id="${id}">${m}</tg-emoji>`);
- return s;
+ const map=await emojis();
+ return html.split(/(<tg-emoji[^>]*>[\s\S]*?<\/tg-emoji>|<[^>]+>)/).map(part=>{
+  if(part.startsWith('<'))return part;
+  let t=part;for(const [e,id] of map)t=t.replace(new RegExp(esc(e)+'\uFE0F?','gu'),m=>`<tg-emoji emoji-id="${id}">${m}</tg-emoji>`);
+  return t;
+ }).join('');
 }
 async function sendText(chat:number,html:string){
  const base={chat_id:chat,parse_mode:'HTML',link_preview_options:{is_disabled:true}};
@@ -91,8 +95,8 @@ async function sendPost(chat:number,p:Post){
 }
 async function smmMenu(chat:number){
  const since=new Date(Date.now()+3*3600e3-86400e3).toISOString().slice(0,10);
- let posts:Post[]=await db(`smm_posts?day=gte.${since}&order=day.asc,id.asc&limit=8`);
- if(!posts.length)posts=await db('smm_posts?order=day.desc,id.desc&limit=3');
+ let posts:Post[]=await db(`smm_posts?feed_image=not.is.null&day=gte.${since}&order=day.asc,id.asc&limit=8`);
+ if(!posts.length)posts=await db('smm_posts?feed_image=not.is.null&order=day.desc,id.desc&limit=3');
  if(!posts.length){await tg('sendMessage',{chat_id:chat,text:'Готовых постов пока нет.'});return}
  if(posts.length===1){await sendPost(chat,posts[0]);return}
  await tg('sendMessage',{chat_id:chat,text:'Какой пост прислать?',reply_markup:{inline_keyboard:posts.map(p=>[{text:`${dayLabel(p.day)} · ${p.title}`,callback_data:'smm:'+p.id}])}});
@@ -237,7 +241,7 @@ const queue=async()=>(await db('smm_posts?tg_photo=not.is.null&sent_at=is.null&o
 async function smmCommands(){
  const pending=(await queue()).length>0;
  for(const a of await db('smm_bot_admins?select=telegram_id')){
-  const commands=[{command:'start',description:'Открыть 1SHOT'},{command:'app',description:'Приложение для Android'},{command:'smm',description:'Готовые посты'},{command:'stats',description:'Статистика'},{command:'shift',description:'Отчёт за прошлую смену'}];
+  const commands=[{command:'start',description:'Открыть 1SHOT'},{command:'app',description:'Приложение для Android'},{command:'post',description:'Сделать пост с кнопкой'},{command:'smm',description:'Готовые посты'},{command:'stats',description:'Статистика'},{command:'shift',description:'Отчёт за прошлую смену'}];
   if(pending)commands.push({command:'smmnew',description:'Новый пост для канала'});
   await tg('setMyCommands',{commands,scope:{type:'chat',chat_id:a.telegram_id}});
  }
@@ -278,6 +282,42 @@ async function publish(chat:number,id:string,msg?:number){
  if(r?.ok){await dbPatch(`smm_posts?id=eq.${id}`,{published_at:new Date().toISOString()});await tg('sendMessage',{chat_id:chat,text:'✅ Опубликовано в канале.'})}
  else await tg('sendMessage',{chat_id:chat,text:'Не вышло опубликовать: '+String(r?.description||'')+'\n\nПроверь, что бот добавлен в канал администратором с правом публиковать сообщения.'});
 }
+// Posts made right in the bot: an SMM admin sends a photo with a caption, the bot answers with the finished post
+// (caption with our custom emoji, the green mini-app button, «Опубликовать в канал» under it). The caption keeps the
+// admin's formatting and custom emoji (entities → HTML); plain emoji from our pack become custom ones. A last caption
+// line «Кнопка: текст» or «Кнопка: текст | https://ссылка» changes the button. The post is kept in smm_posts, and
+// publishing copies the preview, so the emoji survive in the channel (see publish()).
+const escH=(t:string)=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+type Ent={type:string,offset:number,length:number,url?:string,custom_emoji_id?:string};
+function entitiesToHtml(text:string,ents:Ent[]=[]){
+ const tag=(e:Ent):[string,string]|null=>{switch(e.type){
+  case 'bold':return ['<b>','</b>'];case 'italic':return ['<i>','</i>'];case 'underline':return ['<u>','</u>'];
+  case 'strikethrough':return ['<s>','</s>'];case 'spoiler':return ['<tg-spoiler>','</tg-spoiler>'];case 'code':return ['<code>','</code>'];
+  case 'blockquote':case 'expandable_blockquote':return ['<blockquote>','</blockquote>'];
+  case 'text_link':return e.url?[`<a href="${escH(e.url)}">`,'</a>']:null;
+  case 'custom_emoji':return e.custom_emoji_id?[`<tg-emoji emoji-id="${e.custom_emoji_id}">`,'</tg-emoji>']:null;
+  default:return null}};
+ const open:Record<number,string[]>={},close:Record<number,string[]>={};
+ for(const e of [...ents].sort((a,b)=>a.offset-b.offset||b.length-a.length)){const t=tag(e);if(!t)continue;
+  (open[e.offset]??=[]).push(t[0]);(close[e.offset+e.length]??=[]).unshift(t[1]);}
+ let out='';for(let i=0;i<=text.length;i++){out+=(close[i]||[]).join('')+(open[i]||[]).join('');if(i<text.length)out+=escH(text[i]);}
+ return out;
+}
+async function postFromPhoto(chat:number,msg:{photo:{file_id:string}[],caption?:string,caption_entities?:Ent[]}){
+ let caption=msg.caption||'',ents=msg.caption_entities||[],button_text:string|null=null,button_url:string|null=null;
+ const m=/\n?[ \t]*кнопка:[ \t]*([^\n|]+?)[ \t]*(?:\|[ \t]*(\S+))?[ \t]*$/i.exec(caption);
+ if(m){button_text=m[1].trim()||null;if(m[2]&&/^https:\/\//.test(m[2]))button_url=m[2];caption=caption.slice(0,m.index);ents=ents.filter(e=>e.offset+e.length<=caption.length);}
+ const html=await withEmoji(entitiesToHtml(caption.trimEnd(),ents));
+ const msk=new Date(Date.now()+3*3600e3).toISOString().slice(0,10);
+ const r=await fetch(`${SB}/rest/v1/smm_posts`,{method:'POST',headers:{apikey:SKEY,Authorization:'Bearer '+SKEY,'content-type':'application/json',Prefer:'return=representation'},
+  body:JSON.stringify({day:msk,title:'Пост из бота',tg_photo:msg.photo.at(-1)!.file_id,tg_caption:html,button_text:button_text||'Забронировать место',button_url,sent_at:new Date().toISOString()})});
+ const [p]=r.ok?await r.json() as QPost[]:[];
+ if(!p){await tg('sendMessage',{chat_id:chat,text:'Не получилось сохранить пост, попробуй ещё раз.'});return}
+ const sent=await sendQ(chat,p,[[{text:'📢 Опубликовать в канал',callback_data:'pub:'+p.id}]]);
+ if(!sent?.ok){await tg('sendMessage',{chat_id:chat,text:'Не получилось собрать пост: '+String(sent?.description||'')});return}
+ await tg('sendMessage',{chat_id:chat,reply_to_message_id:sent.result?.message_id,text:'👆 Так пост будет выглядеть в канале. Если всё ок, жми «Опубликовать в канал». Если нет, просто пришли новую картинку с текстом.'});
+}
+const POST_HELP='📸 <b>Пост с кнопкой</b>\n\n1. Пришли мне картинку, а текст поста напиши в подписи к ней.\n2. Я пришлю готовый пост: наши эмодзи, зелёная кнопка «Забронировать место».\n3. Жми «Опубликовать в канал».\n\nСвоя кнопка: последней строкой подписи напиши\n<code>Кнопка: Открыть 1SHOT</code>\nили со ссылкой\n<code>Кнопка: Читать | https://ссылка</code>';
 // Telegram signs every webhook call with this secret; it is derived from the bot token, never stored.
 async function secret(){
  const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('1shot-bot:'+TOKEN));
@@ -345,6 +385,8 @@ Deno.serve(async req=>{
   if(!msg?.chat?.id||msg.chat.type!=='private')return ok({ok:true});
   const text=String(msg.text||'').trim();
   await seen(msg.chat.id);
+  if(msg.photo?.length&&await isSmm(Number(msg.from?.id))){await postFromPhoto(msg.chat.id,msg);return ok({ok:true})}
+  if(/^\/post(@\w+)?$/i.test(text)&&await isSmm(Number(msg.from?.id))){await tg('sendMessage',{chat_id:msg.chat.id,text:POST_HELP,parse_mode:'HTML'});return ok({ok:true})}
   if(/^\/stats(@\w+)?$/i.test(text)&&await isSmm(Number(msg.from?.id))){await stats(msg.chat.id);return ok({ok:true})}
   if(/^\/shift(@\w+)?$/i.test(text)&&await isSmm(Number(msg.from?.id))){await shiftReport(true);return ok({ok:true})}
   if(text==='/broadcast'&&await isSmm(Number(msg.from?.id))){await previewPost(msg.chat.id);return ok({ok:true})}
