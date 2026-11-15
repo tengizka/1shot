@@ -260,7 +260,7 @@ async function sendQ(chat:number|string,p:QPost,extra:unknown[][]=[]){
 async function smmNew(chat:number){
  const [p]=await queue();
  if(!p){await tg('sendMessage',{chat_id:chat,text:'Новых постов пока нет.'});await smmCommands();return}
- const r=await sendQ(chat,p,[[{text:'📢 Опубликовать в канал',callback_data:'pub:'+p.id}]]);
+ const r=await sendQ(chat,p,PREVIEW_ROWS(p.id));
  if(r?.ok){await dbPatch(`smm_posts?id=eq.${p.id}`,{sent_at:new Date().toISOString()});await smmCommands()}
  else await tg('sendMessage',{chat_id:chat,text:'Не получилось отправить пост: '+String(r?.description||'')});
 }
@@ -281,6 +281,38 @@ async function publish(chat:number,id:string,msg?:number){
  const r=(msg&&await copyPreview(chat,msg,p))||await sendQ(CHANNEL,p);
  if(r?.ok){await dbPatch(`smm_posts?id=eq.${id}`,{published_at:new Date().toISOString()});await tg('sendMessage',{chat_id:chat,text:'✅ Опубликовано в канале.'})}
  else await tg('sendMessage',{chat_id:chat,text:'Не вышло опубликовать: '+String(r?.description||'')+'\n\nПроверь, что бот добавлен в канал администратором с правом публиковать сообщения.'});
+}
+// Rows under every post preview: publish to the channel, or send the same post to every guest of the bot.
+const PREVIEW_ROWS=(id:number)=>[[{text:'📢 Опубликовать в канал',callback_data:'pub:'+id}],[{text:'📣 Сделать рассылку',callback_data:'bc:'+id}]];
+// Everyone the bot can write to: mini-app guests and people who wrote to the bot. The SMM admins are left out.
+async function audience(){const [a,b,adm]=await Promise.all([db('profiles?telegram_id=gt.0&select=telegram_id'),db('club_bot_users?select=telegram_id'),db('smm_bot_admins?select=telegram_id')]);
+ const skip=new Set(adm.map((x:{telegram_id:number})=>Number(x.telegram_id)));
+ return [...new Set([...a,...b].map((x:{telegram_id:number})=>Number(x.telegram_id)))].filter(id=>id>0&&!skip.has(id));}
+// Step 1: the admin taps «Сделать рассылку» and is asked once more, with the number of people.
+async function broadcastAsk(chat:number,id:string,msg:number){
+ const [p]=await db(`smm_posts?id=eq.${id}&select=id,broadcast_started_at`);
+ if(!p){await tg('sendMessage',{chat_id:chat,text:'Пост не найден.'});return}
+ if(p.broadcast_started_at){await tg('sendMessage',{chat_id:chat,text:'Этот пост уже разослан.'});return}
+ const n=(await audience()).length;
+ await tg('sendMessage',{chat_id:chat,reply_to_message_id:msg,text:`📣 Разослать этот пост всем гостям бота? Получателей: ${n}.\n\nОтменить после отправки не получится.`,
+  reply_markup:{inline_keyboard:[[{text:`✅ Да, отправить ${n}`,callback_data:`bcy:${id}:${msg}`}],[{text:'Отмена',callback_data:'bcn'}]]}});
+}
+// Step 2: sends once. The row is claimed first, so a second tap finds it taken and sends nothing. Each guest gets a copy
+// of the admin's preview (our custom emoji stay), with the booking button instead of the admin buttons.
+async function broadcastRun(chat:number,id:string,msg:number){
+ const claim=await rest(`smm_posts?id=eq.${id}&broadcast_started_at=is.null`,{method:'PATCH',headers:{prefer:'return=representation'},body:JSON.stringify({broadcast_started_at:new Date().toISOString()})});
+ const [p]=(claim.ok?await claim.json():[]) as QPost[];
+ if(!p){await tg('sendMessage',{chat_id:chat,text:'Этот пост уже разослан или не найден, ничего не шлю.'});return}
+ await tg('sendMessage',{chat_id:chat,text:'📣 Рассылка пошла…'});
+ let sent=0,failed=0,fancy=true;
+ for(const to of await audience()){
+  let r=await tg('copyMessage',{chat_id:to,from_chat_id:chat,message_id:msg,reply_markup:{inline_keyboard:[[btn(p,fancy)]]}});
+  if(!r?.ok&&fancy&&/button|style|emoji/i.test(String(r?.description||''))){fancy=false;r=await tg('copyMessage',{chat_id:to,from_chat_id:chat,message_id:msg,reply_markup:{inline_keyboard:[[btn(p,false)]]}})}
+  r?.ok?sent++:failed++;
+  await new Promise(res=>setTimeout(res,60));  // well under Telegram's 30 messages a second
+ }
+ await dbPatch(`smm_posts?id=eq.${id}`,{broadcast_sent:sent,broadcast_failed:failed});
+ await tg('sendMessage',{chat_id:chat,text:`Готово ✅ Доставлено: ${sent}.`+(failed?` Не дошло: ${failed} (гость остановил или удалил бота).`:'')});
 }
 // Posts made right in the bot: an SMM admin sends a photo with a caption, the bot answers with the finished post
 // (caption with our custom emoji, the green mini-app button, «Опубликовать в канал» under it). The caption keeps the
@@ -313,9 +345,9 @@ async function postFromPhoto(chat:number,msg:{photo:{file_id:string}[],caption?:
   body:JSON.stringify({day:msk,title:'Пост из бота',tg_photo:msg.photo.at(-1)!.file_id,tg_caption:html,button_text:button_text||'Забронировать место',button_url,sent_at:new Date().toISOString()})});
  const [p]=r.ok?await r.json() as QPost[]:[];
  if(!p){await tg('sendMessage',{chat_id:chat,text:'Не получилось сохранить пост, попробуй ещё раз.'});return}
- const sent=await sendQ(chat,p,[[{text:'📢 Опубликовать в канал',callback_data:'pub:'+p.id}]]);
+ const sent=await sendQ(chat,p,PREVIEW_ROWS(p.id));
  if(!sent?.ok){await tg('sendMessage',{chat_id:chat,text:'Не получилось собрать пост: '+String(sent?.description||'')});return}
- await tg('sendMessage',{chat_id:chat,reply_to_message_id:sent.result?.message_id,text:'👆 Так пост будет выглядеть в канале. Если всё ок, жми «Опубликовать в канал». Если нет, просто пришли новую картинку с текстом.'});
+ await tg('sendMessage',{chat_id:chat,reply_to_message_id:sent.result?.message_id,text:'👆 Так пост будет выглядеть в канале. Если всё ок, жми «Опубликовать в канал» или «Сделать рассылку». Если нет, просто пришли новую картинку с текстом.'});
 }
 const POST_HELP='📸 <b>Пост с кнопкой</b>\n\n1. Пришли мне картинку, а текст поста напиши в подписи к ней.\n2. Я пришлю готовый пост: наши эмодзи, зелёная кнопка «Забронировать место».\n3. Жми «Опубликовать в канал».\n\nСвоя кнопка: последней строкой подписи напиши\n<code>Кнопка: Открыть 1SHOT</code>\nили со ссылкой\n<code>Кнопка: Читать | https://ссылка</code>';
 // Telegram signs every webhook call with this secret; it is derived from the bot token, never stored.
@@ -374,6 +406,14 @@ Deno.serve(async req=>{
    }
    const pb=/^pub:(\d+)$/.exec(String(cb.data||''));
    if(pb&&cb.message?.chat?.id&&await isSmm(Number(cb.from?.id))){await publish(cb.message.chat.id,pb[1],cb.message.message_id);return ok({ok:true})}
+   const bq=/^bc:(\d+)$/.exec(String(cb.data||''));
+   if(bq&&cb.message?.chat?.id&&await isSmm(Number(cb.from?.id))){await broadcastAsk(cb.message.chat.id,bq[1],cb.message.message_id);return ok({ok:true})}
+   const by=/^bcy:(\d+):(\d+)$/.exec(String(cb.data||''));
+   if(by&&cb.message?.chat?.id&&await isSmm(Number(cb.from?.id))){
+    await tg('editMessageReplyMarkup',{chat_id:cb.message.chat.id,message_id:cb.message.message_id,reply_markup:{inline_keyboard:[]}});
+    await broadcastRun(cb.message.chat.id,by[1],Number(by[2]));return ok({ok:true});
+   }
+   if(cb.data==='bcn'&&cb.message?.chat?.id){await tg('editMessageText',{chat_id:cb.message.chat.id,message_id:cb.message.message_id,text:'Рассылка отменена.'});return ok({ok:true})}
    const sm=/^smm:(\d+)$/.exec(String(cb.data||''));
    if(sm&&cb.message?.chat?.id&&await isSmm(Number(cb.from?.id))){
     const [p]=await db(`smm_posts?id=eq.${sm[1]}`);if(p)await sendPost(cb.message.chat.id,p);

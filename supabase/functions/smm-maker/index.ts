@@ -70,11 +70,11 @@ Deno.serve(async req=>{
  let sent:any=null;
  for(const [cap,fancy] of [[fancyCap,true],[caption,true],[caption,false]] as [string,boolean][]){
   const f=new FormData();f.append('chat_id',String(chat));f.append('photo',file,name);f.append('caption',cap);f.append('parse_mode','HTML');
-  f.append('reply_markup',JSON.stringify({inline_keyboard:[[btn(button_text,fancy)],[{text:'📢 Опубликовать в канал',callback_data:'pub:'+row.id}]]}));
+  f.append('reply_markup',JSON.stringify({inline_keyboard:[[btn(button_text,fancy)],[{text:'📢 Опубликовать в канал',callback_data:'pub:'+row.id}],[{text:'📣 Сделать рассылку',callback_data:'bc:'+row.id}]]}));
   sent=await tgForm('sendPhoto',f);if(sent?.ok)break;
  }
  if(!sent?.ok)return ok({error:String(sent?.description||'telegram')},502);
  await db(`smm_posts?id=eq.${row.id}`,{method:'PATCH',body:JSON.stringify({tg_photo:sent.result.photo.at(-1).file_id})});
- await tg('sendMessage',{chat_id:chat,reply_to_message_id:sent.result.message_id,text:'👆 Так пост будет выглядеть в канале. Всё ок? Жми «Опубликовать в канал».'});
+ await tg('sendMessage',{chat_id:chat,reply_to_message_id:sent.result.message_id,text:'👆 Так пост будет выглядеть в канале. Всё ок? Жми «Опубликовать в канал» или «Сделать рассылку».'});
  return ok({ok:true});
 });
