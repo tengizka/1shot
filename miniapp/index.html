@@ -366,7 +366,6 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
 
   <form id="form-register" class="auth-form wizard" onsubmit="authNext(event)" novalidate>
     <div class="wiz-top"><button type="button" class="wiz-back" aria-label="Назад" onclick="authBack()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button><div class="wiz-progress" aria-hidden="true"></div><span class="wiz-count"></span></div>
-    <div class="step"><label class="step-label" for="r-user">Придумай<br>никнейм</label><input type="text" id="r-user" placeholder="vasya_228" autocomplete="username" minlength="3" maxlength="30" enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false" required></div>
     <div class="step"><label class="step-label" for="r-pass">Придумай<br>пароль</label><input type="password" id="r-pass" placeholder="минимум 3 символа" autocomplete="new-password" minlength="3" enterkeyhint="done" required></div>
     <div class="step"><label class="step-label" for="r-phone">Номер<br>телефона</label><input id="r-phone" type="tel" inputmode="tel" autocomplete="tel" enterkeyhint="done" required value="+7 " placeholder="+7 999 123-45-67"></div>
     <div class="step"><label class="step-label" for="r-name">Как тебя<br>зовут?</label><input type="text" id="r-name" placeholder="Вася" autocomplete="given-name" maxlength="45" enterkeyhint="done" required></div>
@@ -771,7 +770,7 @@ async function doLogin(e) {
 async function doRegister(e) {
   e.preventDefault();
   clearAuthErr();
-  const username   = document.getElementById('r-user').value.trim();
+  const username   = window.phoneNick(document.getElementById('r-phone').value);  // nick = phone without +7 / 8
   const password   = document.getElementById('r-pass').value;
   const first_name = document.getElementById('r-name').value.trim();
   const mobile_phone=normPhone(document.getElementById('r-phone').value),last_name=document.getElementById('r-last').value.trim(),birth_date=document.getElementById('r-birth').value,sex=Number(document.querySelector('[name=sex]:checked')?.value);

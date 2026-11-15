@@ -16,6 +16,8 @@
   return t;
  }
  window.normPhone=normPhone;
+ /* The nickname is the phone number without +7 / 8: 9991234567, same as accounts made in Desk. */
+ window.phoneNick=v=>{const d=normPhone(v).replace(/\D/g,'');return d.length===11&&d[0]==='7'?d.slice(1):d};
 
  /* Live mask: "+7 999 123-45-67". A leading 7 or 8 is read as the country code. */
  const fmtPhone=d=>'+7 '+d.slice(0,3)+(d.length>3?' '+d.slice(3,6):'')+(d.length>6?'-'+d.slice(6,8):'')+(d.length>8?'-'+d.slice(8,10):'');
