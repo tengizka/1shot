@@ -81,7 +81,7 @@ class DeskRegistrationTests(unittest.TestCase):
   self.assertIn('error',self.api.register_at_desk(self.id,GUEST,'vk; drop',True))
   self.assertEqual(self.gizmo.writes,[])
  def test_nickname_is_picked_when_empty(self):
-  taken={'9991234567'}
+  taken={'79991234567'}
   real=self.gizmo.request
   def exist(method,path,**kw):
    if path.startswith('users/loginname/'):return unquote(path.split('/')[2]) in taken
@@ -89,10 +89,10 @@ class DeskRegistrationTests(unittest.TestCase):
   self.gizmo.request=exist
   r=self.api.register_at_desk(self.id,dict(GUEST,username='',first_name='Иван'),None,True)
   # The nickname is the phone without 7/8, so staff find the guest by number; a taken one gets a short suffix.
-  self.assertTrue(r['ok']);self.assertEqual(r['username'],'9991234567-2');self.assertEqual(self.gizmo.creates()[0][2]['Username'],'9991234567-2')
+  self.assertTrue(r['ok']);self.assertEqual(r['username'],'79991234567-2');self.assertEqual(self.gizmo.creates()[0][2]['Username'],'79991234567-2')
  def test_nickname_is_the_phone(self):
   r=self.api.register_at_desk(self.id,dict(GUEST,username='',mobile_phone='+7 (999) 123-45-67'),None,True)
-  self.assertTrue(r['ok']);self.assertEqual(r['username'],'9991234567')
+  self.assertTrue(r['ok']);self.assertEqual(r['username'],'79991234567')
  def test_promo_codes_for_buttons(self):
   self.assertEqual([c['code'] for c in self.api.promo_codes()],['HEADSHOT','GG'])
 if __name__=='__main__':unittest.main()

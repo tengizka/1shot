@@ -43,15 +43,15 @@ def create_gizmo_account(gizmo,guard,req,remember):
 
 
 def phone_username(phone):
-    """Reception accounts are named by the phone without the country code: 9991234567. Staff find guests in Gizmo that way."""
+    """Reception accounts are named by the phone with the leading 7 and no plus: 79991234567. Staff find guests in Gizmo that way."""
     digits=re.sub(r'\D','',str(phone))
     if len(digits)==11 and digits[0] in '78':digits=digits[1:]
     if len(digits)!=10:raise ApiError('Телефон: 10 цифр после +7')
-    return digits
+    return '7'+digits
 
 
 def free_username(gizmo,first_name,phone):
-    """The phone without 7/8; if Gizmo already holds that name (an old deleted account), a short suffix keeps it searchable."""
+    """7 and the phone (79991234567); if Gizmo already holds that name (an old deleted account), a short suffix keeps it searchable."""
     base=phone_username(phone)
     for name in (base,)+tuple(f'{base}-{n}' for n in range(2,10)):
         if gizmo.request('GET',f'users/loginname/{quote(name,safe="")}/exist') is False:return name

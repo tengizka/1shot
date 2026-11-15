@@ -5,7 +5,7 @@
  const open=document.createElement('button');open.type='button';open.id='desk-reg-open';open.textContent='+ Новый гость';
  const form=document.createElement('form');form.id='desk-reg';form.className='surface desk-reg';form.hidden=true;form.noValidate=true;
  form.innerHTML=`<h3>Регистрация на ресепшене</h3>
-  <p class="note">Для гостей без Telegram. Данные — с документа. Ник — номер телефона без +7, пароль гость поставит сам за компом.</p>
+  <p class="note">Для гостей без Telegram. Данные — с документа. Ник — семёрка и номер телефона, например 79991234567. Пароль гость поставит сам за компом.</p>
   <div class="desk-reg-grid">
    <label>Имя<input name="first_name" maxlength="45" autocomplete="off" required></label>
    <label>Фамилия<input name="last_name" maxlength="45" autocomplete="off" required></label>
