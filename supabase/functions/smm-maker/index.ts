@@ -52,6 +52,8 @@ Deno.serve(async req=>{
  const body=await req.json().catch(()=>null);if(!body)return ok({error:'bad_request'},400);
  const user=await userFrom(String(body.initData||''));if(!user?.id)return ok({error:'Открой конструктор из бота'},401);
  if(!await isSmm(Number(user.id)))return ok({error:'Нет доступа'},403);
+ // The page asks this first and shows the editor only to the SMM admins.
+ if(body.mode==='check')return ok({ok:true});
  const png=String(body.png||'');if(!png||png.length>14_000_000)return ok({error:'Картинка не дошла'},400);
  const bytes=Uint8Array.from(atob(png),c=>c.charCodeAt(0));const file=new Blob([bytes],{type:'image/png'});
  const name=`1SHOT_${body.format==='story'?'story':'post'}_${new Date(Date.now()+3*3600e3).toISOString().slice(5,16).replace(/[-T:]/g,'')}.png`;
