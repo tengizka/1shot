@@ -8,11 +8,12 @@ const TOKEN=Deno.env.get('TELEGRAM_BOT_TOKEN')||'';
 const SB=Deno.env.get('SUPABASE_URL')||'',SKEY=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
 const MAKER='https://tengizka.fun/smm/1shot/maker/';
 const MINIAPP='https://t.me/oneshotagent?startapp=channel';
-const CORS={'access-control-allow-origin':'https://tengizka.fun','access-control-allow-headers':'content-type','access-control-allow-methods':'POST, OPTIONS'};
+const CORS={'access-control-allow-origin':'https://tengizka.fun','access-control-allow-headers':'content-type','access-control-allow-methods':'GET, POST, OPTIONS'};
 const ok=(b:unknown,s=200)=>new Response(JSON.stringify(b),{status:s,headers:{'content-type':'application/json',...CORS}});
 const db=async(path:string,init:RequestInit={})=>{const r=await fetch(`${SB}/rest/v1/${path}`,{...init,headers:{apikey:SKEY,Authorization:'Bearer '+SKEY,'content-type':'application/json',...(init.headers||{})}});return r.ok&&r.status!==204?await r.json():[]};
 const tg=async(method:string,body:unknown)=>(await fetch(`https://api.telegram.org/bot${TOKEN}/${method}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)})).json();
 const tgForm=async(method:string,form:FormData)=>(await fetch(`https://api.telegram.org/bot${TOKEN}/${method}`,{method:'POST',body:form})).json();
+const url0=(r:Request)=>new URL(r.url);
 const hex=(b:ArrayBuffer)=>Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');
 const hmac=async(key:ArrayBuffer|Uint8Array,data:string)=>crypto.subtle.sign('HMAC',await crypto.subtle.importKey('raw',key,{name:'HMAC',hash:'SHA-256'},false,['sign']),new TextEncoder().encode(data));
 async function userFrom(initData:string){
@@ -35,6 +36,7 @@ const captionHtml=(s:string)=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').repla
 const btn=(text:string,fancy:boolean)=>({text,url:MINIAPP,...(fancy?{style:'success',icon_custom_emoji_id:'5384056395358315887'}:{})});
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response(null,{headers:CORS});
+ if(req.method==='GET'&&url0(req).searchParams.get('price')==='reception'){const [row]=await db('smm_price_screens?id=eq.reception&select=cfg,updated_at');return ok(row||{cfg:null})}
  if(req.method!=='POST')return ok({ok:true});
  const url=new URL(req.url);
  if(url.searchParams.get('pin')==='1'){
@@ -49,14 +51,30 @@ Deno.serve(async req=>{
   }
   return ok({sent:out});
  }
+ // The price editor sends its recorded video as multipart (initData, mode=video, file): too big for JSON.
+ if((req.headers.get('content-type')||'').startsWith('multipart/form-data')){
+  const fd=await req.formData().catch(()=>null);if(!fd)return ok({error:'bad_request'},400);
+  const u=await userFrom(String(fd.get('initData')||''));if(!u?.id)return ok({error:'Открой конструктор из бота'},401);
+  if(!await isSmm(Number(u.id)))return ok({error:'Нет доступа'},403);
+  const f=fd.get('file');if(!(f instanceof File)||!f.size||f.size>45_000_000)return ok({error:'Видео не дошло'},400);
+  const ext=/mp4/.test(f.type)?'mp4':'webm';
+  const vf=new FormData();vf.append('chat_id',String(u.id));vf.append('document',new Blob([await f.arrayBuffer()],{type:ext==='mp4'?'video/mp4':'video/webm'}),`1SHOT_price_${new Date(Date.now()+3*3600e3).toISOString().slice(5,16).replace(/[-T:]/g,'')}.${ext}`);
+  vf.append('caption',ext==='mp4'?'Анимированный прайс':'Анимированный прайс (WebM: если экран его не открывает, используй ссылку для экрана)');
+  const r=await tgForm('sendDocument',vf);return r?.ok?ok({ok:true}):ok({error:String(r?.description||'telegram')},502);
+ }
  const body=await req.json().catch(()=>null);if(!body)return ok({error:'bad_request'},400);
  const user=await userFrom(String(body.initData||''));if(!user?.id)return ok({error:'Открой конструктор из бота'},401);
  if(!await isSmm(Number(user.id)))return ok({error:'Нет доступа'},403);
  // The page asks this first and shows the editor only to the SMM admins.
  if(body.mode==='check')return ok({ok:true});
+ // The price editor saves the layout for the reception screen; the screen page reads it with GET ?price=reception.
+ if(body.mode==='screen'){const cfg=body.cfg;const txt=JSON.stringify(cfg??null);if(!cfg||typeof cfg!=='object'||txt.length>60000)return ok({error:'bad_cfg'},400);
+  await db('smm_price_screens',{method:'POST',headers:{Prefer:'resolution=merge-duplicates'},body:JSON.stringify({id:'reception',cfg,updated_at:new Date().toISOString()})});
+  if(body.notify){const r=await tg('sendMessage',{chat_id:Number(user.id),text:'📺 Прайс для экрана на ресепшене. Открой ссылку в браузере на компе у экрана и нажми F11. Анимация крутится сама, а когда сохраняешь прайс в конструкторе, экран обновится за пару минут.',reply_markup:{inline_keyboard:[[{text:'Открыть прайс',url:MAKER+'price/?screen'}]]}});if(!r?.ok)return ok({error:String(r?.description||'telegram')},502)}
+  return ok({ok:true})}
  const png=String(body.png||'');if(!png||png.length>14_000_000)return ok({error:'Картинка не дошла'},400);
  const bytes=Uint8Array.from(atob(png),c=>c.charCodeAt(0));const file=new Blob([bytes],{type:'image/png'});
- const name=`1SHOT_${body.format==='story'?'story':'post'}_${new Date(Date.now()+3*3600e3).toISOString().slice(5,16).replace(/[-T:]/g,'')}.png`;
+ const name=`1SHOT_${body.format==='story'?'story':body.format==='price'?'price':'post'}_${new Date(Date.now()+3*3600e3).toISOString().slice(5,16).replace(/[-T:]/g,'')}.png`;
  const chat=Number(user.id);
  // The full-quality file first: it is what goes to VK, Instagram and the stories.
  const df=new FormData();df.append('chat_id',String(chat));df.append('document',file,name);df.append('caption','Картинка в полном качестве');
