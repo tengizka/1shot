@@ -8,6 +8,7 @@ const TOKEN=Deno.env.get('TELEGRAM_BOT_TOKEN')||'';
 const SB=Deno.env.get('SUPABASE_URL')||'',SKEY=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
 const MAKER='https://tengizka.fun/smm/1shot/maker/';
 const MINIAPP='https://t.me/oneshotagent?startapp=channel';
+const CHANNEL='@oneshotmira17';
 const CORS={'access-control-allow-origin':'https://tengizka.fun','access-control-allow-headers':'content-type','access-control-allow-methods':'GET, POST, OPTIONS'};
 const ok=(b:unknown,s=200)=>new Response(JSON.stringify(b),{status:s,headers:{'content-type':'application/json',...CORS}});
 const db=async(path:string,init:RequestInit={})=>{const r=await fetch(`${SB}/rest/v1/${path}`,{...init,headers:{apikey:SKEY,Authorization:'Bearer '+SKEY,'content-type':'application/json',...(init.headers||{})}});return r.ok&&r.status!==204?await r.json():[]};
@@ -39,6 +40,22 @@ Deno.serve(async req=>{
  if(req.method==='GET'&&url0(req).searchParams.get('price')==='reception'){const [row]=await db('smm_price_screens?id=eq.reception&select=cfg,updated_at');return ok(row||{cfg:null})}
  if(req.method!=='POST')return ok({ok:true});
  const url=new URL(req.url);
+ // Every 5 minutes pg_cron calls ?cron=1: scheduled posts whose time has come are copied from their preview to the channel.
+ if(url.searchParams.get('cron')==='1'){
+  const key=req.headers.get('x-smm-key')||'';const h=hex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(key)));
+  if(!key||!(await db(`smm_send_keys?hash=eq.${h}&select=hash`)).length)return ok({error:'forbidden'},403);
+  const due=await db(`smm_posts?published_at=is.null&scheduled_at=lte.${new Date().toISOString()}&preview_msg=not.is.null&select=id,button_text,button_url,preview_chat,preview_msg&order=scheduled_at.asc&limit=5`);
+  const done=[];
+  for(const p of due){
+   const [claim]=await db(`smm_posts?id=eq.${p.id}&published_at=is.null`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({published_at:new Date().toISOString()})});
+   if(!claim)continue;
+   let r:any=null;for(const fancy of [true,false]){r=await tg('copyMessage',{chat_id:CHANNEL,from_chat_id:p.preview_chat,message_id:p.preview_msg,reply_markup:{inline_keyboard:[[btn(p.button_text||'Забронировать место',fancy)]]}});if(r?.ok)break}
+   if(r?.ok){await tg('sendMessage',{chat_id:p.preview_chat,reply_to_message_id:p.preview_msg,text:'✅ Запланированный пост вышел в канале.'})}
+   else{await db(`smm_posts?id=eq.${p.id}`,{method:'PATCH',body:JSON.stringify({published_at:null,scheduled_at:null})});await tg('sendMessage',{chat_id:p.preview_chat,reply_to_message_id:p.preview_msg,text:'⚠️ Не получилось опубликовать запланированный пост: '+String(r?.description||'')+'. Опубликуй кнопкой вручную.'})}
+   done.push(p.id);
+  }
+  return ok({published:done});
+ }
  if(url.searchParams.get('pin')==='1'){
   const key=req.headers.get('x-smm-key')||'';
   const h=hex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(key)));
@@ -67,6 +84,18 @@ Deno.serve(async req=>{
  if(!await isSmm(Number(user.id)))return ok({error:'Нет доступа'},403);
  // The page asks this first and shows the editor only to the SMM admins.
  if(body.mode==='check')return ok({ok:true});
+ // Plan page: upcoming scheduled posts, cancel or move them.
+ if(body.mode==='plan'){const rows=await db('smm_posts?published_at=is.null&scheduled_at=not.is.null&select=id,scheduled_at,tg_caption,title&order=scheduled_at.asc&limit=100');
+  const last=await db('smm_posts?published_at=not.is.null&select=id,published_at,tg_caption&order=published_at.desc&limit=10');return ok({ok:true,rows,last})}
+ if(body.mode==='unschedule'||body.mode==='schedule'){const id=Number(body.id);if(!Number.isSafeInteger(id))return ok({error:'bad_id'},400);
+  const at=body.mode==='schedule'?new Date(String(body.at)):null;if(at&&(isNaN(+at)||+at<Date.now()-60e3))return ok({error:'Время уже прошло'},400);
+  await db(`smm_posts?id=eq.${id}&published_at=is.null`,{method:'PATCH',body:JSON.stringify({scheduled_at:at?at.toISOString():null})});return ok({ok:true})}
+
+ // Gizmo banner editor: the finished self-contained HTML comes back as a file.
+ if(body.mode==='html'){const html=String(body.html||'');if(!html.startsWith('<!doctype html>')||html.length>12_000_000)return ok({error:'bad_html'},400);
+  const nm=(String(body.name||'1SHOT_gizmo.html').match(/^[\w.\-]{1,80}\.html$/)||['1SHOT_gizmo.html'])[0];
+  const hf=new FormData();hf.append('chat_id',String(user.id));hf.append('document',new Blob([html],{type:'text/html'}),nm);hf.append('caption','Баннер для Gizmo: загрузи этот файл в новости');
+  const r=await tgForm('sendDocument',hf);return r?.ok?ok({ok:true}):ok({error:String(r?.description||'telegram')},502)}
  // The price editor saves the layout for the reception screen; the screen page reads it with GET ?price=reception.
  if(body.mode==='screen'){const cfg=body.cfg;const txt=JSON.stringify(cfg??null);if(!cfg||typeof cfg!=='object'||txt.length>60000)return ok({error:'bad_cfg'},400);
   await db('smm_price_screens',{method:'POST',headers:{Prefer:'resolution=merge-duplicates'},body:JSON.stringify({id:'reception',cfg,updated_at:new Date().toISOString()})});
@@ -92,7 +121,9 @@ Deno.serve(async req=>{
   sent=await tgForm('sendPhoto',f);if(sent?.ok)break;
  }
  if(!sent?.ok)return ok({error:String(sent?.description||'telegram')},502);
- await db(`smm_posts?id=eq.${row.id}`,{method:'PATCH',body:JSON.stringify({tg_photo:sent.result.photo.at(-1).file_id})});
- await tg('sendMessage',{chat_id:chat,reply_to_message_id:sent.result.message_id,text:'👆 Так пост будет выглядеть в канале. Всё ок? Жми «Опубликовать в канал» или «Сделать рассылку».'});
+ const at=body.at?new Date(String(body.at)):null;const when=at&&!isNaN(+at)&&+at>Date.now()?at:null;
+ await db(`smm_posts?id=eq.${row.id}`,{method:'PATCH',body:JSON.stringify({tg_photo:sent.result.photo.at(-1).file_id,preview_chat:chat,preview_msg:sent.result.message_id,scheduled_at:when?when.toISOString():null})});
+ const whenTxt=when?new Date(+when+3*3600e3).toISOString().replace(/^\d{4}-(\d\d)-(\d\d)T(\d\d:\d\d).*$/,'$2.$1 в $3'):'';
+ await tg('sendMessage',{chat_id:chat,reply_to_message_id:sent.result.message_id,text:when?`⏰ Пост выйдет в канале сам ${whenTxt} (по Москве). Передумал: опубликуй сразу кнопкой выше или отмени во вкладке «План» конструктора.`:'👆 Так пост будет выглядеть в канале. Всё ок? Жми «Опубликовать в канал» или «Сделать рассылку».'});
  return ok({ok:true});
 });
