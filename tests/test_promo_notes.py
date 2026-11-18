@@ -40,3 +40,23 @@ class PromoNotesTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class DayNotesTests(unittest.TestCase):
+    def test_all_notes_of_the_day_with_gorilla_and_600_marked(self):
+        from desktop.promo_notes import day_report, find
+        from datetime import timedelta
+        since = NOW - timedelta(hours=24)
+        notes = {
+            1: [{'text': 'Горила за 600р', 'createdTime': '2026-11-18T01:00:00'}],
+            2: [{'text': 'Gorilla выдана', 'createdTime': '2026-11-17T20:00:00'}],
+            3: [{'text': 'пополнил 600 ₽', 'createdTime': '2026-11-17T22:00:00'}, {'text': 'старое', 'createdTime': '2026-11-10T22:00:00'}],
+            4: [{'text': 'просил наушники', 'createdTime': '2026-11-18T09:00:00'}],
+        }
+        deposits = [{'userId': 1, 'type': 0, 'amount': 600.0, 'date': '2026-11-18T00:55:00'}, {'userId': 5, 'type': 0, 'amount': 600, 'date': '2026-11-18T03:00:00'},
+                    {'userId': 6, 'type': 0, 'amount': 6000, 'date': '2026-11-18T03:00:00'}]
+        r = day_report(notes, {1: {'username': '79990000001'}}, deposits, since, NOW)
+        s = r['summary']
+        self.assertEqual((s['notes'], s['gorilla_notes'], s['six_notes'], s['both_notes']), (4, 2, 2, 1))
+        self.assertEqual((s['topups_600'], s['topups_600_with_gorilla_note']), (2, 1))
+        self.assertEqual(sorted(find(notes, 'горилл')), [1, 2], 'the keyword search also finds «горила» and «Gorilla»')

@@ -150,13 +150,15 @@
   box.append(block('Акция по заметкам','Desk ищет слово во всех заметках гостей в Gizmo и считает, сколько пополнили в тот визит, кто вернулся и пополнялся ещё. Пишите начало слова, как в заметках: «горилл» найдёт и «горилла», и «гориллу».'));
   const form=el('form','guest-tools');const input=el('input');input.value=promoWord;input.placeholder='Слово из заметки';input.setAttribute('enterkeyhint','done');input.autocomplete='off';input.maxLength=40;
   input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();input.blur()}});
-  const go=el('button',null,'Посчитать');go.type='submit';form.append(input,go);
+  const go=el('button',null,'Посчитать');go.type='submit';const dayBtn=el('button','ghost','Все заметки за сутки');dayBtn.type='button';form.append(input,go,dayBtn);
   const status=el('p','note'),out=el('div');box.append(form,status,out);
   let t=null;
   function draw(r){
    go.disabled=!!r.busy;setDeskText(go,r.busy?'Считаем…':'Посчитать');
    setDeskText(status,r.busy?`Читаем заметки гостей: ${num(r.done)} из ${num(r.total)||'…'}. Можно работать дальше.`:(r.error||''));
+   dayBtn.disabled=!!r.busy;
    const res=r.result;if(r.busy||!res){if(!r.busy)out.replaceChildren();return}
+   if(res.mode==='day'){out.replaceChildren(...dayView(res));return}
    const s=res.summary,day=v=>v?new Date(v).toLocaleDateString('ru-RU',{day:'numeric',month:'long'}):'—';
    const tiles=el('div','stat-tiles');
    tiles.append(tile('Взяли по акции',num(s.people),s.people?`«${res.word}» · ${day(s.from)} — ${day(s.to)}`:'заметок со словом нет',true),
@@ -171,6 +173,25 @@
      el('span',null,g.topup?rub(g.topup):'—'),el('span',null,g.later_count?`${rub(g.later_sum)} · ${g.later_count} раз`:'—'),el('span',null,g.visits_after?num(g.visits_after):'—'))}
    out.replaceChildren(tiles,table,el('p','note','«В тот визит» — пополнения за 3 часа до заметки и час после. «Потом» — все пополнения позже. Наведите на ник — покажет текст заметки.'));
   }
+  function dayView(res){
+   const s=res.summary,hm=v=>new Date(v).toLocaleString('ru-RU',{timeZone:'Europe/Moscow',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+   const tiles=el('div','stat-tiles');
+   tiles.append(tile('Заметок за '+s.hours+' ч',num(s.notes),num(s.guests)+' гостей',false),tile('Про гориллу',num(s.gorilla_notes),num(s.gorilla_guests)+' гостей',true),
+    tile('С «600»',num(s.six_notes),'горилла и 600 вместе: '+num(s.both_notes)),tile('Пополнений на 600 ₽',num(s.topups_600),'из них с заметкой про гориллу: '+num(s.topups_600_with_gorilla_note)));
+   const t=el('div','guest-table day-notes');t.append(...['Когда','Гость','Заметка','Горилла','600'].map(h=>el('span','head',h)));
+   const list=[...res.notes].sort((a,b)=>(b.gorilla||b.six)-(a.gorilla||a.six)||String(b.at).localeCompare(a.at));
+   for(const n of list){const g=el('span','first');g.append(nickLink(n.nick,n.id));
+    const text=el('span','note-text',n.text);if(n.gorilla||n.six)text.classList.add('hit');
+    t.append(el('span',null,hm(n.at)),g,text,el('span',null,n.gorilla?'да':''),el('span',null,n.six?'да':''))}
+   const parts=[tiles,t];
+   if(res.topups_600.length){const b=block('Пополнения ровно на 600 ₽ за это время');const tt=el('div','guest-table promo-table');tt.append(...['Гость','Когда','Есть заметка про гориллу','',''].map(h=>el('span','head',h)));
+    const gor=new Set(res.notes.filter(n=>n.gorilla).map(n=>n.id));
+    for(const p of res.topups_600){const c=el('span','first');c.append(nickLink(p.nick,p.id));tt.append(c,el('span',null,hm(p.at)),el('span',null,gor.has(p.id)?'да':'нет'),el('span'),el('span'))}
+    b.append(tt);parts.push(b)}
+   parts.push(el('p','note','Сначала заметки про гориллу и 600, потом все остальные. Горилла ищется в любом написании: «горилла», «горила», «Gorilla».'));
+   return parts;
+  }
+  dayBtn.onclick=async()=>{const r=await invoke('promo_notes_day',24);if(r?.error){setDeskText(status,r.error);return}poll()};
   async function poll(){const r=await invoke('promo_notes_state');if(!r||!box.isConnected)return;draw(r);clearTimeout(t);if(r.busy)t=setTimeout(poll,1500)}
   form.onsubmit=async e=>{e.preventDefault();promoWord=input.value.trim();const r=await invoke('promo_notes_start',promoWord);if(r?.error){setDeskText(status,r.error);return}poll()};
   poll();return box;
