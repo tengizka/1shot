@@ -62,6 +62,90 @@ def _minutes(s, start, end):
     return 0.0
 
 
+# The advertising campaign started on the morning of 13 November 2026: new guests are compared before and after it.
+AD_START = datetime(2026, 11, 13, 9, 0, tzinfo=MSK)
+TOGETHER_START = timedelta(minutes=15)   # came in within 15 min of each other …
+TOGETHER_END = timedelta(minutes=20)     # … and left within 20 min of each other …
+
+
+def area(host):
+    """… in the same small zone of the hall (zones hold 2–6 PCs, see HALL_ROWS in assets/hall-map.js)."""
+    h = str(host or '').strip()
+    if not h.isdigit():
+        return h or None
+    n = int(h)
+    return 'ps5' if n == 1 else str(n // 10) if n < 30 else str(n // 100 * 100)
+
+
+def newcomers(sessions, users, now, ad=AD_START):
+    """New guests (their first-ever session) day by day, alone or with company, before and after the campaign.
+
+    Company: other guests who started within 15 min, left within 20 min and sat in the same zone of the hall.
+    One companion = a pair, two or more = a group. A companion whose first visit is the same day came new too."""
+    rows = []
+    for s in sessions:
+        if not isinstance(s, dict) or s.get('userIsGuest') or s.get('userId') not in users:
+            continue
+        start = _date(s.get('startTime'))
+        if start:
+            rows.append((s['userId'], start, _date(s.get('endTime')), area(s.get('hostNumber') or s.get('hostName'))))
+    rows.sort(key=lambda r: r[1])
+    first = {}
+    for r in rows:
+        first.setdefault(r[0], r)
+    by_day = defaultdict(list)
+    for r in rows:
+        by_day[r[1].date()].append(r)
+    first_day = {uid: r[1].date() for uid, r in first.items()}
+    visit_days = defaultdict(set)
+    for r in rows:
+        visit_days[r[0]].add(r[1].date())
+
+    def company(r):
+        uid, start, end, where = r
+        mates = set()
+        for o in by_day[start.date()] + by_day[start.date() - timedelta(days=1)]:
+            if o[0] == uid or o[3] != where or where is None or abs(o[1] - start) > TOGETHER_START:
+                continue
+            if (end is None) != (o[2] is None) or (end and abs(o[2] - end) > TOGETHER_END):
+                continue
+            mates.add(o[0])
+        return mates
+
+    guests = []
+    for uid, r in first.items():
+        mates = company(r)
+        guests.append({'id': uid, 'at': r[1], 'size': 1 + len(mates),
+                       'with_new': any(first_day.get(m) == r[1].date() for m in mates),
+                       'back': len(visit_days[uid]) > 1})
+    launch = min((g['at'] for g in guests), default=now)
+    base_from = max(launch + timedelta(days=45), ad - timedelta(days=120))   # skip the launch weeks when everyone looked new
+
+    def window(a, b):
+        part = [g for g in guests if a <= g['at'] < b]
+        days = max((min(b, now) - a).total_seconds() / 86400, 1 / 24)
+        n = len(part)
+        share = lambda k: round(100 * k / n) if n else 0
+        solo = sum(1 for g in part if g['size'] == 1)
+        pair = sum(1 for g in part if g['size'] == 2)
+        group = n - solo - pair
+        return {'from': a.date().isoformat(), 'to': (min(b, now) - timedelta(seconds=1)).date().isoformat(), 'days': round(days, 1),
+                'new': n, 'per_day': round(n / days, 1), 'solo': solo, 'pair': pair, 'group': group,
+                'solo_pct': share(solo), 'pair_pct': share(pair), 'group_pct': share(group),
+                'with_new_pct': share(sum(1 for g in part if g['with_new'])), 'back_pct': share(sum(1 for g in part if g['back']))}
+
+    weeks = Counter()
+    for g in guests:
+        weeks[(g['at'] - timedelta(days=g['at'].weekday())).date().isoformat()] += 1
+    days = Counter(g['at'].date().isoformat() for g in guests if g['at'] >= now - timedelta(days=45))
+    return {'ad_start': ad.isoformat(), 'since': launch.date().isoformat(),
+            'after': window(ad, now + timedelta(seconds=1)),
+            'before_30': window(ad - timedelta(days=30), ad),
+            'before_all': window(base_from, ad),
+            'weeks': [{'week': w, 'new': n} for w, n in sorted(weeks.items())],
+            'days': [{'day': d, 'new': n} for d, n in sorted(days.items())]}
+
+
 def month_key(d):
     return f'{d.year}-{d.month:02d}'
 
@@ -309,8 +393,12 @@ def compute(raw):
     guests = guests[:3000]  # the server keeps a report up to 500 KB
     # The same guests with nicknames, for the «Гости» tab on this PC only.
     local['guests'] = [dict(g, nick=nick(g['id'])) for g in guests]
+    try:
+        fresh = newcomers(raw['sessions'], users, now)
+    except Exception:
+        fresh = None
     return {
-        'at': now.isoformat(), 'months': rows, 'guests': guests, 'summary': summary, 'facts': facts,
+        'at': now.isoformat(), 'months': rows, 'guests': guests, 'summary': summary, 'facts': facts, 'newcomers': fresh,
         'heat': [[heat[(wd, h)] for h in range(24)] for wd in range(7)],
         'zones': [{'zone': z, 'hours': round(v)} for z, v in zone_hours.most_common()],
         'pcs': [{'pc': p, 'hours': round(v)} for p, v in pc_hours.most_common()],

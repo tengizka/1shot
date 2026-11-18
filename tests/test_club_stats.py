@@ -90,3 +90,26 @@ class RevenueTests(ClubStatsTests):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class NewcomersTests(unittest.TestCase):
+    def test_pairs_groups_and_campaign_windows(self):
+        from desktop.club_stats import newcomers, MSK
+        from datetime import datetime
+        users = {i: {} for i in range(1, 10)}
+        S = lambda uid, host, start, end: {'userId': uid, 'hostNumber': host, 'startTime': start, 'endTime': end}
+        sessions = [
+            S(1, 104, '2026-10-20T18:00:00', '2026-10-20T20:00:00'),          # alone, before the ads
+            S(2, 11, '2026-11-14T18:00:00', '2026-11-14T20:00:00'),           # a pair in VIP 1 …
+            S(3, 12, '2026-11-14T18:05:00', '2026-11-14T20:10:00'),           # … both new
+            S(4, 201, '2026-11-15T12:00:00', '2026-11-15T14:00:00'),          # a group of three in zone 200
+            S(5, 202, '2026-11-15T12:10:00', '2026-11-15T14:05:00'),
+            S(6, 203, '2026-11-15T12:03:00', '2026-11-15T13:55:00'),
+            S(7, 301, '2026-11-15T12:00:00', '2026-11-15T14:00:00'),          # same time, other zone: alone
+            S(1, 105, '2026-11-16T10:00:00', '2026-11-16T11:00:00'),          # guest 1 is not new any more
+        ]
+        r = newcomers(sessions, users, datetime(2026, 11, 18, 12, 0, tzinfo=MSK))
+        a = r['after']
+        self.assertEqual((a['new'], a['solo'], a['pair'], a['group']), (6, 1, 2, 3))
+        self.assertEqual(a['with_new_pct'], 83)
+        self.assertEqual(r['before_30']['new'], 1)
