@@ -23,9 +23,19 @@ def _rows(value, key):
     return value if isinstance(value, list) else []
 
 
+# Admins write it every way: «горилла», «гориллу», «горила», «Gorilla», «горил»; and the price as «600», «600р», «600 ₽».
+GORILLA = re.compile(r'г[оа]р+[иы]л+|gor+il+', re.I)
+SIX_HUNDRED = re.compile(r'(?<!\d)600(?!\d)')
+
+
+def pattern(word):
+    w = word.strip().casefold().replace('ё', 'е')
+    return GORILLA if GORILLA.match(w) or w.startswith('горил') else re.compile(re.escape(w))
+
+
 def find(notes_by_user, word):
     """{uid: [note…]} -> {uid: (first matching note date, text)}; deleted notes are skipped."""
-    rx = re.compile(re.escape(word.strip().casefold().replace('ё', 'е')))
+    rx = pattern(word)
     out = {}
     for uid, notes in notes_by_user.items():
         for n in notes:
@@ -77,6 +87,34 @@ def compute(hits, deposits, sessions, users, now):
     return {'summary': summary, 'guests': guests}
 
 
+def day_report(notes_by_user, users, deposits, since, now):
+    """Every note written since `since`, with what it says about the gorilla and 600, plus the 600 ₽ top-ups of that time."""
+    nick = lambda uid: (users.get(uid) or {}).get('username') or f'ID {uid}'
+    rows = []
+    for uid, notes in notes_by_user.items():
+        for n in notes:
+            if not isinstance(n, dict) or n.get('isDeleted'):
+                continue
+            at = _date(n.get('createdTime') or n.get('modifiedTime'))
+            text = str(n.get('text') or '').strip()
+            if at and at >= since and text:
+                low = text.casefold().replace('ё', 'е')
+                rows.append({'id': uid, 'nick': nick(uid), 'at': at.isoformat(), 'text': text[:400],
+                             'gorilla': bool(GORILLA.search(low)), 'six': bool(SIX_HUNDRED.search(low))})
+    rows.sort(key=lambda r: r['at'], reverse=True)
+    tops = []
+    for d in deposits:
+        at = _date(d.get('date')) if isinstance(d, dict) else None
+        if at and at >= since and d.get('type') == TOPUP_TYPE and d.get('amount') == 600:
+            tops.append({'id': d.get('userId'), 'nick': nick(d.get('userId')), 'at': at.isoformat()})
+    gor_users = {r['id'] for r in rows if r['gorilla']}
+    summary = {'hours': round((now - since).total_seconds() / 3600), 'notes': len(rows), 'guests': len({r['id'] for r in rows}),
+               'gorilla_notes': sum(r['gorilla'] for r in rows), 'gorilla_guests': len(gor_users),
+               'six_notes': sum(r['six'] for r in rows), 'both_notes': sum(r['gorilla'] and r['six'] for r in rows),
+               'topups_600': len(tops), 'topups_600_with_gorilla_note': sum(1 for t in tops if t['id'] in gor_users)}
+    return {'mode': 'day', 'summary': summary, 'notes': rows, 'topups_600': sorted(tops, key=lambda t: t['at'], reverse=True)}
+
+
 class PromoNotes:
     def __init__(self, gizmo, cloud):
         self.gizmo, self.cloud = gizmo, cloud
@@ -106,33 +144,68 @@ class PromoNotes:
                 time.sleep(0.5 * (attempt + 1))
         return uid, None
 
+    def _read_all(self):
+        users = {u['id']: u for u in _rows(self.gizmo.request('GET', 'users', params={'IsDeleted': False}, timeout=(3, 60)), 'users')
+                 if isinstance(u, dict) and type(u.get('id')) is int}
+        with self.lock:
+            self.state['total'] = len(users)
+        notes, failed = {}, 0
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            for uid, rows in pool.map(self._notes, list(users)):
+                if rows is None:
+                    failed += 1
+                else:
+                    notes[uid] = rows
+                with self.lock:
+                    self.state['done'] += 1
+        return users, notes, failed
+
+    def _deposits(self, start, now):
+        span = {'DateFrom': start.strftime('%Y-%m-%dT%H:%M:%S'), 'DateTo': (now + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%S')}
+        deposits, cursor = [], None
+        for _ in range(100):   # paged; 100 pages × 500 rows is far beyond a club's month
+            params = {**span, 'Pagination.Limit': 500, **({'Pagination.Cursor': cursor} if cursor else {})}
+            page = self.gizmo.request('GET', 'v2.0/deposittransactions', params=params, timeout=(3, 60))
+            deposits += _rows(page, 'data')
+            cursor = page.get('nextCursor') if isinstance(page, dict) else None
+            if not cursor:
+                break
+        return deposits, span
+
+    def start_day(self, hours=24):
+        hours = int(hours) if str(hours).isdigit() and 1 <= int(hours) <= 168 else 24
+        with self.lock:
+            if self.state['busy']:
+                return {'error': 'Уже считаем, подождите'}
+            self.state.update(busy=True, done=0, total=0, word=f'{hours} ч', error='')
+        threading.Thread(target=self._run_day, args=(hours,), daemon=True).start()
+        return {'ok': True}
+
+    def _run_day(self, hours):
+        try:
+            users, notes, failed = self._read_all()
+            now = datetime.now(MSK)
+            since = now - timedelta(hours=hours)
+            deposits, _ = self._deposits(since - timedelta(days=1), now)
+            result = day_report(notes, users, deposits, since, now)
+            result['failed'] = failed
+            try:   # counts only, never the note texts
+                self.cloud.desk('report', kind='promo_notes_day', data=result['summary'])
+            except Exception:
+                pass
+            with self.lock:
+                self.state.update(busy=False, result=result, error='' if not failed else f'Не прочитались заметки у {failed} гостей')
+        except Exception as error:
+            with self.lock:
+                self.state.update(busy=False, error='Gizmo не отдал данные: ' + str(error)[:160])
+
     def _run(self, word):
         try:
-            users = {u['id']: u for u in _rows(self.gizmo.request('GET', 'users', params={'IsDeleted': False}, timeout=(3, 60)), 'users')
-                     if isinstance(u, dict) and type(u.get('id')) is int}
-            with self.lock:
-                self.state['total'] = len(users)
-            notes, failed = {}, 0
-            with ThreadPoolExecutor(max_workers=6) as pool:
-                for uid, rows in pool.map(self._notes, list(users)):
-                    if rows is None:
-                        failed += 1
-                    else:
-                        notes[uid] = rows
-                    with self.lock:
-                        self.state['done'] += 1
+            users, notes, failed = self._read_all()
             hits = find(notes, word)
             now = datetime.now(MSK)
             start = min((at for at, _ in hits.values()), default=now) - timedelta(days=1)
-            span = {'DateFrom': start.strftime('%Y-%m-%dT%H:%M:%S'), 'DateTo': (now + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%S')}
-            deposits, cursor = [], None
-            for _ in range(100):   # paged; 100 pages × 500 rows is far beyond a club's month
-                params = {**span, 'Pagination.Limit': 500, **({'Pagination.Cursor': cursor} if cursor else {})}
-                page = self.gizmo.request('GET', 'v2.0/deposittransactions', params=params, timeout=(3, 60))
-                deposits += _rows(page, 'data')
-                cursor = page.get('nextCursor') if isinstance(page, dict) else None
-                if not cursor:
-                    break
+            deposits, span = self._deposits(start, now)
             sessions = _rows(self.gizmo.request('GET', 'reports/sessionslog', params=span, timeout=(3, 60)), 'sessions')
             result = compute(hits, deposits, sessions, users, now)
             result['word'], result['failed'] = word, failed

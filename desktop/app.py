@@ -266,6 +266,10 @@ class App:
         """«Акции»: count the guests whose Gizmo note mentions the promo word (e.g. «горилл»)."""
         try:return self.promo_notes.start(word)
         except Exception as error:return {'error':str(error)}
+    def promo_notes_day(self,hours=24):
+        """«Акции → Все заметки за сутки»: every Gizmo note of the last hours, the gorilla and 600 ones marked."""
+        try:return self.promo_notes.start_day(hours)
+        except Exception as error:return {'error':str(error)}
     def promo_notes_state(self):
         return self.promo_notes.snapshot()
     def recent_payers(self):
