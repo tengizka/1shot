@@ -10,6 +10,7 @@ from pathlib import Path
 from .engine import Controller,Store
 from .accounts import Accounts
 from .recent import RecentPayers
+from .promo_notes import PromoNotes
 from .registration_approval import RegistrationApproval
 from .guest_passwords import GuestPasswords
 from .food import Food
@@ -62,6 +63,7 @@ class App:
         from .tbank import TBankShift
         self.tbank=TBankShift(self.gizmo,self.cloud,self.store)
         self.recent=RecentPayers(self.gizmo,self.accounts.directory)
+        self.promo_notes=PromoNotes(self.gizmo,self.cloud)
         self.registration=RegistrationApproval(self.cloud,self.gizmo,self.store,self.controller.guard)
         self.guest_passwords=GuestPasswords(self.cloud,self.gizmo,self.store,self.controller.guard)
         self.food=Food(self.cloud,self.gizmo,self.store,lambda:{r['host_id']:r['gizmo_host_id'] for r in self.host_rows},rentals=types.SimpleNamespace(add=lambda *a:self._locked(lambda:self.rentals.add(*a))))
@@ -260,6 +262,12 @@ class App:
     def club_stats_state(self):
         """«Статистика»: the last collected club statistics (kept on this PC) and whether a new count is running."""
         return self.club_stats.snapshot()
+    def promo_notes_start(self,word):
+        """«Акции»: count the guests whose Gizmo note mentions the promo word (e.g. «горилл»)."""
+        try:return self.promo_notes.start(word)
+        except Exception as error:return {'error':str(error)}
+    def promo_notes_state(self):
+        return self.promo_notes.snapshot()
     def recent_payers(self):
         """«Недавно пополнялись»: up to 3 guests who paid in Gizmo lately and are not playing yet."""
         try:return {'users':self.recent.list()}

@@ -57,7 +57,7 @@
  }
  // Tabs inside «Статистика клуба»: Обзор · Гости · Когда и где · Продажи. The chosen tab survives a refresh.
  let statTab='overview',guestSort='hours',guestQuery='';
- const TABS=[['overview','Обзор'],['guests','Гости'],['time','Когда и где'],['sales','Продажи']];
+ const TABS=[['overview','Обзор'],['guests','Гости'],['time','Когда и где'],['sales','Продажи'],['new','Новые гости'],['promo','Акции']];
  const ago=d=>{const n=Math.round((Date.now()-new Date(d))/86400000);return n<=0?'сегодня':n===1?'вчера':n+' дн. назад'};
  const nickLink=(nick,id)=>{const b=el('button','nick-link',nick||('ID '+id));b.type='button';b.title='Открыть досье гостя';b.onclick=()=>window.openGuestProfile?.({userId:id});return b};
  function overview(st){
@@ -121,12 +121,66 @@
   }
   return box;
  }
+ // «Новые гости»: first-ever visits before and after the ads (13 November), alone or with company.
+ function newPane(st){
+  const n=st.newcomers,box=el('div','stat-pane');
+  if(!n){box.append(el('p','note','Нажмите «Обновить» — Desk посчитает новых гостей по истории Gizmo.'));return box}
+  const a=n.after,b=n.before_30,all=n.before_all,day=v=>new Date(v).toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+  const diff=(x,y)=>!y?'':(x>=y?'+':'')+Math.round(100*(x-y)/y)+'%';
+  const tiles=el('div','stat-tiles');
+  tiles.append(tile('После рекламы',num(a.per_day)+' в день',`${num(a.new)} новых с ${day(n.ad_start)} · ${num(a.days)} дн.`,true),
+   tile('30 дней до рекламы',num(b.per_day)+' в день',`${num(b.new)} новых · ${diff(a.per_day,b.per_day)} сейчас`),
+   tile('Обычно до рекламы',num(all.per_day)+' в день',`с ${day(all.from)} · ${diff(a.per_day,all.per_day)} сейчас`),
+   tile('Вернулись ещё раз',a.back_pct+'%',`после рекламы · до было ${b.back_pct}%`));
+  box.append(tiles);
+  const comp=block('Одни или компанией','Компания — гости, которые пришли с разницей до 15 минут, ушли с разницей до 20 минут и сидели в одной зоне зала.');
+  const t=el('div','guest-table new-table');
+  t.append(...['','Одиночки','Пары','Группы 3+','Друг тоже новый'].map(h=>el('span','head',h)));
+  for(const [label,w] of [['После рекламы',a],['30 дней до',b],['Обычно до',all]])
+   t.append(el('span','first',label),el('span',null,`${w.solo_pct}% · ${num(w.solo)}`),el('span',null,`${w.pair_pct}% · ${num(w.pair)}`),el('span',null,`${w.group_pct}% · ${num(w.group)}`),el('span',null,w.with_new_pct+'%'));
+  comp.append(t);box.append(comp);
+  box.append(bars('Новые гости по неделям',[...(n.weeks||[])].reverse().slice(0,20),r=>'с '+new Date(r.week).toLocaleDateString('ru-RU',{day:'numeric',month:'short'}),r=>r.new,r=>r.week>=n.ad_start.slice(0,10)||new Date(r.week).getTime()+7*864e5>new Date(n.ad_start)?'var(--lime)':null,''));
+  box.append(el('p','note',`Новый гость — тот, у кого это первая сессия в Gizmo (Gizmo в клубе с ${day(n.since)}; первые недели после запуска не считаются, тогда все были «новыми»). Салатовые недели — с рекламой.`));
+  return box;
+ }
+ // «Акции»: guests whose Gizmo note mentions the promo (admins write e.g. «взял гориллу»), what they topped up then and later.
+ let promoWord='горилл';
+ function promoPane(){
+  const box=el('div','stat-pane');
+  box.append(block('Акция по заметкам','Desk ищет слово во всех заметках гостей в Gizmo и считает, сколько пополнили в тот визит, кто вернулся и пополнялся ещё. Пишите начало слова, как в заметках: «горилл» найдёт и «горилла», и «гориллу».'));
+  const form=el('form','guest-tools');const input=el('input');input.value=promoWord;input.placeholder='Слово из заметки';input.setAttribute('enterkeyhint','done');input.autocomplete='off';input.maxLength=40;
+  input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();input.blur()}});
+  const go=el('button',null,'Посчитать');go.type='submit';form.append(input,go);
+  const status=el('p','note'),out=el('div');box.append(form,status,out);
+  let t=null;
+  function draw(r){
+   go.disabled=!!r.busy;setDeskText(go,r.busy?'Считаем…':'Посчитать');
+   setDeskText(status,r.busy?`Читаем заметки гостей: ${num(r.done)} из ${num(r.total)||'…'}. Можно работать дальше.`:(r.error||''));
+   const res=r.result;if(r.busy||!res){if(!r.busy)out.replaceChildren();return}
+   const s=res.summary,day=v=>v?new Date(v).toLocaleDateString('ru-RU',{day:'numeric',month:'long'}):'—';
+   const tiles=el('div','stat-tiles');
+   tiles.append(tile('Взяли по акции',num(s.people),s.people?`«${res.word}» · ${day(s.from)} — ${day(s.to)}`:'заметок со словом нет',true),
+    tile('Пополнили в тот визит',num(s.topped_that_visit),`${s.topped_that_visit_pct}% · ${rub(s.that_visit_sum)}`),
+    tile('Средний чек пополнения',rub(s.avg_that_visit),'у тех, кто пополнил'),
+    tile('Вернулись потом',num(s.came_back),`${s.came_back_pct}% пришли в другой день`),
+    tile('Пополнились ещё',num(s.topped_again),`${s.topped_again_pct}% · ${rub(s.again_sum)}`));
+   const table=el('div','guest-table promo-table');
+   table.append(...['Гость','Когда взял','В тот визит','Потом пополнил','Визитов после'].map(h=>el('span','head',h)));
+   for(const g of res.guests){const c=el('span','first');c.append(nickLink(g.nick,g.id));c.title=g.note;
+    table.append(c,el('span',null,new Date(g.at).toLocaleString('ru-RU',{timeZone:'Europe/Moscow',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})),
+     el('span',null,g.topup?rub(g.topup):'—'),el('span',null,g.later_count?`${rub(g.later_sum)} · ${g.later_count} раз`:'—'),el('span',null,g.visits_after?num(g.visits_after):'—'))}
+   out.replaceChildren(tiles,table,el('p','note','«В тот визит» — пополнения за 3 часа до заметки и час после. «Потом» — все пополнения позже. Наведите на ник — покажет текст заметки.'));
+  }
+  async function poll(){const r=await invoke('promo_notes_state');if(!r||!box.isConnected)return;draw(r);clearTimeout(t);if(r.busy)t=setTimeout(poll,1500)}
+  form.onsubmit=async e=>{e.preventDefault();promoWord=input.value.trim();const r=await invoke('promo_notes_start',promoWord);if(r?.error){setDeskText(status,r.error);return}poll()};
+  poll();return box;
+ }
  function render(st){
   body.replaceChildren();if(!st)return;
   const nav=el('div','stat-tabs');nav.setAttribute('role','tablist');
   const pane=el('div');
   const show=k=>{statTab=k;nav.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===k)));
-   pane.replaceChildren(k==='guests'?guestsPane(st):k==='time'?timePane(st):k==='sales'?salesPane(st):overview(st))};
+   pane.replaceChildren(k==='guests'?guestsPane(st):k==='time'?timePane(st):k==='sales'?salesPane(st):k==='promo'?promoPane():k==='new'?newPane(st):overview(st))};
   for(const [k,t] of TABS){const b=el('button',null,t);b.type='button';b.dataset.tab=k;b.setAttribute('role','tab');b.onclick=()=>show(k);nav.append(b)}
   body.append(nav,pane);show(statTab);
   if(st.errors?.length)body.append(el('p','note','Gizmo не отдал: '+st.errors.join(', ')+'. Нажмите «Обновить» позже.'));

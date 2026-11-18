@@ -257,3 +257,5 @@ button:where(:not(#desk-map *)):active:not(:disabled){transform:scale(.97)}
 #grid .btn-note{background:#1E1E1C;color:#F4F4EF;border:0}
 #grid .btn-note.has-note{color:#A3FF10}
 #grid .booking-note-edit .btn-note-save{background:#A3FF10;color:#0A0A0A;border:0}
+.promo-table{grid-template-columns:minmax(0,1.6fr) repeat(4,minmax(0,1fr))}
+.new-table{grid-template-columns:minmax(0,1.4fr) repeat(4,minmax(0,1fr))}
