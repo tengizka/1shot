@@ -261,6 +261,12 @@ class App:
     def select_account(self,id):
         try:return {'user':self.accounts.directory.get(int(id),fresh=True)}
         except Exception:return {'error':'Аккаунт недоступен. Повторите поиск'}
+    def product_stock(self):
+        try:
+            return {'items': self.food.stock_overview()}
+        except ApiError as error:
+            return {'error': str(error)[:160] or 'Не удалось загрузить остатки'}
+
     def start_regulars(self,minimum_visits,minimum_spend):
         return self.regulars.start(minimum_visits,minimum_spend)
     def regulars_state(self):

@@ -84,7 +84,7 @@
 </section>
 
 <section id="panel-sound" hidden>
- <div class="page-head"><h2>Настройки</h2><div class="settings-tabs" role="tablist"><button type="button" role="tab" data-settings="sound" aria-selected="true">Звук</button><button type="button" role="tab" data-settings="update" aria-selected="false">Обновление</button><button type="button" role="tab" data-settings="tests" aria-selected="false">Тесты</button><button type="button" role="tab" data-settings="regulars" aria-selected="false">Постоянники</button></div></div>
+ <div class="page-head"><h2>Настройки</h2><div class="settings-tabs" role="tablist"><button type="button" role="tab" data-settings="sound" aria-selected="true">Звук</button><button type="button" role="tab" data-settings="update" aria-selected="false">Обновление</button><button type="button" role="tab" data-settings="tests" aria-selected="false">Тесты</button><button type="button" role="tab" data-settings="regulars" aria-selected="false">Постоянники</button><button type="button" role="tab" data-settings="stock" aria-selected="false">Остатки</button></div></div>
  <div class="settings-pane" data-settings="sound">
   <section class="surface sound-settings">
    <div class="sound-top"><label class="switch"><input type="checkbox" id="sound-enabled" checked><i aria-hidden="true"></i><span>Звук уведомлений</span></label>
@@ -100,6 +100,20 @@
    <div class="update-progress" id="update-progress" hidden><i></i></div>
    <p id="update-message" class="note" role="status"></p>
    <div class="actions"><button type="button" id="update-check">Проверить обновления</button><button type="button" id="update-run" hidden>Обновить</button></div>
+  </section>
+ </div>
+ <div class="settings-pane" data-settings="stock" hidden>
+  <section class="surface test-box">
+   <h3>Остатки продукции</h3>
+   <div class="actions regulars-filters">
+    <label>Поиск по товарам<input id="stock-search" type="search" autocomplete="off" enterkeyhint="done"></label>
+    <button type="button" id="stock-refresh">Обновить остатки</button>
+   </div>
+   <p id="stock-status" class="note" role="status"></p>
+   <div id="stock-table" class="regulars-table" hidden>
+    <table aria-label="Товары с учётом остатков"><thead><tr><th scope="col">Товар</th><th scope="col">Категория</th><th scope="col">Остаток</th><th scope="col">Статус</th></tr></thead>
+    <tbody id="stock-rows"></tbody></table>
+   </div>
   </section>
  </div>
  <div class="settings-pane" data-settings="regulars" hidden>

@@ -90,6 +90,39 @@ class FoodTests(unittest.TestCase):
         food.menu_at=0;food.tick([]);self.assertNotIn('menu',self.cloud.calls[1],'unchanged menu is not sent again')
         self.assertEqual(sum(1 for c in self.gizmo.calls if c[1]=='v2.0/products/10/images'),1,'pictures are cached')
 
+    def test_stock_overview_includes_zero_and_does_not_guess_unavailable_counts(self):
+        self.gizmo.products[0].update(enableStock=True, disallowClientOrder=True)
+        self.gizmo.products[1].update(enableStock=True)
+        self.gizmo.stock_error = ApiError('Gizmo: HTTP 503')
+        stock = {item['id']: item for item in self.food.stock_overview()}
+        self.assertEqual(set(stock), {10, 11, 14})
+        self.assertEqual(stock[10]['group'], 'Напитки')
+        self.assertIsNone(stock[10]['quantity'])
+        self.assertIsNone(stock[11]['quantity'])
+        self.assertEqual(stock[14]['quantity'], 0)
+        self.assertEqual(self.gizmo.writes, [])
+        self.assertEqual(self.cloud.calls, [])
+
+    def test_stock_overview_falls_back_to_individual_product_balances(self):
+        self.gizmo.products[0].update(enableStock=True)
+        self.gizmo.on_hand = {10: 4, 14: -2}
+        request = self.gizmo.request
+
+        def without_bulk_stock(method, path, **kwargs):
+            if path == 'v2.0/productsstock':
+                raise ApiError('Gizmo: HTTP 500')
+            result = request(method, path, **kwargs)
+            if path == 'v2.0/productsstock/10':
+                return {'result': {**result, 'alertLevelReached': True}}
+            return result
+
+        self.gizmo.request = without_bulk_stock
+        stock = {item['id']: item for item in self.food.stock_overview()}
+        self.assertEqual(stock[10]['quantity'], 4)
+        self.assertTrue(stock[10]['low'])
+        self.assertEqual(stock[14]['quantity'], -2)
+        self.assertFalse(stock[14]['low'])
+
     def test_order_becomes_one_order_call_with_the_details(self):
         self.cloud.orders=[order()]
         self.food.tick(SEATED);self.food.tick(SEATED);self.food.tick(SEATED)
