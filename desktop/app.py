@@ -20,7 +20,8 @@ from .sound import Sound
 from .notifications import NotificationGate
 from .rentals import Rentals,ITEMS as RENTAL_ITEMS
 from .test_accounts import TestAccounts
-from . import smm_stats, stock_sync
+from . import smm_stats
+from .data_export import DataExport
 from .services import ApiError,Cloud,Gizmo,LegacyBridge
 from .toast import Toaster,describe
 from .updater import Updater
@@ -69,6 +70,7 @@ class App:
         self.registration=RegistrationApproval(self.cloud,self.gizmo,self.store,self.controller.guard)
         self.guest_passwords=GuestPasswords(self.cloud,self.gizmo,self.store,self.controller.guard)
         self.food=Food(self.cloud,self.gizmo,self.store,lambda:{r['host_id']:r['gizmo_host_id'] for r in self.host_rows},rentals=types.SimpleNamespace(add=lambda *a:self._locked(lambda:self.rentals.add(*a))))
+        self.data_export = DataExport(self.gizmo, self.cloud, self.food, self.stop)
         self.password_grants=[];self.password_ready=False
         self.registrations=[];self.registration_ready=False
         self.sound=Sound(HOME,self.store);self.host_rows=[];self.password_requests=[];self.protocol_ready=False;self.maximized=False
@@ -261,6 +263,12 @@ class App:
     def select_account(self,id):
         try:return {'user':self.accounts.directory.get(int(id),fresh=True)}
         except Exception:return {'error':'Аккаунт недоступен. Повторите поиск'}
+    def start_data_export(self):
+        return self.data_export.start()
+
+    def data_export_state(self):
+        return self.data_export.snapshot()
+
     def product_stock(self):
         try:
             return {'items': self.food.stock_overview()}
@@ -572,7 +580,6 @@ class App:
         # SMM dashboard: hourly per-code totals from Gizmo (numbers only, no guest data).
         self.smm_error=''
         threading.Thread(target=self.club_stats.loop,args=(self.stop,),daemon=True).start()
-        threading.Thread(target=stock_sync.sync_loop, args=(self.stop, self.food, self.cloud, lambda: self.online), daemon=True).start()
         from .tbank import feed_loop
         threading.Thread(target=feed_loop,args=(self.stop,self.gizmo,self.cloud),kwargs={'online':lambda:self.online},daemon=True).start()
         threading.Thread(target=smm_stats.loop,args=(self.stop,self.cloud,self.gizmo),kwargs={'online':lambda:self.online,'report':lambda e:setattr(self,'smm_error',e)},daemon=True).start()

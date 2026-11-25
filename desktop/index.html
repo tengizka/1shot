@@ -84,7 +84,7 @@
 </section>
 
 <section id="panel-sound" hidden>
- <div class="page-head"><h2>Настройки</h2><div class="settings-tabs" role="tablist"><button type="button" role="tab" data-settings="sound" aria-selected="true">Звук</button><button type="button" role="tab" data-settings="update" aria-selected="false">Обновление</button><button type="button" role="tab" data-settings="tests" aria-selected="false">Тесты</button><button type="button" role="tab" data-settings="regulars" aria-selected="false">Постоянники</button><button type="button" role="tab" data-settings="stock" aria-selected="false">Остатки</button></div></div>
+ <div class="page-head"><h2>Настройки</h2><div class="settings-tabs" role="tablist"><button type="button" role="tab" data-settings="sound" aria-selected="true">Звук</button><button type="button" role="tab" data-settings="update" aria-selected="false">Обновление</button><button type="button" role="tab" data-settings="tests" aria-selected="false">Тесты</button><button type="button" role="tab" data-settings="regulars" aria-selected="false">Постоянники</button><button type="button" role="tab" data-settings="stock" aria-selected="false">Остатки</button><button type="button" role="tab" data-settings="export" aria-selected="false">Данные</button></div></div>
  <div class="settings-pane" data-settings="sound">
   <section class="surface sound-settings">
    <div class="sound-top"><label class="switch"><input type="checkbox" id="sound-enabled" checked><i aria-hidden="true"></i><span>Звук уведомлений</span></label>
@@ -114,6 +114,14 @@
     <table aria-label="Товары с учётом остатков"><thead><tr><th scope="col">Товар</th><th scope="col">Категория</th><th scope="col">Остаток</th><th scope="col">Статус</th></tr></thead>
     <tbody id="stock-rows"></tbody></table>
    </div>
+  </section>
+ </div>
+ <div class="settings-pane" data-settings="export" hidden>
+  <section class="surface test-box">
+   <h3>Выгрузка данных клуба</h3>
+   <p class="note">Гости и их контакты, визиты, траты, продажи, пополнения, товары и остатки в Supabase.</p>
+   <div class="actions"><button type="button" id="data-export-run">Отправить все данные</button></div>
+   <p id="data-export-status" class="note" role="status"></p>
   </section>
  </div>
  <div class="settings-pane" data-settings="regulars" hidden>

@@ -49,6 +49,28 @@
  stockSearch.oninput=()=>{if(!stockRefresh.disabled)renderStock()};
  stockSearch.onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();stockSearch.blur()}};
 
+ const exportRun=$('data-export-run'),exportStatus=$('data-export-status');
+ async function showDataExport(state){
+  exportRun.disabled=Boolean(state?.busy);
+  exportStatus.classList.toggle('error',Boolean(state?.error));
+  if(state?.busy){
+   exportStatus.textContent='Отправляем данные · '+state.step;
+   setTimeout(async()=>showDataExport(await invoke('data_export_state')),1500);
+  }else if(state?.completed){
+   const counts=state.totals;
+   exportStatus.textContent='Готово. Гостей '+counts.guests+' · визитов '+counts.sessions+' · операций '+counts.sales+' · остатков '+counts.stock;
+  }else if(state?.error){
+   exportStatus.textContent=state.error;
+  }else{
+   exportStatus.textContent='Не удалось запустить выгрузку. Повторите попытку.';
+  }
+ }
+ exportRun.onclick=async()=>{
+  exportRun.disabled=true;
+  exportStatus.textContent='Запускаем выгрузку…';
+  await showDataExport(await invoke('start_data_export'));
+ };
+
  // Tabs injected later (e.g. «Анкеты») get the same icon + label layout as the rest of the sidebar.
  const icons={registrations:'<path d="M6 3h9l4 4v14H6Z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>',notes:'<path d="M4 4h16v12l-4 4H4Z"/><path d="M16 20v-4h4M8 9h8M8 13h5"/>',stats:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'};
  for(const [name,path] of Object.entries(icons)){
