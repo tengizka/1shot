@@ -262,3 +262,13 @@ button:where(:not(#desk-map *)):active:not(:disabled){transform:scale(.97)}
 .day-notes{grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr) minmax(0,3fr) 90px 60px}
 .day-notes .note-text{white-space:normal;overflow-wrap:anywhere;line-height:1.35;color:#C9C9C1}
 .day-notes .note-text.hit{color:#F4F4EF;font-weight:600}
+
+.regulars-filters{align-items:end;flex-wrap:wrap}
+.regulars-filters label{display:grid;gap:5px;color:var(--muted)}
+.regulars-filters input{width:140px}
+#regulars-results .settings-tabs{width:fit-content;margin-bottom:10px}
+#regulars-results button[aria-pressed="true"]{background:var(--ink);color:#0A0A0A}
+.regulars-table{overflow:auto;max-height:55vh}
+.regulars-table table{border-collapse:collapse;width:100%;font-family:var(--read)}
+.regulars-table th,.regulars-table td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);white-space:nowrap}
+.regulars-table th{position:sticky;top:0;background:var(--surface)}
