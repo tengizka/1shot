@@ -10,6 +10,7 @@ from pathlib import Path
 from .engine import Controller,Store
 from .accounts import Accounts
 from .recent import RecentPayers
+from .regulars import Regulars
 from .promo_notes import PromoNotes
 from .registration_approval import RegistrationApproval
 from .guest_passwords import GuestPasswords
@@ -63,6 +64,7 @@ class App:
         from .tbank import TBankShift
         self.tbank=TBankShift(self.gizmo,self.cloud,self.store)
         self.recent=RecentPayers(self.gizmo,self.accounts.directory)
+        self.regulars=Regulars(self.gizmo,self.cloud)
         self.promo_notes=PromoNotes(self.gizmo,self.cloud)
         self.registration=RegistrationApproval(self.cloud,self.gizmo,self.store,self.controller.guard)
         self.guest_passwords=GuestPasswords(self.cloud,self.gizmo,self.store,self.controller.guard)
@@ -259,6 +261,16 @@ class App:
     def select_account(self,id):
         try:return {'user':self.accounts.directory.get(int(id),fresh=True)}
         except Exception:return {'error':'Аккаунт недоступен. Повторите поиск'}
+    def product_stock(self):
+        try:
+            return {'items': self.food.stock_overview()}
+        except ApiError as error:
+            return {'error': str(error)[:160] or 'Не удалось загрузить остатки'}
+
+    def start_regulars(self,minimum_visits,minimum_spend):
+        return self.regulars.start(minimum_visits,minimum_spend)
+    def regulars_state(self):
+        return self.regulars.snapshot()
     def club_stats_state(self):
         """«Статистика»: the last collected club statistics (kept on this PC) and whether a new count is running."""
         return self.club_stats.snapshot()

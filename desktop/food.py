@@ -8,6 +8,7 @@ import difflib
 import hashlib
 import io
 import json
+import math
 import os
 import re
 import time
@@ -232,6 +233,55 @@ class Food:
                 on_hand=(row.get('result') if isinstance(row,dict) and isinstance(row.get('result'),dict) else row or {}).get('onHand')
             except Exception:return True
         return not isinstance(on_hand,(int,float)) or on_hand>0
+
+    def stock_overview(self):
+        """Actual tracked goods from Gizmo, including zero balances and till-only products."""
+        groups = {
+            group['id']: plain(group.get('name'))
+            for group in self.paged('v2.0/productgroups')
+            if type(group.get('id')) is int
+        }
+        products = self.paged('v2.0/products', {'IsDeleted': 'false'})
+        try:
+            stock = {
+                row['id']: row
+                for row in self.paged('v2.0/productsstock')
+                if type(row.get('id')) is int
+            }
+        except ApiError:
+            stock = {}
+
+        items = {}
+        for product in products:
+            product_id = product.get('id')
+            group = groups.get(product.get('productGroupId'), '')
+            name = plain(product.get('name'))
+            if (type(product_id) is not int or not name or product.get('isDeleted')
+                    or not product.get('enableStock') or product.get('productType') != 0
+                    or product.get('isService') or norm(group) == RENTAL_GROUP
+                    or product_id in items):
+                continue
+            row = stock.get(product_id)
+            if row is None:
+                try:
+                    row = self.get(f'v2.0/productsstock/{product_id}')
+                except ApiError:
+                    row = None
+            if isinstance(row, dict):
+                row = row.get('result', row)
+            if not isinstance(row, dict):
+                row = {}
+            quantity = row.get('onHand')
+            if type(quantity) not in (int, float) or not math.isfinite(quantity):
+                quantity = None
+            items[product_id] = {
+                'id': product_id,
+                'name': name,
+                'group': group or 'Без категории',
+                'quantity': quantity,
+                'low': row.get('alertLevelReached') is True,
+            }
+        return sorted(items.values(), key=lambda item: (item['group'].casefold(), item['name'].casefold(), item['id']))
 
     def tax_report(self):
         """Read-only: Gizmo's tax table and every product that carries a tax, for staff to review remotely."""

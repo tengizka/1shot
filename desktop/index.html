@@ -84,7 +84,7 @@
 </section>
 
 <section id="panel-sound" hidden>
- <div class="page-head"><h2>Настройки</h2><div class="settings-tabs" role="tablist"><button type="button" role="tab" data-settings="sound" aria-selected="true">Звук</button><button type="button" role="tab" data-settings="update" aria-selected="false">Обновление</button><button type="button" role="tab" data-settings="tests" aria-selected="false">Тесты</button></div></div>
+ <div class="page-head"><h2>Настройки</h2><div class="settings-tabs" role="tablist"><button type="button" role="tab" data-settings="sound" aria-selected="true">Звук</button><button type="button" role="tab" data-settings="update" aria-selected="false">Обновление</button><button type="button" role="tab" data-settings="tests" aria-selected="false">Тесты</button><button type="button" role="tab" data-settings="regulars" aria-selected="false">Постоянники</button><button type="button" role="tab" data-settings="stock" aria-selected="false">Остатки</button></div></div>
  <div class="settings-pane" data-settings="sound">
   <section class="surface sound-settings">
    <div class="sound-top"><label class="switch"><input type="checkbox" id="sound-enabled" checked><i aria-hidden="true"></i><span>Звук уведомлений</span></label>
@@ -100,6 +100,45 @@
    <div class="update-progress" id="update-progress" hidden><i></i></div>
    <p id="update-message" class="note" role="status"></p>
    <div class="actions"><button type="button" id="update-check">Проверить обновления</button><button type="button" id="update-run" hidden>Обновить</button></div>
+  </section>
+ </div>
+ <div class="settings-pane" data-settings="stock" hidden>
+  <section class="surface test-box">
+   <h3>Остатки продукции</h3>
+   <div class="actions regulars-filters">
+    <label>Поиск по товарам<input id="stock-search" type="search" autocomplete="off" enterkeyhint="done"></label>
+    <button type="button" id="stock-refresh">Обновить остатки</button>
+   </div>
+   <p id="stock-status" class="note" role="status"></p>
+   <div id="stock-table" class="regulars-table" hidden>
+    <table aria-label="Товары с учётом остатков"><thead><tr><th scope="col">Товар</th><th scope="col">Категория</th><th scope="col">Остаток</th><th scope="col">Статус</th></tr></thead>
+    <tbody id="stock-rows"></tbody></table>
+   </div>
+  </section>
+ </div>
+ <div class="settings-pane" data-settings="regulars" hidden>
+  <section class="surface test-box">
+   <h3>Постоянники</h3>
+   <p class="note">Два условия за 30 дней: число дней с визитом и сумма трат. Спящие — гости, которые подходили под оба условия в одном из предыдущих 30-дневных периодов и не заходили за последние 30 дней. Проверяем историю за 180 дней.</p>
+   <div class="actions regulars-filters">
+    <label>Минимум дней с визитом<input id="regulars-visits" type="number" min="1" max="30" value="4" required enterkeyhint="done"></label>
+    <label>Минимум трат, ₽<input id="regulars-spend" type="number" min="1" max="1000000" value="3000" required enterkeyhint="done"></label>
+    <button type="button" id="regulars-run">Собрать список</button>
+   </div>
+   <p id="regulars-status" class="note" role="status"></p>
+   <div id="regulars-results" hidden>
+    <div class="settings-tabs" role="group" aria-label="Группа гостей">
+     <button type="button" data-regulars="active" aria-pressed="true">Постоянники</button>
+     <button type="button" data-regulars="sleeping" aria-pressed="false">Спящие постоянники</button>
+    </div>
+    <p id="regulars-empty" class="note" hidden>Гостей с такими условиями пока нет.</p>
+    <div id="regulars-table" class="regulars-table">
+     <table aria-label="Список постоянников">
+      <thead><tr><th scope="col">Имя</th><th scope="col">Фамилия</th><th scope="col">Никнейм</th><th scope="col">Телефон</th><th scope="col">Дни с визитом</th><th scope="col">Траты</th><th scope="col">Последний визит</th><th scope="col">Период отбора</th></tr></thead>
+      <tbody id="regulars-rows"></tbody>
+     </table>
+    </div>
+   </div>
   </section>
  </div>
  <div class="settings-pane" data-settings="tests" hidden>
@@ -126,4 +165,4 @@
 </section>
 </main>
 
-<script src="brand.js"></script><script src="assets/hall-map.js"></script><script src="assets/arrival-time.js"></script><script src="assets/oneshot-loader.js"></script><script src="test-accounts.js" defer></script><script src="desk.js"></script><script src="admin-tools.js"></script><script src="account-profile.js"></script><script src="notes.js"></script><script src="stats.js"></script><script src="desk-menu.js"></script><script src="rentals.js"></script><script src="registrations.js"></script><script src="desk-registration.js"></script><script src="guest-passwords.js"></script><script src="desk-shell.js"></script><script src="desk-nav.js"></script><script src="arcade.js"></script></body></html>
+<script src="brand.js"></script><script src="assets/hall-map.js"></script><script src="assets/arrival-time.js"></script><script src="assets/oneshot-loader.js"></script><script src="test-accounts.js" defer></script><script src="desk.js"></script><script src="admin-tools.js"></script><script src="account-profile.js"></script><script src="notes.js"></script><script src="stats.js"></script><script src="desk-menu.js"></script><script src="rentals.js"></script><script src="registrations.js"></script><script src="desk-registration.js"></script><script src="guest-passwords.js"></script><script src="desk-shell.js"></script><script src="regulars.js"></script><script src="desk-nav.js"></script><script src="arcade.js"></script></body></html>

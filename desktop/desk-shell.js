@@ -7,6 +7,48 @@
   document.querySelectorAll('.settings-pane').forEach(p=>{const on=p.dataset.settings===tab.dataset.settings;p.hidden=!on;if(on){p.classList.remove('pane-in');void p.offsetWidth;p.classList.add('pane-in')}});
  });
 
+ // Load stock only when staff open the page or refresh it.
+ const stockTab=tabs.find(tab=>tab.dataset.settings==='stock');
+ const stockSearch=$('stock-search'),stockRefresh=$('stock-refresh'),stockStatus=$('stock-status');
+ const stockTable=$('stock-table'),stockRows=$('stock-rows');
+ const quantityFormat=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:6});
+ let stockItems=null,stockError='',stockUpdated='';
+ function renderStock(){
+  const query=stockSearch.value.trim().toLocaleLowerCase('ru');
+  const matching=(stockItems||[]).filter(item=>[item.name,item.group].some(text=>text.toLocaleLowerCase('ru').includes(query)));
+  const rows=matching.map(item=>{
+   const row=document.createElement('tr');
+   const state=item.quantity===null?'Нет данных':item.quantity<=0?'Нет в наличии':item.low?'Мало':'В наличии';
+   for(const value of [item.name,item.group,item.quantity===null?'—':quantityFormat.format(item.quantity),state]){
+    const cell=row.insertCell();cell.textContent=value;
+   }
+   return row;
+  });
+  stockRows.replaceChildren(...rows);stockTable.hidden=!rows.length;
+  stockStatus.classList.toggle('error',Boolean(stockError));
+  stockStatus.textContent=stockError||(stockItems===null?'':matching.length
+   ?'Позиций: '+matching.length+' · обновлено в '+stockUpdated
+   :query?'По этому запросу ничего нет.':'В Gizmo нет товаров с учётом остатков.');
+ }
+ async function loadStock(){
+  if(stockRefresh.disabled)return;
+  stockRefresh.disabled=true;stockStatus.classList.remove('error');stockStatus.textContent='Загружаем данные из Gizmo…';
+  try{
+   const result=await invoke('product_stock');
+   if(Array.isArray(result?.items)){
+    stockItems=result.items;stockError='';
+    stockUpdated=new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+   }else{
+    stockError=(result?.error||'Не удалось загрузить остатки.')+(stockItems?' Показаны данные на '+stockUpdated+'.':'');
+   }
+   renderStock();
+  }finally{stockRefresh.disabled=false}
+ }
+ stockTab.addEventListener('click',()=>{if(stockItems===null)loadStock()});
+ stockRefresh.onclick=loadStock;
+ stockSearch.oninput=()=>{if(!stockRefresh.disabled)renderStock()};
+ stockSearch.onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();stockSearch.blur()}};
+
  // Tabs injected later (e.g. «Анкеты») get the same icon + label layout as the rest of the sidebar.
  const icons={registrations:'<path d="M6 3h9l4 4v14H6Z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>',notes:'<path d="M4 4h16v12l-4 4H4Z"/><path d="M16 20v-4h4M8 9h8M8 13h5"/>',stats:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'};
  for(const [name,path] of Object.entries(icons)){
