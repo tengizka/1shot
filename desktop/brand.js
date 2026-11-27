@@ -1,1 +1,1 @@
-window.DESK_BUILD = {"version": "4.2.4", "author": "made tengizka", "title": "1SHOT / CLUB DESK · v4.2.4"};
+window.DESK_BUILD = {"version": "4.2.5", "author": "made tengizka", "title": "1SHOT / CLUB DESK · v4.2.5"};

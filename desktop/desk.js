@@ -224,8 +224,9 @@ function hall(s){
  const hosts=new Map((s.hosts||[]).map(h=>[h.host_id,h]));let free=0,busy=0,booked=0;
  const future=new Map();
  const calendarFresh=Date.now()-Date.parse(s.gizmo_bookings_at)<=30000;
- for(const b of calendarFresh?gizmoBookings(s):[]){
-  if(Date.parse(b.starts_at)>Date.now()&&!future.has(b.host_id))future.set(b.host_id,b);
+ const scheduled=[...(calendarFresh?gizmoBookings(s):[]),...s.rows.filter(b=>!b.instant&&['requested','waiting','holding'].includes(b.status))];
+ for(const b of scheduled){
+  if(Date.parse(b.starts_at)>Date.now()&&(!future.has(b.host_id)||Date.parse(b.starts_at)<Date.parse(future.get(b.host_id).starts_at)))future.set(b.host_id,b);
  }
  for(const btn of map.querySelectorAll('[data-host-id]')){
   const id=btn.dataset.hostId,connecting=s.rows.some(b=>b.instant&&b.host_id===id&&['requested','holding','checkin_pending'].includes(b.status));
@@ -240,7 +241,11 @@ function hall(s){
   const who=held?(held.username||held.guest_name||'Гость')+' · '+clubArrivalLabel(held.starts_at)+(held.status==='waiting'?' · ПК ещё занят':''):'';
   if((btn.dataset.who||'')!==who){if(who)btn.dataset.who=who;else delete btn.dataset.who}
   const upcoming=future.get(id);
-  btn.classList.toggle('has-future-booking',!!upcoming);
+  let badge=btn.querySelector('.future-booking-mark');
+  if(upcoming&&!badge){
+   badge=document.createElement('span');badge.className='future-booking-mark';
+   badge.textContent='!';badge.setAttribute('aria-hidden','true');btn.append(badge);
+  }else if(!upcoming)badge?.remove();
   const upcomingLabel=upcoming?' · Бронь с '+gizmoTime.format(new Date(upcoming.starts_at)):'';
   const title=hostName(id)+': '+HOST_LABELS[status]+(held?' · Бронь: '+who:reservation?' · Бронь из мини-приложения · '+(reservation.username||reservation.guest_name||'Гость'):'')+(queued?' · Очередь: '+queued.username:'')+upcomingLabel;
   if(btn.getAttribute('aria-label')!==title){btn.setAttribute('aria-label',title);if(held)btn.removeAttribute('title');else btn.title=title}
@@ -266,7 +271,7 @@ async function refresh(){
   setDeskText($('error'),[s.error,s.sync_error,s.password_sync_error,!s.protocol_ready?'Сервис аккаунтов пока недоступен. Проверьте сообщение об ошибке выше.':''].filter(Boolean).join('\n'));
   const nativeKey=JSON.stringify(gizmoBookings(s).map(b=>[b,Date.parse(b.starts_at)>Date.now()]))+(Date.now()-Date.parse(s.gizmo_bookings_at)<=30000);
   const bookingKey=JSON.stringify(s.rows)+selectedHost+nativeKey;if(refresh.bookingKey!==bookingKey){bookings(s);refresh.bookingKey=bookingKey}
-  const hallKey=nativeKey+JSON.stringify(s.hosts)+gizmoOk+[...picked]+JSON.stringify((s.rentals||[]).map(r=>r.host))+JSON.stringify(s.rows.map(b=>[b.host_id,b.status,b.instant,b.admin_created,b.username,b.guest_name]))+JSON.stringify(s.queues||[]);if(refresh.hallKey!==hallKey){hall(s);refresh.hallKey=hallKey}
+  const hallKey=nativeKey+JSON.stringify(s.hosts)+gizmoOk+[...picked]+JSON.stringify((s.rentals||[]).map(r=>r.host))+JSON.stringify(s.rows.map(b=>[b.host_id,b.status,b.instant,b.admin_created,b.username,b.guest_name,b.starts_at,Date.parse(b.starts_at)>Date.now()]))+JSON.stringify(s.queues||[]);if(refresh.hallKey!==hallKey){hall(s);refresh.hallKey=hallKey}
   const requests=s.password_requests||[];setDeskText($('requests-count'),requests.length);$('requests-count').toggleAttribute('data-zero',!requests.length);
   const resetKey=JSON.stringify(requests);if(refresh.resetKey!==resetKey){renderResetRequests(requests);refresh.resetKey=resetKey}
   window.renderGuestPasswords?.(s);
