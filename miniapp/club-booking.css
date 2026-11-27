@@ -38,3 +38,40 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 .session-feedback{font-size:11px;color:#8ab4f8;line-height:1.7;margin-top:14px;min-height:18px}
 .schedule-date-header{font-size:11px;color:#888;margin-bottom:6px;display:flex;gap:6px}
 .schedule-date-value{color:#fff;font-weight:600}
+
+#gizmo-filter {
+  align-self:flex-start;
+  min-height:44px;
+  padding:0 12px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:var(--bg-card);
+  color:inherit;
+  font:inherit;
+  font-size:12px;
+}
+#gizmo-filter[hidden], #gizmo-booking [hidden] {display:none}
+#gizmo-booking h2 {margin:12px 0 6px}
+#gizmo-booking .club-note {margin:8px 0}
+.gizmo-times {
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:8px;
+  margin:14px 0;
+}
+.gizmo-times label {display:grid;gap:6px;font-size:12px;min-width:0}
+.gizmo-times select {
+  width:100%;
+  min-width:0;
+  min-height:44px;
+  background:#181818;
+  color:#fff;
+  border:1px solid #555;
+  border-radius:8px;
+  padding:0 6px;
+  font:inherit;
+  font-size:16px;
+}
+#gizmo-conflict {font-size:13px;margin:0 0 10px}
+#gizmo-conflict:empty {display:none}
+#gizmo-booking button {width:100%;min-height:44px;margin-bottom:8px}

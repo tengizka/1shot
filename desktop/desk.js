@@ -135,11 +135,28 @@ function makeGroup(key){
  })};
  return box;
 }
+const gizmoTime=new Intl.DateTimeFormat('ru-RU',{timeZone:'Europe/Moscow',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+function gizmoBookings(s){
+ const now=Date.now();
+ return (s.gizmo_bookings||[]).filter(b=>Date.parse(b.ends_at)>now).sort((a,b)=>Date.parse(a.starts_at)-Date.parse(b.starts_at));
+}
+function gizmoCard(b,stale){
+ const card=document.createElement('article');
+ card.className='card gizmo-reservation';card.dataset.bookingId='gizmo-'+b.gizmo_id+'-'+b.host_id;card.booking=b;
+ const add=(tag,cls,text)=>{const node=document.createElement(tag);node.className=cls;node.textContent=text;card.append(node)};
+ add('h3','',hostName(b.host_id));
+ add('p','time',gizmoTime.format(new Date(b.starts_at))+' → '+gizmoTime.format(new Date(b.ends_at))+' МСК');
+ add('p','',b.from_app?'Из мини-аппа':'Из Gizmo Manager');
+ if(b.account_id)add('p','','Аккаунт Gizmo № '+b.account_id);
+ add('p','',stale?'Расписание не обновлено':'Бронь Gizmo № '+b.gizmo_id);
+ return card;
+}
 function bookings(s){
  const grid=$('grid');
  // A guest who already sat down is a session, not a booking: the card leaves the list at once.
  const rows=s.rows.filter(b=>(!b.instant||b.status==='attention')&&b.status!=='in_session').sort((a,b)=>Date.parse(a.starts_at)-Date.parse(b.starts_at)||Number(a.host_id)-Number(b.host_id));
- setDeskText($('booking-total'),rows.length||'');
+ const native=gizmoBookings(s);
+ setDeskText($('booking-total'),rows.length+native.length||'');
  const existing=new Map([...grid.querySelectorAll('.card[data-booking-id]')].map(card=>[card.dataset.bookingId,card]));
  const groups=new Map([...grid.querySelectorAll('.booking-group')].map(g=>[g.dataset.key,g]));
  const count={};rows.forEach(b=>{const k=groupKey(b);if(k)count[k]=(count[k]||0)+1});
@@ -151,7 +168,7 @@ function bookings(s){
   else nodes.push(card);
  }
  for(const [k,cards] of members){const g=groups.get(k),b=cards[0].booking;setDeskText(g.querySelector('h3'),b.guest_name);setDeskText(g.querySelector('.time'),clubArrivalLabel(b.starts_at));setDeskText(g.querySelector('.group-pcs'),cards.length+' ПК · '+cards.map(c=>c.booking.host_id).join(' · '));reconcileDeskChildren(g.querySelector('.group-body'),cards)}
- if(!nodes.length){const empty=grid.querySelector('.empty')||document.createElement('div');empty.className='empty';setDeskText(empty,'Броней пока нет');nodes.push(empty)}
+ if(!nodes.length&&!native.length){const empty=grid.querySelector('.empty')||document.createElement('div');empty.className='empty';setDeskText(empty,'Броней пока нет');nodes.push(empty)}
  else{
   // Two lists: guests who booked in the mini-app, and bookings the admin made (phone calls, companies).
   const fromAdmin=n=>n.classList.contains('booking-group')||!!n.booking?.admin_created;
@@ -159,6 +176,11 @@ function bookings(s){
   const app=nodes.filter(n=>!fromAdmin(n)),admin=nodes.filter(fromAdmin);
   const adminCount=rows.filter(b=>b.admin_created).length;
   nodes.splice(0,nodes.length,...(app.length?[head('app','Из мини-аппа',app.length),...app]:[]),...(admin.length?[head('admin','От админа',adminCount),...admin]:[]));
+ }
+ if(native.length){
+  const heading=document.createElement('h3');heading.className='booking-section';heading.textContent='Gizmo · '+native.length;
+  const stale=Date.now()-Date.parse(s.gizmo_bookings_at)>30000;
+  nodes.push(heading,...native.map(b=>gizmoCard(b,stale)));
  }
  reconcileDeskChildren(grid,nodes);markSelected();
 }
@@ -200,6 +222,11 @@ function hall(s){
   onMenu:id=>{if(picked.has(id)&&picked.size>1)window.openHostMenu?.(id,'multi',[...picked]);else{selectHosts([id],false);window.openHostMenu?.(id,'main')}}
  });setupFrameSelect(map)}
  const hosts=new Map((s.hosts||[]).map(h=>[h.host_id,h]));let free=0,busy=0,booked=0;
+ const future=new Map();
+ const calendarFresh=Date.now()-Date.parse(s.gizmo_bookings_at)<=30000;
+ for(const b of calendarFresh?gizmoBookings(s):[]){
+  if(Date.parse(b.starts_at)>Date.now()&&!future.has(b.host_id))future.set(b.host_id,b);
+ }
  for(const btn of map.querySelectorAll('[data-host-id]')){
   const id=btn.dataset.hostId,connecting=s.rows.some(b=>b.instant&&b.host_id===id&&['requested','holding','checkin_pending'].includes(b.status));
   const status=connecting?'connecting':fresh?(hosts.get(id)?.status||'unknown'):'unknown';
@@ -212,7 +239,10 @@ function hall(s){
   const lock=btn.querySelector('.booking-lock');if(lock.hidden===!!held)lock.hidden=!held;
   const who=held?(held.username||held.guest_name||'Гость')+' · '+clubArrivalLabel(held.starts_at)+(held.status==='waiting'?' · ПК ещё занят':''):'';
   if((btn.dataset.who||'')!==who){if(who)btn.dataset.who=who;else delete btn.dataset.who}
-  const title=hostName(id)+': '+HOST_LABELS[status]+(held?' · Бронь: '+who:reservation?' · Бронь из мини-приложения · '+(reservation.username||reservation.guest_name||'Гость'):'')+(queued?' · Очередь: '+queued.username:'');
+  const upcoming=future.get(id);
+  btn.classList.toggle('has-future-booking',!!upcoming);
+  const upcomingLabel=upcoming?' · Бронь с '+gizmoTime.format(new Date(upcoming.starts_at)):'';
+  const title=hostName(id)+': '+HOST_LABELS[status]+(held?' · Бронь: '+who:reservation?' · Бронь из мини-приложения · '+(reservation.username||reservation.guest_name||'Гость'):'')+(queued?' · Очередь: '+queued.username:'')+upcomingLabel;
   if(btn.getAttribute('aria-label')!==title){btn.setAttribute('aria-label',title);if(held)btn.removeAttribute('title');else btn.title=title}
   // Queue from the app: an hourglass on the tile; the hover names who waits. The PC goes to them 3 minutes after it frees.
   const mark=btn.querySelector('.queue-mark');
@@ -234,8 +264,9 @@ async function refresh(){
   const gizmoOk=!!s.last_sync&&Date.now()/1000-s.last_sync<30;
   setDeskText($('gizmo-connection'),gizmoOk?'GIZMO · НА СВЯЗИ':'GIZMO · НЕТ СВЯЗИ');$('gizmo-connection').className=gizmoOk?'online':'offline';
   setDeskText($('error'),[s.error,s.sync_error,s.password_sync_error,!s.protocol_ready?'Сервис аккаунтов пока недоступен. Проверьте сообщение об ошибке выше.':''].filter(Boolean).join('\n'));
-  const bookingKey=JSON.stringify(s.rows)+selectedHost;if(refresh.bookingKey!==bookingKey){bookings(s);refresh.bookingKey=bookingKey}
-  const hallKey=JSON.stringify(s.hosts)+gizmoOk+[...picked]+JSON.stringify((s.rentals||[]).map(r=>r.host))+JSON.stringify(s.rows.map(b=>[b.host_id,b.status,b.instant,b.admin_created,b.username,b.guest_name]))+JSON.stringify(s.queues||[]);if(refresh.hallKey!==hallKey){hall(s);refresh.hallKey=hallKey}
+  const nativeKey=JSON.stringify(gizmoBookings(s).map(b=>[b,Date.parse(b.starts_at)>Date.now()]))+(Date.now()-Date.parse(s.gizmo_bookings_at)<=30000);
+  const bookingKey=JSON.stringify(s.rows)+selectedHost+nativeKey;if(refresh.bookingKey!==bookingKey){bookings(s);refresh.bookingKey=bookingKey}
+  const hallKey=nativeKey+JSON.stringify(s.hosts)+gizmoOk+[...picked]+JSON.stringify((s.rentals||[]).map(r=>r.host))+JSON.stringify(s.rows.map(b=>[b.host_id,b.status,b.instant,b.admin_created,b.username,b.guest_name]))+JSON.stringify(s.queues||[]);if(refresh.hallKey!==hallKey){hall(s);refresh.hallKey=hallKey}
   const requests=s.password_requests||[];setDeskText($('requests-count'),requests.length);$('requests-count').toggleAttribute('data-zero',!requests.length);
   const resetKey=JSON.stringify(requests);if(refresh.resetKey!==resetKey){renderResetRequests(requests);refresh.resetKey=resetKey}
   window.renderGuestPasswords?.(s);
@@ -284,7 +315,7 @@ function renderResetRequests(requests){
   }
   nodes.push(card);
  }
- if(!nodes.length){const empty=box.querySelector('.empty-requests')||document.createElement('p');empty.className='empty-requests';setDeskText(empty,'Ожидающих запросов нет');nodes.push(empty)}
+ if(!nodes.length&&!native.length){const empty=box.querySelector('.empty-requests')||document.createElement('p');empty.className='empty-requests';setDeskText(empty,'Ожидающих запросов нет');nodes.push(empty)}
  reconcileDeskChildren(box,nodes);
 }
 /* Sound: on/off, volume and one melody; every change saves at once, a tap on a melody plays it. */

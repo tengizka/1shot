@@ -1,3 +1,4 @@
+import {notifyBooked} from '../_shared/booking-notice.ts';
 import {cors,json,db} from '../_shared/club.ts';
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response(null,{headers:cors});
@@ -15,6 +16,12 @@ Deno.serve(async req=>{
   }
   const {data:worker,error}=await client.from('club_worker').select('*').eq('worker_id',b.worker_id).gt('lease_until',new Date().toISOString()).single();
   if(error||!worker)return json({error:'lease_expired'},409);
+  if(b.action==='native_bookings'){
+   const {data,error}=await client.rpc('club_native_worker',{p_worker:b.worker_id,p_action:b.operation,p_data:b.data||{}});
+   if(error)throw error;
+   if(data.notify)await notifyBooked(data.notify.user_id,data.notify).catch(()=>{});
+   return json(data);
+  }
   if(['password_context','password_authorize','password_claim','password_finish','password_review','password_resolve'].includes(b.action)){
    const args:Record<string,unknown>={p_worker:b.worker_id,p_id:b.id};
    if(['password_context','password_authorize'].includes(b.action))args.p_source=b.source;

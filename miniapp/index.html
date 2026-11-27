@@ -323,7 +323,7 @@ button,input,select,textarea{font-family:'Unbounded',sans-serif}
 #free-count{display:block!important;font-size:9px;letter-spacing:0;color:#fff;text-align:right}
 @media(prefers-reduced-motion:reduce){.logo-fragment{opacity:1;transform:none;filter:none}}
 </style>
-<link rel="stylesheet" href="club-booking.css?v=20261008-ui">
+<link rel="stylesheet" href="club-booking.css?v=20261127-native">
 <link rel="stylesheet" href="hall.css?v=20261008-ui">
 </head>
 <body>
@@ -922,33 +922,37 @@ function timeLeft(id){
 }
 function renderHall() {
   const map = document.getElementById('floor-map');
-  const fresh = HALL_LAYOUT.filter(pc=>pc.id!=='1' && liveHostStatus(hostsData[pc.id])!=='unknown');
-  const free = fresh.filter(pc=>liveHostStatus(hostsData[pc.id])==='free').length;
-  document.getElementById('free-count').textContent = `Свободно: ${fresh.length ? free : '—'}`;
+  const seatStatus=id=>window.nativeBooking?.status(id,liveHostStatus(hostsData[id]))||liveHostStatus(hostsData[id]);
+  const fresh = HALL_LAYOUT.filter(pc=>pc.id!=='1' && seatStatus(pc.id)!=='unknown');
+  const free = fresh.filter(pc=>seatStatus(pc.id)==='free').length;
+  document.getElementById('free-count').textContent = `${window.nativeBooking?.filtered?'На это время':'Свободно'}: ${fresh.length ? free : '—'}`;
   const seats = HALL_LAYOUT.filter(pc=>PLAN_SEATS[pc.id]);
-  const renderKey=seats.map(pc=>pc.id+liveHostStatus(hostsData[pc.id])+!!window.ownBookingIds?.has(pc.id)+!!window.instantHostIds?.has(pc.id)+timeLeft(pc.id)).join('|');
+  const renderKey=seats.map(pc=>pc.id+seatStatus(pc.id)+!!window.nativeBooking?.enabled+!!window.nativeBooking?.filtered+(window.nativeBooking?.upcoming(pc.id)||'')+!!window.ownBookingIds?.has(pc.id)+!!window.instantHostIds?.has(pc.id)+timeLeft(pc.id)).join('|');
   if(map.dataset.renderKey!==renderKey||!map.children.length){
     map.dataset.renderKey=renderKey;
     const focusedId = map.contains(document.activeElement) ? document.activeElement.dataset.hid : null;
     map.replaceChildren();
     seats.forEach(pc => {
-      const status = window.instantHostIds?.has(pc.id)?'connecting':liveHostStatus(hostsData[pc.id]);
+      const status = window.instantHostIds?.has(pc.id)?'connecting':seatStatus(pc.id);
       const [x,y]=PLAN_SEATS[pc.id];
       const button = document.createElement('button');
       button.type = 'button'; button.className = `map-pc ${status}`;
       if(window.ownBookingIds?.has(pc.id))button.classList.add('my-booking');
       button.style.left=x+'px';button.style.top=y+'px';
       button.dataset.hid = pc.id;button.dataset.room=planRoom(pc.id);button.dataset.zone=planZoneOf(pc.id);
-      button.disabled = !['free','busy','reserved'].includes(status)&&!window.ownBookingIds?.has(pc.id);
+      button.disabled = !window.nativeBooking?.enabled&&!['free','busy','reserved'].includes(status)&&!window.ownBookingIds?.has(pc.id);
       button.setAttribute('aria-label', `ПК ${pc.id}: ${HOST_LABELS[status]}`);
-      const left=status==='busy'?timeLeft(pc.id):'';
+      const left=status==='busy'&&!window.nativeBooking?.filtered?timeLeft(pc.id):'';
       button.innerHTML = `<span class="map-number">${pc.id}</span>${statusIcon(status)}${left?`<span class="map-left">${left}</span>`:''}`;
       if(left)button.setAttribute('aria-label', `ПК ${pc.id}: занят, освободится через ${left}`);
+      const upcoming=window.nativeBooking?.upcoming(pc.id);
+      if(upcoming)button.setAttribute('aria-label',button.getAttribute('aria-label')+'. '+upcoming);
       if(pickedSeat===pc.id)button.classList.add('picked');
       button.onclick = () => {
         if(activeZone!==planZoneOf(pc.id)){haptic('select');return switchZone(planZoneOf(pc.id));}
         const current=liveHostStatus(hostsData[pc.id]);
         if(window.openOwnBooking?.(pc.id)){haptic('ok');return pickSeat(pc.id);}
+        if(window.nativeBooking?.enabled){haptic('select');pickSeat(pc.id);return openBooking(pc.id,pc.zone,pc.group==='vip');}
         if(current!=='free'){haptic(current==='busy'?'busy':'warn');denySeat(button);return current==='busy'?window.showOccupied(pc.id):toast(SEAT_DENIED[current]||SEAT_DENIED.unknown,'inf');}
         haptic('free');pickSeat(pc.id);openBooking(pc.id, pc.zone, pc.group === 'vip')};
       map.append(button);
@@ -963,18 +967,20 @@ function renderPs5(){
   const card=document.getElementById('ps5-seat');if(!card)return;
   const status=liveHostStatus(hostsData['1']),mine=!!window.ownBookingIds?.has('1');
   card.className=`ps5-phone-card plan-ps5 ${status}${mine?' my-booking':''}${pickedSeat==='1'?' picked':''}`;
-  document.getElementById('ps5-status').textContent=mine?'Твоя бронь':HOST_LABELS[status]||HOST_LABELS.unknown;
+  document.getElementById('ps5-status').textContent=window.nativeBooking?.enabled&&!mine?'Бронь по телефону':mine?'Твоя бронь':HOST_LABELS[status]||HOST_LABELS.unknown;
   card.setAttribute('aria-label','TV-зона PS5: '+(mine?'твоя бронь':HOST_LABELS[status]));
 }
 document.getElementById('ps5-seat').addEventListener('click',()=>{
   const card=document.getElementById('ps5-seat'),current=liveHostStatus(hostsData['1']);
   if(window.openOwnBooking?.('1')){haptic('ok');return pickSeat('1');}
+  if(window.nativeBooking?.enabled)return openClubContact();
   if(current!=='free'){haptic(current==='busy'?'busy':'warn');denySeat(card);return current==='busy'?window.showOccupied('1'):toast(SEAT_DENIED[current]||SEAT_DENIED.unknown,'inf');}
   haptic('free');pickSeat('1');openBooking('1','ps5',false);
 });
 function updatePlanCaption(){
   const zone=PLAN_ZONES[activeZone],ids=Object.keys(PLAN_SEATS).filter(id=>activeZone==='all'||planZoneOf(id)===activeZone);
-  const fresh=ids.filter(id=>liveHostStatus(hostsData[id])!=='unknown'),free=fresh.filter(id=>liveHostStatus(hostsData[id])==='free').length;
+  const status=id=>window.nativeBooking?.status(id,liveHostStatus(hostsData[id]))||liveHostStatus(hostsData[id]);
+  const fresh=ids.filter(id=>status(id)!=='unknown'),free=fresh.filter(id=>status(id)==='free').length;
   document.getElementById('map-filter-label').textContent=zone.title;
   document.getElementById('seat-count').textContent=activeZone==='all'?'':`${ids.length} ПК`+(fresh.length?` · свободно ${free}`:'');
   document.getElementById('map-back').hidden=activeZone==='all';
@@ -1247,7 +1253,7 @@ function clearProfile() {
 <script src="desk-availability.js?v=2.3.0"></script>
 <script src="profile-feedback.js?v=20261008"></script>
 <link rel="stylesheet" href="registration-wait.css?v=2.6.0"><script src="registration-wait.js?v=2.8.0"></script><script src="password-choice.js?v=2.4.0"></script>
-<script src="club-booking.js?v=3.5.0"></script><script src="bot-access.js?v=1"></script>
+<script src="native-booking.js?v=1"></script><script src="club-booking.js?v=3.6.0"></script><script src="bot-access.js?v=1"></script>
 <link rel="stylesheet" href="registration-offline.css?v=1.0.0"><script src="registration-offline.js?v=1.0.0"></script>
 <link rel="stylesheet" href="polish.css?v=1.6.0"><script src="polish.js?v=2.7.0"></script>
 <link rel="stylesheet" href="smm.css?v=5.2.0">

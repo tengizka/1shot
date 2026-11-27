@@ -56,6 +56,17 @@ class App:
         self.store=Store(HOME/'desk.sqlite3');self.cloud=Cloud();self.gizmo=Gizmo()
         self.controller=Controller(self.cloud,self.gizmo,self.store)
         self.bridge=LegacyBridge(self.gizmo,self.cloud,self.store)
+        self.native_bookings=None
+        self.native_config_error=''
+        active_status=os.getenv('GIZMO_RESERVATION_ACTIVE_STATUS')
+        duration_unit=os.getenv('GIZMO_RESERVATION_UNIT_SECONDS')
+        if active_status or duration_unit:
+            from .native_bookings import NativeBookings
+            try:
+                self.native_bookings=NativeBookings(self.gizmo,self.cloud,LegacyBridge(self.gizmo,self.cloud,self.store),
+                    int(active_status or ''),int(duration_unit or ''))
+            except ValueError:
+                self.native_config_error='Проверьте статус и единицы длительности броней Gizmo в настройках Desk'
         self.stop=threading.Event();self.kick=threading.Event();self.queues=[];self.lock=threading.RLock();self.operations=threading.RLock();self.exit_prompt=threading.Lock()
         self.controller.stopping=self.stop.is_set
         self.bridge.guard=self.controller.guard
@@ -481,7 +492,7 @@ class App:
 
     def snapshot(self):
         with self.lock:
-            return {'rentals':self.rentals.list(),'rental_history':self.rentals.history()[-200:],'rental_items':RENTAL_ITEMS,'password_grants':self.password_grants,'password_ready':self.password_ready and self.online,'registrations':self.registrations,'registration_history':self.registration.history()[:100],'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':' · '.join(x for x in (self.error,'Еда: '+self.food.error if self.food.error else '') if x),'food':dict(self.food.status),'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'alerts':len(self.store.get('alerts',{})),'update':self.updater.snapshot(),'version':VERSION,'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready,'queues':self.queues,'direct':getattr(self.cloud,'direct',False)}
+            return {'rentals':self.rentals.list(),'rental_history':self.rentals.history()[-200:],'rental_items':RENTAL_ITEMS,'password_grants':self.password_grants,'password_ready':self.password_ready and self.online,'registrations':self.registrations,'registration_history':self.registration.history()[:100],'registration_ready':self.registration_ready and self.online,'password_sync_error':'Статус заявки на пароль изменился: требуется сверка с сервером' if any(v.get('conflict') for v in self.store.get('password-outcomes',{}).values()) else '', 'backend_label':getattr(self.cloud,'label','Сервер'),'online':self.online,'error':' · '.join(x for x in (self.error,'Еда: '+self.food.error if self.food.error else '') if x),'food':dict(self.food.status),'sync_error':self.sync_error,'last_sync':self.last_sync,'rows':self.rows,'gizmo_bookings':self.native_bookings.calendar if self.native_bookings else [],'gizmo_bookings_at':self.native_bookings.calendar_at if self.native_bookings else None,'alerts':len(self.store.get('alerts',{})),'update':self.updater.snapshot(),'version':VERSION,'muted':time.time()<self.muted_until,'sound':self.sound.settings,'hosts':self.host_rows,'password_requests':self.password_requests,'protocol_ready':self.protocol_ready,'queues':self.queues,'direct':getattr(self.cloud,'direct',False)}
     def acknowledge(self):
         with self.lock:self.store.set('alerts',{})
         self.sound.stop()
@@ -517,7 +528,8 @@ class App:
                     for b in self.controller.rows:
                         record=self.store.get('booking:'+b['id'],{})
                         self.rows.append({k:b.get(k) for k in ('id','username','telegram_id','gizmo_user_id','host_id','mode','duration_kind','status','starts_at','ends_at','hold_until','message','for_friend','instant','protocol','admin_created','guest_name')}|{'code':record.get('code') if b['status']=='holding' and time.time()-record.get('code_at',0)<180 else None})
-                    self.online=True;self.error=' · '.join(self.controller.errors)
+                    native_error=self.native_bookings.error if self.native_bookings else self.native_config_error
+                    self.online=True;self.error=' · '.join(self.controller.errors+(['Gizmo: '+native_error] if native_error else []))
             except Exception as error:
                 failed=True
                 with self.lock:self.online=False;self.protocol_ready=False;self.error=str(error)[:220]
@@ -577,6 +589,8 @@ class App:
         self.toaster=Toaster(factory,screen,ROOT)
         threading.Thread(target=self.update_loop,daemon=True).start()
         threading.Thread(target=self.work,daemon=True).start();threading.Thread(target=self.sync_loop,daemon=True).start();threading.Thread(target=self.food_loop,daemon=True).start()
+        if self.native_bookings:
+            threading.Thread(target=self.native_bookings.loop,args=(self.stop,lambda:self.online),daemon=True).start()
         # SMM dashboard: hourly per-code totals from Gizmo (numbers only, no guest data).
         self.smm_error=''
         threading.Thread(target=self.club_stats.loop,args=(self.stop,),daemon=True).start()

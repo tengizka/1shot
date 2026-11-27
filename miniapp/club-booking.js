@@ -3,7 +3,8 @@ window.clubV2=false;
 (() => {
  const state={host:null,mode:'arrival',kind:'range',part:'start',start:[18,0],end:[19,0],request:null,rows:[],busy:false,protocol:1,forFriend:false,account:null,accountTime:null};
  const statusNames={requested:'Ждём тебя',waiting:'ПК пока занят · освободим к приходу',holding:'ПК ждёт тебя',checkin_pending:'Входим в аккаунт…',in_session:'Ты в игре',attention:'Подойди к администратору',cancel_requested:'Снимаем бронь',cancelled:'Отменена',expired:'Время ожидания истекло',completed:'Завершена'};
- const terminal=new Set(['cancelled','expired','completed']);
+ const nativeStatuses={queued:'Оформляем бронь…',creating:'Оформляем бронь…',confirmed:'Бронь подтверждена',cancel_queued:'Отменяем бронь…',cancelling:'Отменяем бронь…',review:'Уточните бронь у администратора',failed:'Не удалось забронировать'};
+ const terminal=new Set(['cancelled','expired','completed','failed']);
  const sheet=document.createElement('dialog');sheet.id='club-booking';sheet.className='club-booking-dialog';
  sheet.innerHTML=`<div class="club-sheet-head"><span id="club-pc">БРОНЬ</span><button type="button" id="club-close" aria-label="Закрыть"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div><div id="club-create"><div class="bk-hero"><span class="bk-room" id="bk-room"></span><h2 id="bk-title"></h2><p class="bk-specs" id="bk-specs"></p></div><button type="button" class="bk-now" data-mode="instant" id="instant-mode" hidden><span><b>Войти сейчас</b><small>Уже в клубе? Садись, аккаунт откроется сам</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><div class="bk-later"><div class="bk-label-row"><p class="bk-label" id="bk-label">Забронировать</p><button type="button" class="bk-all-open" id="bk-all-open" aria-label="Все время" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button></div><div class="bk-slots" id="bk-slots" role="listbox" aria-label="Когда придёшь"></div><div class="bk-all" id="bk-all" hidden></div></div><p id="club-rules" class="club-note"></p><button id="club-submit" class="btn-main">Забронировать</button></div><div id="club-mine" hidden></div><p id="club-error" role="alert"></p><a class="club-help" href="tel:+74955837811">Если нужна помощь: +7 (495) 583-78-11</a>`;
  document.body.append(sheet);
@@ -24,13 +25,13 @@ window.clubV2=false;
  window.getClubState=async()=>{
   if(bundlePromise)return bundlePromise;
   if(bundleCache&&Date.now()-bundleTime<1000)return bundleCache;
-  bundlePromise=rawCall('state').then(data=>{if(!Array.isArray(data.hosts)||!Array.isArray(data.bookings))throw Error('Обновите сервис клуба');bundleCache=data;bundleTime=Date.now();pollFailures=0;return data}).catch(e=>{pollFailures=Math.min(pollFailures+1,3);throw e}).finally(()=>bundlePromise=null);
+  bundlePromise=rawCall('state').then(data=>{if(!Array.isArray(data.hosts)||!Array.isArray(data.bookings))throw Error('Обновите сервис клуба');if(data.booking_backend)native.setBackend(data.booking_backend);bundleCache=data;bundleTime=Date.now();pollFailures=0;return data}).catch(e=>{pollFailures=Math.min(pollFailures+1,3);throw e}).finally(()=>bundlePromise=null);
   return bundlePromise;
  };
  async function call(action,data={}){
   if(window.pollBundleReady&&['list','account'].includes(action))return window.getClubState();
   const result=await rawCall(action,data);
-  if(!['capabilities','list','account'].includes(action)){bundleCache=null;clearTimeout(pollTimer);if(!document.hidden)pollTimer=setTimeout(poll,5000);}
+  if(!['capabilities','list','account','native_list','native_schedule'].includes(action)){bundleCache=null;clearTimeout(pollTimer);if(!document.hidden)pollTimer=setTimeout(poll,5000);}
   return result;
  }
  function open(from){
@@ -96,6 +97,7 @@ window.clubV2=false;
  /* One PC per guest: picking another one swaps the booking; the old one is cancelled after the new one is accepted. */
  const SWAPPABLE=['requested','waiting','holding'];
  window.openClubBooking=async(id,after)=>{
+  if(native.enabled){if(String(id)==='1')openClubContact();else native.open(String(id));return}
   if(!after&&liveHostStatus(hostsData[String(id)])!=='free'){window.showOccupied?.(id);return}
   const others=state.rows.filter(b=>!terminal.has(b.status)&&b.status!=='in_session'&&b.host_id!==String(id));
   if(others.some(b=>!SWAPPABLE.includes(b.status))){window.pickSeat?.(null);toast('Прошлая бронь ещё оформляется. Подожди пару секунд','inf');return}
@@ -127,11 +129,29 @@ window.clubV2=false;
   const box=$('club-mine');box.replaceChildren();
   if(state.protocol>=2&&state.account?.session&&(!state.host||state.account.session.host_id===state.host))renderSession(box);
   const rows=state.rows.filter(b=>!terminal.has(b.status)&&(!state.host||b.host_id===state.host)&&!(b.status==='in_session'&&state.account?.session?.host_id===b.host_id));
-  if(!rows.length&&!state.account?.session){const p=document.createElement('p');p.textContent='Активных броней пока нет';box.append(p)}
-  rows.forEach(b=>{
+  const recentFailure=!rows.length&&state.rows.find(b=>b.native&&b.status==='failed'&&(!state.host||b.host_id===state.host)&&(!b.created_at||Date.now()-Date.parse(b.created_at)<900000));
+  if(!rows.length&&!recentFailure&&!state.account?.session){const p=document.createElement('p');p.textContent='Активных броней пока нет';box.append(p)}
+  (recentFailure?[...rows,recentFailure]:rows).forEach(b=>{
    const card=document.createElement('section');card.className='club-reservation';
    const add=(tag,text,cl)=>{const e=document.createElement(tag);e.textContent=text;if(cl)e.className=cl;card.append(e);return e};
-   add('h2',hostName(b.host_id));if(b.instant&&!['attention','cancelled','expired'].includes(b.status)){add('strong','Подключаем ваш аккаунт…');box.append(card);return}add('strong',statusNames[b.status]||b.status);
+   add('h2',hostName(b.host_id));
+   if(b.native){
+    const label=new Intl.DateTimeFormat('ru-RU',{timeZone:'Europe/Moscow',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    add('strong',nativeStatuses[b.status]||b.status);
+    add('p',label.format(Date.parse(b.starts_at))+' → '+label.format(Date.parse(b.ends_at))+' МСК','club-note');
+    if(b.status==='confirmed')add('p','В клубе войди в свой аккаунт на забронированном ПК.','club-note');
+    if(b.message)add('p',b.message,'club-note');
+    if(b.status==='failed'&&native.canFindAnother(b.starts_at,b.ends_at)){
+     const btn=add('button','Другой ПК на это время','club-cancel');
+     btn.onclick=()=>native.findAnother(b.starts_at,b.ends_at);
+    }
+    if(b.status==='queued'||(b.status==='confirmed'&&Date.parse(b.starts_at)>Date.now())){
+     const btn=add('button','Отменить бронь','club-cancel');
+     btn.onclick=async()=>{if(await uiConfirm('Отменить бронь '+hostName(b.host_id)+'?',{ok:'Отменить бронь',danger:true}))action(btn,'native_cancel',{id:b.id})};
+    }
+    box.append(card);return;
+   }
+   if(b.instant&&!['attention','cancelled','expired'].includes(b.status)){add('strong','Подключаем ваш аккаунт…');box.append(card);return}add('strong',statusNames[b.status]||b.status);
    add('p',b.mode==='arrival'?`Ждём до ${fmt(b.hold_until)} МСК`:`${clubArrivalLabel(b.starts_at)} → ${b.duration_kind==='open'?'Как пойдёт':clubArrivalLabel(b.ends_at)}`,'club-note');
    if(b.for_friend)add('p','Бронь старой версии · доступна отмена','club-note');
    if(b.status==='release_requested')add('p','Снимаем блокировку. Друг войдёт сам.','club-note');
@@ -190,7 +210,7 @@ window.clubV2=false;
   const text=hostName(b.host_id)+(when?' · '+when:'')+(b.status==='attention'?' · подойди к админу':'');
   const node=bar.querySelector('.bb-text');if(node.textContent!==text)node.textContent=text;
  }
- function showMine(){$('club-create').hidden=true;$('club-mine').hidden=false;$('club-pc').textContent='МОИ БРОНИ';$('club-error').textContent='';mine();open()}
+ function showMine(){native.hide();$('club-create').hidden=true;$('club-mine').hidden=false;$('club-pc').textContent='МОИ БРОНИ';$('club-error').textContent='';mine();open()}
 
  window.openOwnBooking=id=>{if(accountFresh()&&state.account?.session?.host_id===String(id)){state.host=String(id);showMine();return true}if(state.rows.some(b=>b.host_id===String(id)&&!terminal.has(b.status))){state.host=String(id);showMine();return true}return false};
  const sessionBanner=document.createElement('button');sessionBanner.id='my-session-banner';sessionBanner.className='my-session-banner';sessionBanner.type='button';sessionBanner.hidden=true;sessionBanner.innerHTML='<span><strong>Моя сессия</strong><small></small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>';
@@ -306,21 +326,33 @@ window.clubV2=false;
  let fetching=false;
  async function refresh(){
   if(document.hidden||fetching||!window.clubV2||!profile||!tg?.initData)return;fetching=true;
-  try{const res=await call('list');const changed=JSON.stringify(state.rows)!==JSON.stringify(res.bookings||[]);state.rows=res.bookings||[];window.instantHostIds=new Set(state.rows.filter(b=>b.instant&&['requested','holding','checkin_pending'].includes(b.status)).map(b=>b.host_id));window.ownBookingIds=new Set(state.rows.filter(b=>!terminal.has(b.status)).map(b=>b.host_id));if(changed){renderHall()}renderBar();if(changed&&sheet.open&&!$('club-mine').hidden)mine()}
+  try{const res=await call('list');const nativeRows=native.enabled
+   ? await call('native_list').then(r=>r.bookings.map(b=>({...b,native:true}))).catch(()=>state.rows.filter(b=>b.native))
+   : [];
+   const rows=[...(res.bookings||[]),...nativeRows];
+   const changed=JSON.stringify(state.rows)!==JSON.stringify(rows);state.rows=rows;window.instantHostIds=new Set(state.rows.filter(b=>b.instant&&['requested','holding','checkin_pending'].includes(b.status)).map(b=>b.host_id));window.ownBookingIds=new Set(state.rows.filter(b=>!terminal.has(b.status)).map(b=>b.host_id));if(changed){renderHall()}renderBar();if(changed&&sheet.open&&!$('club-mine').hidden)mine()}
   catch{/* A failed refresh never frees an owned PC in the UI. */}
   finally{fetching=false}
  }
- async function init(){try{const c=await call('capabilities');pollFailures=0;window.clubV2=!!c.enabled;state.protocol=c.protocol||1;window.pollBundleReady=c.poll_bundle===1&&state.protocol>=2;$('instant-mode').hidden=state.protocol<2;if(state.protocol>=2)setupAccount();if(window.clubV2){renderHall();refresh()}}catch{pollFailures=Math.min(pollFailures+1,3)}}
+ async function init(){try{const c=await call('capabilities');pollFailures=0;window.clubV2=!!c.enabled;native.setBackend(c.booking_backend||'desk');state.protocol=c.protocol||1;window.pollBundleReady=c.poll_bundle===1&&state.protocol>=2;$('instant-mode').hidden=state.protocol<2;if(state.protocol>=2)setupAccount();if(window.clubV2){renderHall();refresh()}}catch{pollFailures=Math.min(pollFailures+1,3)}}
  let pollTimer=null,polling=false;
  async function poll(){
   clearTimeout(pollTimer);
   if(polling)return;
   if(document.hidden){pollTimer=null;return;}
   polling=true;
-  try{if(!window.clubV2||!profile||!tg?.initData||!window.pollBundleReady)await init();await Promise.all([refresh(),refreshAccount(),profile?fetchHosts():Promise.resolve()])}finally{polling=false;}
+  try{if(!window.clubV2||!profile||!tg?.initData||!window.pollBundleReady)await init();await Promise.all([refresh(),refreshAccount(),profile?fetchHosts():Promise.resolve(),native.poll()])}finally{polling=false;}
   const seconds=pollFailures?Math.min(60,20*2**pollFailures):5;
   clearTimeout(pollTimer);if(!document.hidden)pollTimer=setTimeout(poll,seconds*1000);
  }
+ const native=window.createNativeBooking({sheet,call,open,refresh,
+  showMine:booking=>{
+   if(!state.rows.some(row=>row.id===booking.id))state.rows.push({...booking,native:true});
+   state.host=booking.host_id;showMine();renderBar();
+  },
+  isBusy:()=>state.busy,setBusy:value=>{state.busy=value},
+ });
+ window.nativeBooking=native;
  init().then(()=>{if(!polling){clearTimeout(pollTimer);pollTimer=setTimeout(poll,5000)}});
  document.addEventListener('visibilitychange',()=>{clearTimeout(pollTimer);if(!document.hidden){bundleCache=null;poll()}});
  window.addEventListener('club:resume',()=>{bundleCache=null;poll()});

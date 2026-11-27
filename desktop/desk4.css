@@ -272,3 +272,19 @@ button:where(:not(#desk-map *)):active:not(:disabled){transform:scale(.97)}
 .regulars-table table{border-collapse:collapse;width:100%;font-family:var(--read)}
 .regulars-table th,.regulars-table td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);white-space:nowrap}
 .regulars-table th{position:sticky;top:0;background:var(--surface)}
+#desk-map [data-host-id].has-future-booking::after{
+ content:'!';
+ position:absolute;
+ top:2px;
+ right:3px;
+ z-index:2;
+ color:#151000;
+ background:#ffd84d;
+ border-radius:50%;
+ width:13px;
+ height:13px;
+ line-height:13px;
+ font:bold 11px/13px sans-serif;
+ text-align:center;
+ pointer-events:none;
+}

@@ -1,3 +1,4 @@
+import {notifyBooked} from '../_shared/booking-notice.ts';
 import {cors,json,db,who,codeHash,publicFields} from '../_shared/club.ts';
 // Public bounded lifetime only; no worker identifiers or credentials.
 async function deskStatus(client: ReturnType<typeof db>) {
@@ -6,17 +7,6 @@ async function deskStatus(client: ReturnType<typeof db>) {
  const remaining=Date.parse(data?.[0]?.lease_until||'')-Date.now();
  const validFor=data?.[0]?.protocol>=2&&Number.isFinite(remaining)?Math.max(0,Math.min(30000,remaining)):0;
  return {online:validFor>0,valid_for_ms:validFor};
-}
-// The guest gets a short note from @oneshotagent when a booking is made (needs the bot started once).
-async function notifyBooked(chat: number, b: {host_id:string,starts_at?:string|null,hold_until?:string|null,instant?:boolean}) {
- const token=Deno.env.get('TELEGRAM_BOT_TOKEN');if(!token||chat<0)return;  // app guests (negative id) have no bot chat
- const msk=(iso?:string|null)=>iso?new Date(iso).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'}):'';
- const day=(iso?:string|null)=>{if(!iso)return '';const f=(d:Date)=>d.toLocaleDateString('ru-RU',{timeZone:'Europe/Moscow'});return f(new Date(iso))===f(new Date())?'сегодня':'завтра'};
- const pc=b.host_id==='1'?'PS5':'ПК '+b.host_id;
- const text=b.instant
-  ?`✅ <b>${pc} твой!</b>\nДержим до ${msk(b.hold_until)}. Подходи и садись 🎮`
-  :`✅ <b>${pc} забронирован</b>\n🕒 ${day(b.starts_at)} в ${msk(b.starts_at)}\n📍 1SHOT, Мытищи, ул. Мира, 37\n\nЕсли планы поменяются, отмени бронь в приложении.`;
- await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({chat_id:chat,text,parse_mode:'HTML'})});
 }
 // Orders and online top-ups stay off until the club settles which tax goes on the receipts.
 const SELLING=false;
@@ -37,13 +27,54 @@ Deno.serve(async req=>{
     let user:number;try{user=await who(b,client)}catch{return json({error:'Откройте приложение заново через Telegram'},403)}
     const {data:r,error:e}=await client.rpc('club_password_status',{p_user:user});if(e)throw e;password_grant=r;
    }
-   return json({password_grant,registration,registration_approval:1,enabled:!!data.enabled,timezone:'Europe/Moscow',protocol:data.flow_version||1,poll_bundle:1,desk:await deskStatus(client)});
+   return json({password_grant,registration,registration_approval:1,enabled:!!data.enabled||data.booking_backend!=='desk'&&!!data.booking_backend,booking_backend:data.booking_backend||'desk',timezone:'Europe/Moscow',protocol:data.flow_version||1,poll_bundle:1,desk:await deskStatus(client)});
   }
   let user:number;try{user=await who(b,client);}catch{return json({error:'Откройте приложение заново через Telegram'},403);}
+  if(b.action==='native_schedule'){
+   const {data,error}=await client.rpc('club_native_public_schedule');if(error)throw error;
+   return json(data);
+  }
+  if(b.action==='native_list'){
+   const {data:me,error:profileError}=await client.from('profiles').select('gizmo_user_id').eq('telegram_id',user).maybeSingle();
+   if(profileError)throw profileError;
+   if(!me?.gizmo_user_id)return json({bookings:[]});
+   const {data,error}=await client.from('club_native_bookings')
+    .select('id,host_id,starts_at,ends_at,status,message,created_at,changed_at')
+    .eq('telegram_id',user).eq('gizmo_user_id',me.gizmo_user_id).order('created_at',{ascending:false}).limit(20);
+   if(error)throw error;
+   const now=Date.now();
+   const rows=(data||[]).map((row:{status:string;starts_at:string;created_at:string;changed_at:string})=>{
+    if(row.status==='queued'&&(Date.parse(row.created_at)<=now-120000||Date.parse(row.starts_at)<=now)){
+     return {...row,status:'failed',message:'Время обработки заявки истекло'};
+    }
+    if(['creating','cancelling'].includes(row.status)&&Date.parse(row.changed_at)<=now-90000){
+     return {...row,status:'review',message:'Проверьте бронь у администратора клуба'};
+    }
+    return row;
+   });
+   return json({bookings:rows});
+  }
+  if(b.action==='native_create'||b.action==='native_cancel'){
+   if(typeof b.id!=='string'||!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(b.id))return json({error:'Некорректная заявка'},400);
+   if(b.action==='native_cancel'){
+    const {data,error}=await client.rpc('club_native_cancel',{p_user:user,p_id:b.id});
+    if(error)throw error;
+    return data?json({ok:true}):json({error:'Состояние брони изменилось. Обновите «Мои брони»'},409);
+   }
+   const validDate=(v:unknown)=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(v)&&Number.isFinite(Date.parse(v));
+   if(typeof b.host_id!=='string'||!/^\d{2,4}$/.test(b.host_id)||!validDate(b.starts_at)||!validDate(b.ends_at)){
+    return json({error:'Выберите ПК и время брони'},400);
+   }
+   const {data,error}=await client.rpc('club_native_create',{p_user:user,p_id:b.id,p_host:b.host_id,p_start:b.starts_at,p_end:b.ends_at});
+   if(error)throw error;
+   return json(data,202);
+  }
   if(b.action==='state'){
    const {data,error}=await client.rpc('club_client_state',{p_user:user});if(error)throw error;
+   const {data:settings,error:settingsError}=await client.from('club_settings').select('*').eq('id',true).single();
+   if(settingsError)throw settingsError;
    const telegram=JSON.parse(new URLSearchParams(b.initData).get('user')||'{}');
-   return json({...data,desk:await deskStatus(client),telegram:{first_name:telegram.first_name,last_name:telegram.last_name,photo_url:typeof telegram.photo_url==='string'&&telegram.photo_url.startsWith('https://')?telegram.photo_url:null}});
+   return json({...data,booking_backend:settings.booking_backend||'desk',desk:await deskStatus(client),telegram:{first_name:telegram.first_name,last_name:telegram.last_name,photo_url:typeof telegram.photo_url==='string'&&telegram.photo_url.startsWith('https://')?telegram.photo_url:null}});
   }
   if(b.action==='food_state'){
    const {data,error}=await client.rpc('club_food_state',{p_user:user,p_menu:b.menu===true});if(error)throw error;return json(data);
