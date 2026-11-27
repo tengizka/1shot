@@ -320,7 +320,7 @@ function renderResetRequests(requests){
   }
   nodes.push(card);
  }
- if(!nodes.length&&!native.length){const empty=box.querySelector('.empty-requests')||document.createElement('p');empty.className='empty-requests';setDeskText(empty,'Ожидающих запросов нет');nodes.push(empty)}
+ if(!nodes.length){const empty=box.querySelector('.empty-requests')||document.createElement('p');empty.className='empty-requests';setDeskText(empty,'Ожидающих запросов нет');nodes.push(empty)}
  reconcileDeskChildren(box,nodes);
 }
 /* Sound: on/off, volume and one melody; every change saves at once, a tap on a melody plays it. */
